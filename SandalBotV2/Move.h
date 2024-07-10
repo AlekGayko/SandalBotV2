@@ -5,11 +5,9 @@
 
 #include <bitset>
 
-class Move {
-private:
-public:
-	static constexpr short int targetSquareMask = 0b111111;
+struct Move {
 	static constexpr short int startingSquareMask = 0b111111000000;
+	static constexpr short int targetSquareMask = 0b000000111111;
 	static constexpr short int flagMask = 0b1111 << 12;
 
 	static constexpr short int noFlag = 0b0000;
@@ -22,16 +20,19 @@ public:
 	static constexpr short int promoteToBishopFlag = 0b0110;
 	static constexpr short int promoteToKnightFlag = 0b0111;
 
-	unsigned short int moveValue;
-	short int startSquare;
-	short int targetSquare;
-	short int flag;
+	unsigned short int moveValue = 0;
+	short int startSquare = 0;
+	short int targetSquare = 0;
+	short int flag = 0;
+
 	Move();
 	Move(unsigned short int move);
 	Move(int startingSquare, int targetSquare);
 	Move(int startingSquare, int targetSquare, int flag);
 
-	Move& operator=(const Move& other);
+	bool operator==(const Move& other) const;
+	bool isPromotion();
+	int promotionPieceType();
 };
 
 #endif // !MOVE_H
