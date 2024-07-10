@@ -418,3 +418,8 @@ $RECYCLE.BIN/
 # Package files
 *.nupkg
 *.snupkg
+
+# Ignore Visual Studio project files
+*.vcxproj
+*.vcxproj.filters
+*.sln
