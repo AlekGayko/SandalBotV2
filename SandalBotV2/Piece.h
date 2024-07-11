@@ -44,6 +44,9 @@ public:
 	static constexpr bool isColor(int piece, int color);
 	static constexpr bool isType(int piece, int pieceType);
 	static constexpr bool isPiece(int piece1, int piece2);
+	static constexpr bool isOrthogonal(int piece);
+	static constexpr bool isDiagonal(int piece);
+
 	static int symbolToPiece(char symbol);
 	static char pieceToSymbol(int piece);
 

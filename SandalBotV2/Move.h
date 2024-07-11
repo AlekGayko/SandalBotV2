@@ -5,6 +5,8 @@
 
 #include <bitset>
 
+#include "Piece.h"
+
 struct Move {
 	static constexpr short int startingSquareMask = 0b111111000000;
 	static constexpr short int targetSquareMask = 0b000000111111;
@@ -31,8 +33,10 @@ struct Move {
 	Move(int startingSquare, int targetSquare, int flag);
 
 	bool operator==(const Move& other) const;
-	bool isPromotion();
-	int promotionPieceType();
+	constexpr bool isPromotion() const;
+	constexpr bool isEnPassant() const;
+	constexpr bool isCastle() const;
+	constexpr int promotionPieceType() const;
 };
 
 #endif // !MOVE_H

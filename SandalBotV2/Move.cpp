@@ -31,20 +31,28 @@ bool Move::operator==(const Move& other) const {
 	return moveValue == other.moveValue;
 }
 
-bool Move::isPromotion() {
+constexpr bool Move::isPromotion() const {
 	return flag >= promoteToQueenFlag;
 }
 
-int Move::promotionPieceType() {
+constexpr bool Move::isEnPassant() const {
+	return flag == enPassantCaptureFlag;
+}
+
+constexpr bool Move::isCastle() const {
+	return flag == castleFlag;
+}
+
+constexpr int Move::promotionPieceType() const {
 	switch (flag) {
 	case promoteToQueenFlag:
-		return 0;
+		return Piece::queen;
 	case promoteToRookFlag:
-		return 0;
+		return Piece::rook;
 	case promoteToBishopFlag:
-		return 0;
+		return Piece::bishop;
 	case promoteToKnightFlag:
-		return 0;
+		return Piece::knight;
 	default:
 		return 0;
 	}

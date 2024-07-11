@@ -4,6 +4,7 @@
 #define SEARCHER_H
 
 #include "Board.h"
+#include "TranspositionTable.h"
 
 class Searcher {
 private:

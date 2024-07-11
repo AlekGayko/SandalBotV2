@@ -22,6 +22,16 @@ constexpr bool Piece::isPiece(int piece1, int piece2) {
     return piece1 == piece2;
 }
 
+constexpr bool Piece::isOrthogonal(int piece) {
+    int pieceType = piece & pieceMask;
+    return pieceType == queen || pieceType == rook;
+}
+
+constexpr bool Piece::isDiagonal(int piece) {
+    int pieceType = piece & pieceMask;
+    return pieceType == queen || pieceType == bishop;
+}
+
 int Piece::symbolToPiece(char symbol) {
     int color = black;
     int pieceType = 0;
