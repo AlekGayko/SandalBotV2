@@ -2,10 +2,13 @@
 
 #include <stdexcept>
 
-PieceList::PieceList(int numPieces = 16) {
-	occupiedSquares = new int[numPieces];
-	for (int i = 0; i < numPieces; i++) {
+PieceList::PieceList(int maxNumPieces) {
+	occupiedSquares = new int[maxNumPieces];
+	for (int i = 0; i < maxNumPieces; i++) {
 		occupiedSquares[i] = -1;
+	}
+	for (int i = 0; i < 64; i++) {
+		map[i] = -1;
 	}
 }
 
@@ -34,17 +37,13 @@ void PieceList::deletePiece(int square) {
 }
 
 void PieceList::movePiece(int startSquare, int targetSquare) {
-	const int occupiedIndex = map[startSquare];
+	const int occupiedStartIndex = map[startSquare];
 
-	occupiedSquares[occupiedIndex] = targetSquare;
-	map[targetSquare] = occupiedIndex;
+	occupiedSquares[occupiedStartIndex] = targetSquare;
+	map[targetSquare] = occupiedStartIndex;
 	map[startSquare] = -1;
-	
 }
 
-int PieceList::count() const {
-	return numPieces;
-}
 
 int& PieceList::operator[](int index) {
 	if (index < 0 || index >= numPieces) {

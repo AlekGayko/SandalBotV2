@@ -9,9 +9,19 @@
 
 class Bot {
 private:
+	Board board;
+	OpeningBook openingBook;
+	Searcher searcher;
+
+
 
 public:
 	Bot();
+	Bot(std::string fen);
+
+	void generateMove();
+	void stopSearching();
+
 };
 
 #endif // !BOT_H

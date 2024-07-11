@@ -13,6 +13,7 @@ public:
 	static constexpr int bishop = 0b0011;
 	static constexpr int knight = 0b0010;
 	static constexpr int pawn = 0b0001;
+	static constexpr int empty = 0b0000;
 
 	static constexpr int black = 0b0000;
 	static constexpr int white = 0b1000;
@@ -41,9 +42,12 @@ public:
 
 	static constexpr int makePiece(int pieceType, int color);
 	static constexpr int makePiece(int pieceType, bool isWhite);
+	static constexpr int color(int piece);
+	static constexpr int type(int piece);
 	static constexpr bool isColor(int piece, int color);
 	static constexpr bool isType(int piece, int pieceType);
 	static constexpr bool isPiece(int piece1, int piece2);
+	static constexpr bool isSlidingPiece(int piece);
 	static constexpr bool isOrthogonal(int piece);
 	static constexpr bool isDiagonal(int piece);
 

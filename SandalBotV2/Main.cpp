@@ -3,16 +3,32 @@
 #include <vector>
 #include "Piece.h"
 #include "Move.h"
+#include "PieceList.h"
+
 using namespace std;
 
 int main() {
-	vector<char> pieceSymbols;
-	for (int piece : Piece::pieces) {
-		//cout << Piece::pieceToSymbol(piece);
-		pieceSymbols.push_back(Piece::pieceToSymbol(piece));
+	PieceList list = PieceList();
+	for (int i = 0; i < 16; i++) {
+		list.addPiece(i);
 	}
-	for (char symbol : pieceSymbols) {
-		cout << Piece::symbolToPiece(symbol) << ", ";
+
+	for (int i = 0; i < list.numPieces; i++) {
+		cout << list[i] << ", ";
 	}
+	cout << endl;
+	for (int i = 0; i < 64; i++) {
+		cout << list.map[i] << ", ";
+	}
+	cout << endl;
+	list.movePiece(3, 16);
+	for (int i = 0; i < list.numPieces; i++) {
+		cout << list[i] << ", ";
+	}
+	cout << endl;
+	for (int i = 0; i < 64; i++) {
+		cout << list.map[i] << ", ";
+	}
+	cout << endl;
 	return 0;
 }

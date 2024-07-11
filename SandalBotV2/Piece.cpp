@@ -10,6 +10,14 @@ constexpr int Piece::makePiece(int pieceType, bool isWhite) {
     return makePiece(pieceType, isWhite ? white : black);
 }
 
+constexpr int Piece::color(int piece) {
+    return piece & colorMask;
+}
+
+constexpr int Piece::type(int piece) {
+    return piece & pieceMask;
+}
+
 constexpr bool Piece::isColor(int piece, int color) {
     return (piece & colorMask) == color;
 }
@@ -20,6 +28,11 @@ constexpr bool Piece::isType(int piece, int pieceType) {
 
 constexpr bool Piece::isPiece(int piece1, int piece2) {
     return piece1 == piece2;
+}
+
+constexpr bool Piece::isSlidingPiece(int piece) {
+    int pieceType = piece & pieceMask;
+    return piece == queen || piece == rook || piece == bishop;
 }
 
 constexpr bool Piece::isOrthogonal(int piece) {

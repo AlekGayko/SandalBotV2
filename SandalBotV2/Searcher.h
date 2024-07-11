@@ -9,14 +9,16 @@
 class Searcher {
 private:
 	bool cancelSearch = false;
-	Board board;
+	const int maxDeepening = 5;
+	Board* board = nullptr;
+
+	void iterativeSearch();
+	int negaMax(int depth, int maxDepth);
+	int QuiescenceSearch();
 public:
 	Searcher();
-	Searcher(Board board);
+	Searcher(Board* board);
 	void startSearch();
-	void iterativeSearch();
-	int negaMax();
-	int QuiescenceSearch();
 	void endSearch();
 };
 
