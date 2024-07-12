@@ -40,19 +40,19 @@ public:
 		whiteKing, whiteQueen, whiteRook, whiteBishop, whiteKnight, whitePawn
 	};
 
-	static constexpr int makePiece(int pieceType, int color);
-	static constexpr int makePiece(int pieceType, bool isWhite);
-	static constexpr int color(int piece);
-	static constexpr int type(int piece);
-	static constexpr bool isColor(int piece, int color);
-	static constexpr bool isType(int piece, int pieceType);
-	static constexpr bool isPiece(int piece1, int piece2);
-	static constexpr bool isSlidingPiece(int piece);
-	static constexpr bool isOrthogonal(int piece);
-	static constexpr bool isDiagonal(int piece);
+	inline static constexpr int makePiece(int pieceType, int color);
+	inline static constexpr int makePiece(int pieceType, bool isWhite);
+	inline static constexpr int color(int piece);
+	inline static constexpr int type(int piece);
+	inline static constexpr bool isColor(int piece, int color);
+	inline static constexpr bool isType(int piece, int pieceType);
+	inline static constexpr bool isPiece(int piece1, int piece2);
+	inline static constexpr bool isSlidingPiece(int piece);
+	inline static constexpr bool isOrthogonal(int piece);
+	inline static constexpr bool isDiagonal(int piece);
 
-	static int symbolToPiece(char symbol);
-	static char pieceToSymbol(int piece);
+	inline static int symbolToPiece(char symbol);
+	inline static char pieceToSymbol(int piece);
 
 };
 

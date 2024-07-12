@@ -1,5 +1,9 @@
 #include "BoardState.h"
 
+BoardState::BoardState() {
+
+}
+
 BoardState::BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, unsigned long long int zobristHash) {
 	this->whiteTurn = whiteTurn;
 	this->capturedPiece = capturedPiece;

@@ -1,17 +1,17 @@
 #include "MoveGen.h"
 
-MoveGen::MoveGen(Board board) {
-	//this->board = board;
+MoveGen::MoveGen(Board* board) {
+	this->board = board;
 }
 
 void MoveGen::generateMoves(int moves[]) {
-	const int color = board.state.whiteTurn ? board.whiteIndex : board.blackIndex;
+	const int color = board->state.whiteTurn ? board->whiteIndex : board->blackIndex;
 
 	for (int i = 0; i < 6; i++) {
-		int numPieces = board.pieceLists[i][color].numPieces;
+		int numPieces = board->pieceLists[i][color].numPieces;
 		int piece = i | color; // pieces 0-6 so works out
-		for (int j = 0; j < board.pieceLists[i][color].numPieces; j++) {
-			const int startSquare = board.pieceLists[i][color][j];
+		for (int j = 0; j < board->pieceLists[i][color].numPieces; j++) {
+			const int startSquare = board->pieceLists[i][color][j];
 
 			if (Piece::isType(piece, Piece::pawn)) {
 				generatePawnMoves(moves, startSquare);

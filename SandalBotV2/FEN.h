@@ -3,8 +3,8 @@
 #ifndef FEN_H
 #define FEN_H
 
-#include "Piece.h"
 #include "Board.h"
+#include "StringUtil.h"
 
 #include <string>
 
@@ -12,7 +12,7 @@
 class FEN {
 	struct PositionInfo {
 		std::string FEN;
-		int squares[64];
+		int squares[64] = { 0 };
 		bool whiteShortCastle;
 		bool whiteLongCastle;
 		bool blackShortCastle;
@@ -25,9 +25,9 @@ class FEN {
 	};
 public:
 	static const std::string startpos;
-	std::string generateFEN(Board board, bool includeEPSquare = true);
-	bool enPassantCapturable(Board board, int epFileIndex, int epRankIndex);
-	std::string flipFEN(std::string FEN);
+	static std::string generateFEN(Board* board, bool includeEPSquare = true);
+	static bool enPassantCapturable(Board* board, int epFileIndex, int epRankIndex);
+	static std::string flipFEN(std::string FEN);
 };
 
 #endif

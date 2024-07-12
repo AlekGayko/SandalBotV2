@@ -3,11 +3,10 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "Piece.h"
 #include "PieceList.h"
 #include "Move.h"
 #include "BoardState.h"
-#include "FEN.h"
+//#include "FEN.h"
 
 class Board {
 private:

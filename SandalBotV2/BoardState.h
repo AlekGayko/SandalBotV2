@@ -22,6 +22,7 @@ public:
 	static constexpr int blackShortCastleMask = 0b0100;
 	static constexpr int blackLongCastleMask = 0b1000;
 
+	BoardState();
 	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, unsigned long long int zobristHash);
 	bool canShortCastle(bool isWhite);
 	bool canLongCastle(bool isWhite);

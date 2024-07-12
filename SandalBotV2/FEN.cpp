@@ -7,28 +7,12 @@
 
 using namespace std;
 
-vector<string> splitString(string& str) {
-	vector<string> words;
-	stringstream ss(str);
-	string word;
-
-	while (ss >> word) {
-		words.push_back(word);
-	}
-
-	return words;
-}
-
-bool contains(const std::string& str, char ch) {
-	return str.find(ch) != std::string::npos;
-}
-
 const string FEN::startpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 FEN::PositionInfo::PositionInfo(string FEN) {
 	this->FEN = FEN;
 	int squarePieces[64];
-	vector<string> sections = splitString(FEN);
+	vector<string> sections = StringUtil::splitString(FEN);
 
 	if (sections.size() < 3) {
 		return;
@@ -44,6 +28,7 @@ FEN::PositionInfo::PositionInfo(string FEN) {
 		} else {
 			if (isdigit(symbol)) {
 				file += symbol - '0';
+				squarePieces[rank * 8 + file] = Piece::empty;
 			} else {
 				int pieceColor = toupper(symbol) ? Piece::white : Piece::black;
 				int pieceType = Piece::symbolToPiece(symbol);
@@ -61,10 +46,10 @@ FEN::PositionInfo::PositionInfo(string FEN) {
 	whiteTurn = sections[1] == "w";
 
 	string castlingRights = sections[2];
-	whiteShortCastle = contains(castlingRights, 'K');
-	whiteLongCastle = contains(castlingRights, 'Q');
-	blackShortCastle = contains(castlingRights, 'k');
-	blackLongCastle = contains(castlingRights, 'q');
+	whiteShortCastle = StringUtil::contains(castlingRights, 'K');
+	whiteLongCastle = StringUtil::contains(castlingRights, 'Q');
+	blackShortCastle = StringUtil::contains(castlingRights, 'k');
+	blackLongCastle = StringUtil::contains(castlingRights, 'q');
 
 	enPassantFile = 0;
 	fiftyMoveCount = 0;
@@ -84,13 +69,13 @@ FEN::PositionInfo::PositionInfo(string FEN) {
 	}
 }
 
-std::string FEN::generateFEN(Board board, bool includeEPSquare) {
+std::string FEN::generateFEN(Board* board, bool includeEPSquare) {
 	string FEN = "";
 	for (int rank = 0; rank < 8; rank++) {
 		int numEmptyFiles = 0;
 		for (int file = 0; file < 8; file++) {
 			int index = rank * 8 + file;
-			int piece = board.squares[index];
+			int piece = board->squares[index];
 			if (piece != Piece::empty) {
 				if (numEmptyFiles != 0) {
 					FEN += to_string(numEmptyFiles);
@@ -111,23 +96,23 @@ std::string FEN::generateFEN(Board board, bool includeEPSquare) {
 	}
 
 	FEN += ' ';
-	FEN += board.state.whiteTurn ? 'w' : 'b';
+	FEN += board->state.whiteTurn ? 'w' : 'b';
 
-	bool whiteShortCastle = (board.state.whiteShortCastleMask & board.state.castlingRights);
-	bool whiteLongCastle = (board.state.whiteLongCastleMask & board.state.castlingRights);
-	bool blackShortCastle = (board.state.blackShortCastleMask & board.state.castlingRights);
-	bool blackLongCastle = (board.state.blackLongCastleMask & board.state.castlingRights);
+	bool whiteShortCastle = (board->state.whiteShortCastleMask & board->state.castlingRights);
+	bool whiteLongCastle = (board->state.whiteLongCastleMask & board->state.castlingRights);
+	bool blackShortCastle = (board->state.blackShortCastleMask & board->state.castlingRights);
+	bool blackLongCastle = (board->state.blackLongCastleMask & board->state.castlingRights);
 
 	FEN += ' ';
 	FEN += whiteShortCastle ? "K" : "";
 	FEN += whiteLongCastle ? "Q" : "";
 	FEN += blackShortCastle ? "k" : "";
 	FEN += blackLongCastle ? "q" : "";
-	FEN += (board.state.castlingRights == 0) ? "-" : "";
+	FEN += (board->state.castlingRights == 0) ? "-" : "";
 
 	FEN += ' ';
-	int enPassantFileIndex = board.state.enPassantFile;
-	int enPassantRankIndex = board.state.whiteTurn ? 5 : 2;
+	int enPassantFileIndex = board->state.enPassantFile;
+	int enPassantRankIndex = board->state.whiteTurn ? 5 : 2;
 
 	bool isEnPassant = enPassantFileIndex != -1;
 	bool includeEnPassant = includeEPSquare || enPassantCapturable(board, enPassantFileIndex, enPassantRankIndex);
@@ -140,15 +125,15 @@ std::string FEN::generateFEN(Board board, bool includeEPSquare) {
 	}
 
 	FEN += ' ';
-	FEN += to_string(board.state.fiftyMoveCounter);
+	FEN += to_string(board->state.fiftyMoveCounter);
 
 	FEN += ' ';
-	FEN += to_string((board.numMoves / 2) + 1);
+	FEN += to_string((board->numMoves / 2) + 1);
 
 	return FEN;
 }
 
-bool FEN::enPassantCapturable(Board board, int epFileIndex, int epRankIndex) {
+bool FEN::enPassantCapturable(Board* board, int epFileIndex, int epRankIndex) {
 	return false;
 }
 

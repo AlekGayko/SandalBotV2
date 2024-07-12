@@ -4,16 +4,15 @@
 #define MOVEGEN_H
 
 #include "Board.h"
-#include "Piece.h"
 #include "MovePrecomputation.h"
 
 class MoveGen {
 private:
-	Board board;
+	Board* board = nullptr;
 public:
 	int maxMoves = 218;
 
-	MoveGen(Board board);
+	MoveGen(Board* board);
 
 	void generateMoves(int moves[]);
 	void generateOrthogonalMoves(int moves[], int startSquare, int pieceType);
