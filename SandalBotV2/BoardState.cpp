@@ -13,10 +13,10 @@ BoardState::BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int
 	this->zobristHash = zobristHash;
 }
 
-bool BoardState::canShortCastle(bool isWhite) {
+constexpr bool BoardState::canShortCastle(bool isWhite) const {
 	return isWhite ? castlingRights & whiteShortCastleMask : castlingRights & blackShortCastleMask;
 }
 
-bool BoardState::canLongCastle(bool isWhite) {
+constexpr bool BoardState::canLongCastle(bool isWhite) const {
 	return isWhite ? castlingRights & whiteLongCastleMask : castlingRights & blackLongCastleMask;
 }

@@ -27,16 +27,16 @@ struct Move {
 	short int targetSquare = 0;
 	short int flag = 0;
 
-	Move();
-	Move(unsigned short int move);
-	Move(int startingSquare, int targetSquare);
-	Move(int startingSquare, int targetSquare, int flag);
+	inline Move();
+	inline Move(unsigned short int move);
+	inline Move(int startingSquare, int targetSquare);
+	inline Move(int startingSquare, int targetSquare, int flag);
 
-	bool operator==(const Move& other) const;
-	constexpr bool isPromotion() const;
-	constexpr bool isEnPassant() const;
-	constexpr bool isCastle() const;
-	constexpr int promotionPieceType() const;
+	inline bool operator==(const Move& other) const;
+	inline constexpr bool isPromotion() const;
+	inline constexpr bool isEnPassant() const;
+	inline constexpr bool isCastle() const;
+	inline constexpr int promotionPieceType() const;
 };
 
 #endif // !MOVE_H

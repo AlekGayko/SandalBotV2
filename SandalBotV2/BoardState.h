@@ -24,8 +24,8 @@ public:
 
 	BoardState();
 	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, unsigned long long int zobristHash);
-	bool canShortCastle(bool isWhite);
-	bool canLongCastle(bool isWhite);
+	constexpr bool canShortCastle(bool isWhite) const;
+	constexpr bool canLongCastle(bool isWhite) const;
 };
 
 #endif // !BOARDSTATE_H

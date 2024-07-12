@@ -56,4 +56,4 @@ public:
 
 };
 
-#endif PIECE_H
+#endif

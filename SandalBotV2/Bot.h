@@ -9,7 +9,7 @@
 
 class Bot {
 private:
-	Board board;
+	Board* board;
 	OpeningBook openingBook;
 	Searcher searcher;
 
@@ -19,8 +19,8 @@ public:
 	Bot();
 	Bot(std::string fen);
 
-	void generateMove();
-	void stopSearching();
+	inline void generateMove();
+	inline void stopSearching();
 
 };
 

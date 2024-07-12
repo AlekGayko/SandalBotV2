@@ -7,11 +7,15 @@
 using namespace std;
 
 const std::string IUCI::positionLabels[3] = { "position", "fen", "moves" };
-const std::string IUCI::goLabels[7] = {"go", "movetime", "wtime", "btime", "winc", "binc", "movestogo"};
+const std::string IUCI::goLabels[7] = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo" };
 const std::string IUCI::logPath = "logs.txt";
 
 IUCI::IUCI() {
-	
+	bot = new Bot();
+}
+
+IUCI::~IUCI() {
+	delete bot;
 }
 
 void IUCI::processCommand(string command) {
@@ -64,6 +68,8 @@ int IUCI::getLabelledValueInt(string text, string label, string allLabels[], int
 string IUCI::getLabelledValue(string text, string label, string allLabels[], string defaultValue) {
 	return string();
 }
+
+
 
 void IUCI::logInfo(string text) {
 	ofstream outFile(logPath, ios::app);

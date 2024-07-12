@@ -4,6 +4,7 @@
 #define FEN_H
 
 #include "Board.h"
+#include "Piece.h"
 #include "StringUtil.h"
 
 #include <string>
@@ -21,13 +22,13 @@ class FEN {
 		bool whiteTurn;
 		int fiftyMoveCount;
 		int moveCount;
-		PositionInfo(std::string FEN);
+		inline PositionInfo(std::string FEN);
 	};
 public:
 	static const std::string startpos;
-	static std::string generateFEN(Board* board, bool includeEPSquare = true);
-	static bool enPassantCapturable(Board* board, int epFileIndex, int epRankIndex);
-	static std::string flipFEN(std::string FEN);
+	inline static std::string generateFEN(Board* board, bool includeEPSquare = true);
+	inline static bool enPassantCapturable(Board* board, int epFileIndex, int epRankIndex);
+	inline static std::string flipFEN(std::string FEN);
 };
 
 #endif

@@ -1,0 +1,14 @@
+Command received: uci
+Response: uciok
+Command received: quit
+Command received: yo
+Unknown Command: yo
+Command received: uci
+Response: uciok
+Command received: ready
+Unknown Command: ready
+Command received: go
+Command received: d
+Command received: quit
+Command received: quit
+Command received: quit

@@ -3,17 +3,19 @@
 #ifndef IUCI_H
 #define IUCI_H
 
+#include <string>
 #include "Bot.h"
 #include "StringUtil.h"
 
 class IUCI {
 private:
-	Bot bot;
+	Bot* bot = nullptr;
 	static const std::string positionLabels[3];
 	static const std::string goLabels[7];
 	static const std::string logPath;
 public:
 	IUCI();
+	~IUCI();
 	void processCommand(std::string command);
 	void OnMoveChosen(std::string move);
 	void processGoCommand(std::string command);
@@ -25,4 +27,5 @@ public:
 	std::string engineDataPath();
 };
 
-#endif // !IUCI_H
+#endif
+

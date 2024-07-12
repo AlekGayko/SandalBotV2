@@ -28,10 +28,10 @@ public:
 
 	int numMoves = 0;
 
-	Board();
-	void loadPosition(std::string fen);
-	void MakeMove(Move move);
-	void UnMakeMove(Move move);
+	inline Board();
+	inline void loadPosition(std::string fen);
+	inline void MakeMove(Move move);
+	inline void UnMakeMove(Move move);
 };
 
 #endif // !BOARD_H

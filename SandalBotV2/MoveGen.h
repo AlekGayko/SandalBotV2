@@ -12,14 +12,13 @@ private:
 public:
 	int maxMoves = 218;
 
-	MoveGen(Board* board);
-
-	void generateMoves(int moves[]);
-	void generateOrthogonalMoves(int moves[], int startSquare, int pieceType);
-	void generateDiagonalMoves(int moves[], int startSquare, int pieceType);
-	void generateKnightMoves(int moves[], int startSquare);
-	void generateKingMoves(int moves[], int startSquare);
-	void generatePawnMoves(int moves[], int startSquare);
+	inline MoveGen(Board* board);
+	inline void generateMoves(int moves[]);
+	inline void generateOrthogonalMoves(int moves[], int startSquare, int pieceType);
+	inline void generateDiagonalMoves(int moves[], int startSquare, int pieceType);
+	inline void generateKnightMoves(int moves[], int startSquare);
+	inline void generateKingMoves(int moves[], int startSquare);
+	inline void generatePawnMoves(int moves[], int startSquare);
 };
 
 #endif
