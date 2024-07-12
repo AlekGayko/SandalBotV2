@@ -4,14 +4,16 @@
 #define IUCI_H
 
 #include <string>
+#include <vector>
+
 #include "Bot.h"
 #include "StringUtil.h"
 
 class IUCI {
 private:
 	Bot* bot = nullptr;
-	static const std::string positionLabels[3];
-	static const std::string goLabels[7];
+	static const std::vector<std::string> positionLabels;
+	static const std::vector<std::string> goLabels;
 	static const std::string logPath;
 public:
 	IUCI();
@@ -21,8 +23,8 @@ public:
 	void processGoCommand(std::string command);
 	void processPositionCommand(std::string command);
 	void respond(std::string response);
-	int getLabelledValueInt(std::string text, std::string label, std::string allLabels[], int defaultValue = 0);
-	std::string getLabelledValue(std::string text, std::string label, std::string allLabels[], std::string defaultValue = "");
+	int getLabelledValueInt(std::string text, std::string label, const std::vector<std::string> allLabels, int defaultValue = 0);
+	std::string getLabelledValue(std::string text, std::string label, const std::vector<std::string> allLabels, std::string defaultValue = "");
 	void logInfo(std::string text);
 	std::string engineDataPath();
 };

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <iostream>
 
 
 using namespace std;
@@ -31,10 +32,39 @@ vector<string> StringUtil::splitString(string& str) {
 	while (ss >> word) {
 		words.push_back(word);
 	}
-
+	if (!words.size()) {
+		words.push_back("");
+	}
 	return words;
 }
 
 bool StringUtil::contains(const std::string& str, char ch) {
 	return str.find(ch) != std::string::npos;
 }
+
+bool StringUtil::contains(const std::string& str1, const std::string& str2) {
+	return str1.find(str2) != std::string::npos;
+}
+
+int StringUtil::indexOf(const std::string& str1, const std::string& str2) {
+	int index = str1.find(str2);
+	if (index == std::string::npos) {
+		return -1;
+	}
+	return index;
+}
+
+bool StringUtil::isDigitString(const std::string& str) {
+	if (!str.size()) {
+		return false;
+	}
+
+	for (char ch : str) {
+		if (!std::isdigit(static_cast<unsigned char>(ch))) {
+			return false;
+		}
+	}
+	return true;
+}
+
+

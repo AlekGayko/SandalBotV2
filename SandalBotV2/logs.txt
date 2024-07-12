@@ -12,3 +12,82 @@ Command received: d
 Command received: quit
 Command received: quit
 Command received: quit
+Command received: go
+Command received: go
+Command received: dfbvdgrjfrgesdi
+Unknown Command: dfbvdgrjfrgesdi
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Command received: go
+Thinking for: 0 ms.
+Command received: go
+Thinking for: 0 ms.
+Command received: movetime
+Unknown Command: movetime
+Command received: go
+Thinking for: 0 ms.
+Command received: wtime
+Unknown Command: wtime
+Command received: 1000
+Unknown Command: 1000
+Command received: go
+Thinking for: 0 ms.
+Command received: wtime
+Unknown Command: wtime
+Command received: 300000
+Unknown Command: 300000
+Command received: btime
+Unknown Command: btime
+Command received: 300000
+Unknown Command: 300000
+Command received: winc
+Unknown Command: winc
+Command received: 2000
+Unknown Command: 2000
+Command received: binc
+Unknown Command: binc
+Command received: 2000
+Unknown Command: 2000
+Command received: go
+Thinking for: 0 ms.
+Command received: movetime
+Unknown Command: movetime
+Command received: go
+Thinking for: 0 ms.
+Command received: movetime
+Unknown Command: movetime
+Command received: 
+Unknown Command: 
+Command received: go movetime
+Command received: go wtime 30 btime 30 winc 1 binc 1
+Thinking for: 0 ms.
+Command received: position i
+Command received: position feb hi
+Command received: position fen hi
+Command received: position startpos
+Command received: position startpos e4 e5 Nf3
+Command received: position startpos moves e4 e5 Nf3
+Make moves after setting position: 3
+Command received: position fen fdgdrgr e4 e5 Nf3
+Command received: position fen fdgdrgr moves e4 e5 Nf3
+Make moves after setting position: 3
+Command received: position FEN dfvbdrgfrdgdr e4 e5 e6
+Command received: position fen dfvbdrgfrdgdr e4 e5 e6
+Command received: position fen
+Command received: position fen 349043934 e4 e5 e6
+Command received: position fen 349043934 moves e4 e5 e6
+Make moves after setting position: 3
+Command received: uci
+Response: uciok

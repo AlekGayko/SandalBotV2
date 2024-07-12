@@ -9,7 +9,7 @@ int main() {
 	IUCI engine;
 	string command = "";
 	while (command != "quit") {
-		cin >> command;
+		getline(cin, command);
 		engine.processCommand(command);
 	}
 }
