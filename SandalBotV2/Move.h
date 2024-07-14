@@ -26,6 +26,7 @@ struct Move {
 	short int startSquare = 0;
 	short int targetSquare = 0;
 	short int flag = 0;
+	int takenPiece = 0;
 
 	inline Move();
 	inline Move(unsigned short int move);

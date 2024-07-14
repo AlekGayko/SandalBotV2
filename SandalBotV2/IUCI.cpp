@@ -9,7 +9,7 @@
 using namespace std;
 
 const vector<string> IUCI::positionLabels = { "position", "fen", "moves" };
-const vector<string> IUCI::goLabels = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo" };
+const vector<string> IUCI::goLabels = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
 const string IUCI::logPath = "logs.txt";
 
 IUCI::IUCI() {
@@ -58,6 +58,9 @@ void IUCI::processGoCommand(string command) {
 	if (StringUtil::contains(command, "movetime")) {
 		int moveTimeMs = getLabelledValueInt(command, "movetime", goLabels, 0);
 		// player.ThinkTimed(moveTimeMs);
+	} else if (StringUtil::contains(command, "perft")) {
+		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
+		//bot.perft(searchDepth);
 	} else {
 		int timeRemainingWhiteMs = getLabelledValueInt(command, "wtime", goLabels, 0);
 		int timeRemainingBlackMs = getLabelledValueInt(command, "btime", goLabels, 0);

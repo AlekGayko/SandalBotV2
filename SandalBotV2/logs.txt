@@ -91,3 +91,7 @@ Command received: position fen 349043934 moves e4 e5 e6
 Make moves after setting position: 3
 Command received: uci
 Response: uciok
+Command received: uci
+Response: uciok
+Command received: isready
+Response: readyok
