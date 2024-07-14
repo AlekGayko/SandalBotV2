@@ -31,6 +31,10 @@ constexpr int CoordHelper::indexToCol(int index) {
     return index % 8;
 }
 
+constexpr int CoordHelper::coordToIndex(Coord coord) {
+    return coord.row * 8 + coord.col;
+}
+
 constexpr bool CoordHelper::validCoordAddition(Coord coord, Coord direction) {
     if (coord.row + direction.row >= 8 || coord.row + direction.row < 0) {
         return false;
@@ -63,4 +67,12 @@ Coord::Coord(int row, int col) {
 Coord::Coord(int index) {
     this->row = CoordHelper::indexToRow(index);
     this->col = CoordHelper::indexToCol(index);
+}
+
+Coord Coord::operator+(const Coord& other) const {
+    return { row + other.row, col + other.col };
+}
+
+Coord Coord::operator*(const int other) const {
+    return { row * other, col * other };
 }

@@ -21,25 +21,23 @@ public:
 		constexpr PrecompCalc(int top, int left, int right, int bottom);
 	};
 
-	std::vector<Move> kingMoves[64];
-	std::vector<Move> queenMoves[64];
-	std::vector<Move> rookMoves[64];
-	std::vector<Move> bishopMoves[64];
-	std::vector<Move> knightMoves[64];
-	std::vector<Move> blackPawnMoves[64];
-	std::vector<Move> whitePawnMoves[64];
+	static const std::vector<Coord> orthogonalDirections;
+	static const std::vector<Coord> diagonalDirections;
+	static const std::vector<Coord> knightDirections;
+	static const std::vector<Coord> blackPawnMoveDirections;
+	static const std::vector<Coord> whitePawnMoveDirections;
 
-	constexpr MovePrecomputation();
-	constexpr void initKingMoves();
-	constexpr void initQueenMoves();
-	constexpr void initRookMoves();
-	constexpr void initBishopMoves();
-	constexpr void initKnightMoves();
-	constexpr void initBlackPawnMoves();
-	constexpr void initWhitePawnMoves();
+	static std::vector<Move> kingMoves[64];
+	static std::vector<Move> queenMoves[64];
+	static std::vector<Move> rookMoves[64];
+	static std::vector<Move> bishopMoves[64];
+	static std::vector<Move> knightMoves[64];
+	static std::vector<Move> blackPawnMoves[64];
+	static std::vector<Move> whitePawnMoves[64];
 
-
-
+	MovePrecomputation();
+	constexpr void initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable = false);
+	constexpr void initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

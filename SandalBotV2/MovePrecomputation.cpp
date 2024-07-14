@@ -1,42 +1,58 @@
 #include "MovePrecomputation.h"
 
 #include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+
+const std::vector<Coord> MovePrecomputation::orthogonalDirections = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+const std::vector<Coord> MovePrecomputation::diagonalDirections = { { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
+const std::vector<Coord> MovePrecomputation::knightDirections = { { 2, 1 }, { 2, -1 }, { 1, 2 }, { 1, -2 }, { -1, 2 }, { -1, -2 }, { -2, 1 }, { -2, -1 } };
+const std::vector<Coord> MovePrecomputation::blackPawnMoveDirections = { { 1, 0 } };
+const std::vector<Coord> MovePrecomputation::whitePawnMoveDirections = { { -1, 0 } };
 
 MovePrecomputation::PrecompCalc::PrecompCalc(int top, int left, int right, int bottom) : top(top), left(left), right(right), bottom(bottom) {
 	this->minVertical = std::min(top, bottom);
 	this->minHorizontal = std::min(left, right);
 }
 
-constexpr MovePrecomputation::MovePrecomputation() {
-	initKingMoves();
-	initQueenMoves();
-	initRookMoves();
-	initBishopMoves();
-	initKnightMoves();
-	initBlackPawnMoves();
-	initWhitePawnMoves();
+MovePrecomputation::MovePrecomputation() {
+	// Combine orthogonal and diagonal directions for major royal pieces
+	std::vector<Coord> royalDirections(orthogonalDirections.size());
+	std::transform(orthogonalDirections.begin(), orthogonalDirections.end(), diagonalDirections.begin(), royalDirections.begin(), std::plus<int>());
+
+	initMoves(orthogonalDirections, rookMoves, true);
+	initMoves(diagonalDirections, bishopMoves, true);
+	initMoves(royalDirections, kingMoves);
+	initMoves(royalDirections, queenMoves, true);
+	initMoves(knightDirections, knightMoves);
+	initPawnMoves(blackPawnMoveDirections, blackPawnMoves, false);
+	initPawnMoves(whitePawnMoveDirections, whitePawnMoves, true);
 }
 
-constexpr void MovePrecomputation::initKingMoves() {
+void MovePrecomputation::initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable) {
 	for (int square = 0; square < 64; square++) {
-		Coord coord = Coord(square);
+		Coord startSquare = Coord(square);
+		for (Coord direction : directions) {
+			Coord scalar = direction;
+			do {
+				if (CoordHelper::validCoordAddition(startSquare, direction)) {
+					Coord targetSquare = startSquare + direction;
+					Move move = Move(square, CoordHelper::coordToIndex(startSquare + direction));
+					moves[square].push_back(move);
+				} else break;
+				direction = direction + scalar;
+			} while (scalable);
+		}
 	}
 }
 
-constexpr void MovePrecomputation::initQueenMoves() {
-}
-
-constexpr void MovePrecomputation::initRookMoves() {
-}
-
-constexpr void MovePrecomputation::initBishopMoves() {
-}
-
-constexpr void MovePrecomputation::initKnightMoves() {
-}
-
-constexpr void MovePrecomputation::initBlackPawnMoves() {
-}
-
-constexpr void MovePrecomputation::initWhitePawnMoves() {
+constexpr void MovePrecomputation::initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite) {
+	initMoves(directions, moves);
+	Coord startSquare = isWhite ? Coord(6, 0) : Coord(1, 0);
+	for (int i = 0; i < 8; i++) {
+		Coord startDirection = { isWhite ? -2 : 2, 0 };
+		Move move = Move(CoordHelper::coordToIndex(startSquare), CoordHelper::coordToIndex(startSquare + startDirection));
+		moves[CoordHelper::coordToIndex(startSquare)].push_back(move);
+	}
 }

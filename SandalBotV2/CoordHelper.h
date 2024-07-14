@@ -12,6 +12,8 @@ struct Coord {
 	int col;
 	Coord(int row, int col);
 	Coord(int index);
+	Coord operator+(const Coord& other) const;
+	Coord operator*(const int other) const;
 };
 
 class CoordHelper {
@@ -22,6 +24,7 @@ public:
 	static constexpr int stringToIndex(std::string str);
 	static constexpr int indexToRow(int index);
 	static constexpr int indexToCol(int index);
+	static constexpr int coordToIndex(Coord coord);
 	static constexpr bool validCoord(Coord coord);
 	static constexpr bool validCoordAddition(Coord coord, Coord direction);
 	static constexpr bool validCoordAddition(Coord coord, Coord direction, int scalar);

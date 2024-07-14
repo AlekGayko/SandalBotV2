@@ -9,6 +9,7 @@
 class MoveGen {
 private:
 	Board* board = nullptr;
+	MovePrecomputation preComp;
 	static constexpr int directions[8] = { -8, 8, -1, 1, -7, 7, -9, 9 };
 	static constexpr int minOrthogonal = 0;
 	static constexpr int maxOrthogonal = 4;
