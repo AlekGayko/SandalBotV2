@@ -17,14 +17,12 @@ MovePrecomputation::PrecompCalc::PrecompCalc(int top, int left, int right, int b
 }
 
 MovePrecomputation::MovePrecomputation() {
-	// Combine orthogonal and diagonal directions for major royal pieces
-	std::vector<Coord> royalDirections(orthogonalDirections.size());
-	std::transform(orthogonalDirections.begin(), orthogonalDirections.end(), diagonalDirections.begin(), royalDirections.begin(), std::plus<int>());
-
 	initMoves(orthogonalDirections, rookMoves, true);
 	initMoves(diagonalDirections, bishopMoves, true);
-	initMoves(royalDirections, kingMoves);
-	initMoves(royalDirections, queenMoves, true);
+	initMoves(orthogonalDirections, kingMoves);
+	initMoves(diagonalDirections, kingMoves);
+	initMoves(orthogonalDirections, queenMoves, true);
+	initMoves(diagonalDirections, queenMoves, true);
 	initMoves(knightDirections, knightMoves);
 	initPawnMoves(blackPawnMoveDirections, blackPawnMoves, false);
 	initPawnMoves(whitePawnMoveDirections, whitePawnMoves, true);
@@ -47,7 +45,7 @@ void MovePrecomputation::initMoves(std::vector<Coord> directions, std::vector<Mo
 	}
 }
 
-constexpr void MovePrecomputation::initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite) {
+void MovePrecomputation::initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite) {
 	initMoves(directions, moves);
 	Coord startSquare = isWhite ? Coord(6, 0) : Coord(1, 0);
 	for (int i = 0; i < 8; i++) {

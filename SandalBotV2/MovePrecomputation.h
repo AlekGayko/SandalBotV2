@@ -18,7 +18,7 @@ public:
 		int bottom;
 		int minVertical;
 		int minHorizontal;
-		constexpr PrecompCalc(int top, int left, int right, int bottom);
+		PrecompCalc(int top, int left, int right, int bottom);
 	};
 
 	static const std::vector<Coord> orthogonalDirections;
@@ -35,9 +35,9 @@ public:
 	static std::vector<Move> blackPawnMoves[64];
 	static std::vector<Move> whitePawnMoves[64];
 
-	MovePrecomputation();
-	constexpr void initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable = false);
-	constexpr void initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite);
+	inline MovePrecomputation();
+	inline void initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable = false);
+	inline void initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

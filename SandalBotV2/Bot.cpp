@@ -11,3 +11,8 @@ inline void Bot::generateMove() {
 
 inline void Bot::stopSearching() {
 }
+
+inline int Bot::perft(int depth) {
+    searcher;
+    return 0;
+}

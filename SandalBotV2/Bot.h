@@ -21,6 +21,7 @@ public:
 
 	inline void generateMove();
 	inline void stopSearching();
+	inline int perft(int depth);
 
 };
 

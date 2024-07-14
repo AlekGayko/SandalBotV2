@@ -5,6 +5,7 @@
 
 #include "Board.h"
 #include "MovePrecomputation.h"
+#include "CoordHelper.h"
 
 class MoveGen {
 private:

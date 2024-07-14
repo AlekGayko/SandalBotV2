@@ -5,14 +5,14 @@
 const std::string CoordHelper::charFiles = "abcdefgh";
 const std::string CoordHelper::charRanks = "87654321";
 
-constexpr std::string CoordHelper::indexToString(int index) {
+std::string CoordHelper::indexToString(int index) {
     int row = index / 8;
     int col = index % 8;
     std::string coord = std::string(1, charFiles[col]) + std::string(1, charRanks[row]);
     return coord;
 }
 
-constexpr int CoordHelper::stringToIndex(std::string str) {
+int CoordHelper::stringToIndex(std::string str) {
     if (str.size() != 2) {
         throw std::length_error("Coordinate incorrect size: " + str.size());
     }
@@ -31,11 +31,11 @@ constexpr int CoordHelper::indexToCol(int index) {
     return index % 8;
 }
 
-constexpr int CoordHelper::coordToIndex(Coord coord) {
+int CoordHelper::coordToIndex(Coord coord) {
     return coord.row * 8 + coord.col;
 }
 
-constexpr bool CoordHelper::validCoordAddition(Coord coord, Coord direction) {
+bool CoordHelper::validCoordAddition(Coord coord, Coord direction) {
     if (coord.row + direction.row >= 8 || coord.row + direction.row < 0) {
         return false;
     }
@@ -45,11 +45,11 @@ constexpr bool CoordHelper::validCoordAddition(Coord coord, Coord direction) {
     return true;
 }
 
-constexpr bool CoordHelper::validCoord(Coord coord) {
+bool CoordHelper::validCoord(Coord coord) {
     return coord.row < 8 && coord.row >= 0 && coord.col < 8 && coord.col >= 0;
 }
 
-constexpr bool CoordHelper::validCoordAddition(Coord coord, Coord direction, int scalar) {
+bool CoordHelper::validCoordAddition(Coord coord, Coord direction, int scalar) {
     if (coord.row + direction.row * scalar >= 8 || coord.row + direction.row * scalar < 0) {
         return false;
     }

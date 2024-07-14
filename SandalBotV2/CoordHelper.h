@@ -20,14 +20,14 @@ class CoordHelper {
 public:
 	static const std::string charFiles;
 	static const std::string charRanks;
-	static constexpr std::string indexToString(int index);
-	static constexpr int stringToIndex(std::string str);
+	static std::string indexToString(int index);
+	static int stringToIndex(std::string str);
 	static constexpr int indexToRow(int index);
 	static constexpr int indexToCol(int index);
-	static constexpr int coordToIndex(Coord coord);
-	static constexpr bool validCoord(Coord coord);
-	static constexpr bool validCoordAddition(Coord coord, Coord direction);
-	static constexpr bool validCoordAddition(Coord coord, Coord direction, int scalar);
+	static int coordToIndex(Coord coord);
+	static bool validCoord(Coord coord);
+	static bool validCoordAddition(Coord coord, Coord direction);
+	static bool validCoordAddition(Coord coord, Coord direction, int scalar);
 };
 
 #endif
