@@ -7,6 +7,7 @@
 #include "Move.h"
 #include "BoardState.h"
 //#include "FEN.h"
+#include "CoordHelper.h"
 
 class Board {
 private:
@@ -28,10 +29,11 @@ public:
 
 	int numMoves = 0;
 
-	inline Board();
-	inline void loadPosition(std::string fen);
-	inline void MakeMove(Move move);
-	inline void UnMakeMove(Move move);
+	Board();
+	void loadPosition(std::string fen);
+	void makeMove(Move move);
+	void unMakeMove(Move move);
+	std::string printBoard();
 };
 
 #endif // !BOARD_H

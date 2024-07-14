@@ -25,9 +25,11 @@ public:
 	static constexpr int indexToRow(int index);
 	static constexpr int indexToCol(int index);
 	static int coordToIndex(Coord coord);
+	static int coordToIndex(int row, int col);
 	static bool validCoord(Coord coord);
 	static bool validCoordAddition(Coord coord, Coord direction);
 	static bool validCoordAddition(Coord coord, Coord direction, int scalar);
+	static bool validCoordAddition(int index, int move);
 };
 
 #endif

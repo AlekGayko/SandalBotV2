@@ -43,7 +43,7 @@ void IUCI::processCommand(string command) {
 	} else if (commandType == "quit") {
 		//player.Quit();
 	} else if (commandType == "d") {
-		//Console.WriteLine(player.GetBoardDiagram());
+		cout << (bot->printBoard()) << endl;;
 	} else {
 		logInfo("Unknown Command: " + commandType);
 	}
@@ -60,7 +60,7 @@ void IUCI::processGoCommand(string command) {
 		// player.ThinkTimed(moveTimeMs);
 	} else if (StringUtil::contains(command, "perft")) {
 		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
-		//bot.perft(searchDepth);
+		bot->perft(searchDepth);
 	} else {
 		int timeRemainingWhiteMs = getLabelledValueInt(command, "wtime", goLabels, 0);
 		int timeRemainingBlackMs = getLabelledValueInt(command, "btime", goLabels, 0);
@@ -91,7 +91,7 @@ void IUCI::processPositionCommand(string command) {
 	if (allMoves.size() > 0) {
 		vector<string> moveList = StringUtil::splitString(allMoves);
 		for (string move : moveList) {
-			//player.MakeMove(move);
+			bot->makeMove(move);
 		}
 
 		logInfo("Make moves after setting position: " + to_string(moveList.size()));

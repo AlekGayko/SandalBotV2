@@ -10,6 +10,7 @@
 
 class MovePrecomputation {
 public:
+	/*
 	struct PrecompCalc {
 		// Distances between piece and sides of board
 		int top;
@@ -20,6 +21,7 @@ public:
 		int minHorizontal;
 		PrecompCalc(int top, int left, int right, int bottom);
 	};
+	*/
 
 	static const std::vector<Coord> orthogonalDirections;
 	static const std::vector<Coord> diagonalDirections;
@@ -35,9 +37,9 @@ public:
 	static std::vector<Move> blackPawnMoves[64];
 	static std::vector<Move> whitePawnMoves[64];
 
-	inline MovePrecomputation();
-	inline void initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable = false);
-	inline void initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite);
+	MovePrecomputation();
+	void initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable = false);
+	void initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

@@ -1,6 +1,8 @@
 #include "CoordHelper.h"
 
+#include <iostream>
 #include <stdexcept>
+using namespace std;
 
 const std::string CoordHelper::charFiles = "abcdefgh";
 const std::string CoordHelper::charRanks = "87654321";
@@ -17,9 +19,8 @@ int CoordHelper::stringToIndex(std::string str) {
         throw std::length_error("Coordinate incorrect size: " + str.size());
     }
 
-    int row = StringUtil::indexOf(charRanks, std::string(1, str[0]));
-    int col = StringUtil::indexOf(charFiles, std::string(1, str[1]));
-
+    int row = StringUtil::indexOf(charRanks, std::string(1, str[1]));
+    int col = StringUtil::indexOf(charFiles, std::string(1, str[0]));
     return row * 8 + col;
 }
 
@@ -35,6 +36,10 @@ int CoordHelper::coordToIndex(Coord coord) {
     return coord.row * 8 + coord.col;
 }
 
+int CoordHelper::coordToIndex(int row, int col) {
+    return row * 8 + col;
+}
+
 bool CoordHelper::validCoordAddition(Coord coord, Coord direction) {
     if (coord.row + direction.row >= 8 || coord.row + direction.row < 0) {
         return false;
@@ -42,6 +47,13 @@ bool CoordHelper::validCoordAddition(Coord coord, Coord direction) {
     if (coord.col + direction.col < 0 || coord.col + direction.col >= 8) {
         return false;
     }
+    return true;
+}
+
+bool CoordHelper::validCoordAddition(int index, int move) {
+    if (index + move < 0 || index + move > 63) return false;
+    int resultCol = index % 8 + move % 8;
+    if (resultCol < 0 || resultCol >= 8) return false;
     return true;
 }
 

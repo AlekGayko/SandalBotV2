@@ -9,20 +9,18 @@
 
 class Bot {
 private:
-	Board* board;
-	OpeningBook openingBook;
-	Searcher searcher;
-
-
-
+	Board* board = nullptr;
+	OpeningBook* openingBook = nullptr;
+	Searcher* searcher = nullptr;
 public:
 	Bot();
-	Bot(std::string fen);
+	~Bot();
 
-	inline void generateMove();
-	inline void stopSearching();
-	inline int perft(int depth);
-
+	void makeMove(std::string move);
+	void generateMove();
+	void stopSearching();
+	int perft(int depth);
+	std::string printBoard();
 };
 
 #endif // !BOT_H

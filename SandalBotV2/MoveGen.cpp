@@ -1,11 +1,18 @@
 #include "MoveGen.h"
 
+#include <stdexcept>
+
+MoveGen::MoveGen() {
+
+}
+
 MoveGen::MoveGen(Board* board) {
+	if (board == nullptr) throw std::invalid_argument("board cannot be nullptr");
 	this->board = board;
 }
 
-void MoveGen::generateMoves(Move moves[]) {
-	const int color = board->state.whiteTurn ? board->whiteIndex : board->blackIndex;
+int MoveGen::generateMoves(Move moves[], bool isWhite) {
+	const int color = isWhite ? board->whiteIndex : board->blackIndex;
 	currentColor = color == board->whiteIndex ? Piece::white : Piece::black;
 	currentMoves = 0;
 
@@ -36,14 +43,20 @@ void MoveGen::generateMoves(Move moves[]) {
 			
 		}
 	}
+	return currentMoves;
 }
 
 void MoveGen::generateOrthogonalMoves(Move moves[], int startSquare) {
 	for (int direction = minOrthogonal; direction < maxOrthogonal; direction++) {
-		for (int targetSquare = startSquare; targetSquare < 64 && targetSquare >= 0; targetSquare += direction) {
+		for (int targetSquare = startSquare; true; targetSquare += direction) {
+			// If coordinate out of bounds break
+			if (!CoordHelper::validCoordAddition(startSquare, targetSquare)) break;
+			// If targetsquare contains friendly piece break
 			if (Piece::isColor(board->squares[targetSquare], currentColor)) break;
+			// Add move
 			moves[currentMoves] = Move(startSquare, targetSquare);
 			currentMoves++;
+			// If targetsquare contains opposing piece break
 			if (board->squares[targetSquare] != Piece::empty) break;
 		}
 	}
@@ -51,7 +64,8 @@ void MoveGen::generateOrthogonalMoves(Move moves[], int startSquare) {
 
 void MoveGen::generateDiagonalMoves(Move moves[], int startSquare) {
 	for (int direction = minDiagonal; direction < maxDiagonal; direction++) {
-		for (int targetSquare = startSquare; targetSquare < 64 && targetSquare >= 0; targetSquare += direction) {
+		for (int targetSquare = startSquare; true; targetSquare += direction) {
+			if (!CoordHelper::validCoordAddition(startSquare, targetSquare)) break;
 			if (Piece::isColor(board->squares[targetSquare], currentColor)) break;
 			moves[currentMoves] = Move(startSquare, targetSquare);
 			currentMoves++;
@@ -61,16 +75,35 @@ void MoveGen::generateDiagonalMoves(Move moves[], int startSquare) {
 }
 
 void MoveGen::generateKnightMoves(Move moves[], int startSquare) {
+	for (int direction = 0; direction < 8; direction++) {
+		int targetSquare = startSquare + direction;
+		if (!CoordHelper::validCoordAddition(startSquare, targetSquare)) continue;
+		if (Piece::isColor(board->squares[targetSquare], currentColor)) continue;
+		moves[currentMoves] = Move(startSquare, targetSquare);
+		currentMoves++;
+	}
 }
 
 void MoveGen::generateKingMoves(Move moves[], int startSquare) {
 	for (int direction = minOrthogonal; direction < maxDiagonal; direction++) {
 		int targetSquare = startSquare + direction;
-		if (Piece::isColor(board->squares[targetSquare], currentColor)) break;
+		if (!CoordHelper::validCoordAddition(startSquare, targetSquare)) continue;
+		if (Piece::isColor(board->squares[targetSquare], currentColor)) continue;
 		moves[currentMoves] = Move(startSquare, targetSquare);
 		currentMoves++;
 	}
 }
 
 void MoveGen::generatePawnMoves(Move moves[], int startSquare) {
+	const int direction = board->state.whiteTurn ? -1 : 1;
+	const int startRow = board->state.whiteTurn ? 6 : 1;
+	if (board->squares[startSquare + direction] == Piece::empty) {
+		moves[currentMoves] = Move(startSquare, startSquare + direction);
+		currentMoves++;
+	} else return;
+	if (startSquare / 8 == startRow && board->squares[startSquare + 2 * direction] == Piece::empty) {
+		moves[currentMoves] = Move(startSquare, startSquare + 2 * direction);
+		currentMoves++;
+	}
+	return;
 }

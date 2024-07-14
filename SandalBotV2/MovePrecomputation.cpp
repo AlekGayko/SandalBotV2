@@ -10,7 +10,9 @@ const std::vector<Coord> MovePrecomputation::diagonalDirections = { { 1, 1 }, { 
 const std::vector<Coord> MovePrecomputation::knightDirections = { { 2, 1 }, { 2, -1 }, { 1, 2 }, { 1, -2 }, { -1, 2 }, { -1, -2 }, { -2, 1 }, { -2, -1 } };
 const std::vector<Coord> MovePrecomputation::blackPawnMoveDirections = { { 1, 0 } };
 const std::vector<Coord> MovePrecomputation::whitePawnMoveDirections = { { -1, 0 } };
-
+MovePrecomputation::MovePrecomputation() {
+}
+/*
 MovePrecomputation::PrecompCalc::PrecompCalc(int top, int left, int right, int bottom) : top(top), left(left), right(right), bottom(bottom) {
 	this->minVertical = std::min(top, bottom);
 	this->minHorizontal = std::min(left, right);
@@ -27,7 +29,7 @@ MovePrecomputation::MovePrecomputation() {
 	initPawnMoves(blackPawnMoveDirections, blackPawnMoves, false);
 	initPawnMoves(whitePawnMoveDirections, whitePawnMoves, true);
 }
-
+*/
 void MovePrecomputation::initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable) {
 	for (int square = 0; square < 64; square++) {
 		Coord startSquare = Coord(square);

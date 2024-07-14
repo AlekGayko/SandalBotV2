@@ -2,45 +2,45 @@
 
 #include <cctype>
 
-constexpr int Piece::makePiece(int pieceType, int color) {
+ int Piece::makePiece(int pieceType, int color) {
     return pieceType | color;
 }
 
-constexpr int Piece::makePiece(int pieceType, bool isWhite) {
+ int Piece::makePiece(int pieceType, bool isWhite) {
     return makePiece(pieceType, isWhite ? white : black);
 }
 
-constexpr int Piece::color(int piece) {
+ int Piece::color(int piece) {
     return piece & colorMask;
 }
 
-constexpr int Piece::type(int piece) {
+ int Piece::type(int piece) {
     return piece & pieceMask;
 }
 
-constexpr bool Piece::isColor(int piece, int color) {
+ bool Piece::isColor(int piece, int color) {
     return (piece & colorMask) == color;
 }
 
-constexpr bool Piece::isType(int piece, int pieceType) {
+ bool Piece::isType(int piece, int pieceType) {
     return (piece & pieceMask) == pieceType;
 }
 
-constexpr bool Piece::isPiece(int piece1, int piece2) {
+ bool Piece::isPiece(int piece1, int piece2) {
     return piece1 == piece2;
 }
 
-constexpr bool Piece::isSlidingPiece(int piece) {
+ bool Piece::isSlidingPiece(int piece) {
     int pieceType = piece & pieceMask;
     return piece == queen || piece == rook || piece == bishop;
 }
 
-constexpr bool Piece::isOrthogonal(int piece) {
+bool Piece::isOrthogonal(int piece) {
     int pieceType = piece & pieceMask;
     return pieceType == queen || pieceType == rook;
 }
 
-constexpr bool Piece::isDiagonal(int piece) {
+ bool Piece::isDiagonal(int piece) {
     int pieceType = piece & pieceMask;
     return pieceType == queen || pieceType == bishop;
 }

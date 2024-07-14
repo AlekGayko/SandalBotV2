@@ -1,18 +1,37 @@
 #include "Bot.h"
 
+#include <iostream>
+#include <stdexcept>
+#include <string>
+
+using namespace std;
+
 Bot::Bot() {
+    board = new Board();
+    searcher = new Searcher(board);
 }
 
-inline Bot::Bot(std::string fen) {
+Bot::~Bot() {
+    delete board;
 }
 
-inline void Bot::generateMove() {
+void Bot::makeMove(std::string move) {
+    if (move.size() != 4) return;
+    int startSquare = CoordHelper::stringToIndex(move.substr(0, 2));
+    int targetSquare = CoordHelper::stringToIndex(move.substr(2, 2));
+    board->makeMove(Move(startSquare, targetSquare));
 }
 
-inline void Bot::stopSearching() {
+void Bot::generateMove() {
 }
 
-inline int Bot::perft(int depth) {
-    searcher;
-    return 0;
+void Bot::stopSearching() {
+}
+
+int Bot::perft(int depth) {
+    return searcher->perft(depth);
+}
+
+std::string Bot::printBoard() {
+    return board->printBoard();
 }

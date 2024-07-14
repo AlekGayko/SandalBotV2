@@ -95,3 +95,75 @@ Command received: uci
 Response: uciok
 Command received: isready
 Response: readyok
+Command received: go perft 30
+Command received: go perft 30 3
+Command received: go perft 1
+Command received: go perft l;
+Command received: quit
+Command received: q
+Unknown Command: q
+Command received: position startpos
+Command received: q
+Unknown Command: q
+Command received: d
+Command received: d
+Command received: d
+Command received: d
+Command received: d
+Command received: d
+Command received: 
+Command received: d
+Command received: d
+Command received: d
+Command received: d
+Command received: d
+Command received: d
+Command received: go startpos moves e2e4
+Thinking for: 0 ms.
+Command received: d
+Command received: quit
+Command received: position startpos
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: d
+Command received: d
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: position moves e2e4
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: position startpos move e2e4
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: 
+Unknown Command: 
+Command received: d
+Command received: d
+Command received: position startpos moves e2d2
+Make moves after setting position: 1
+Command received: d
+Command received: position startpos moves e2e1
+Make moves after setting position: 1
+Command received: d
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: d
+Command received: position startpos moves a8a7
+Make moves after setting position: 1
+Command received: d
+Command received: quit
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: d
+Command received: d
+Command received: d
+Command received: d
+Command received: go perft 1
+Command received: go perft 2
+Command received: go perft 3
+Command received: go perft 1
+Command received: go perft 1
