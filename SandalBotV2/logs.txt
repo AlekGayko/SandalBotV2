@@ -536,3 +536,38 @@ Command received: go perft 5
 Response: Nodes searched: 4896998
 Command received: go perft 6
 Response: Nodes searched: 120909581
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: d
+Command received: go perft 1
+Response: Nodes searched: 34
+Command received: d
+Command received: position startpos moves e2e4
+Make moves after setting position: 1
+Command received: d
+Command received: position startpos moves g7g6 b1c3
+Make moves after setting position: 2
+Command received: d
+Command received: d
+Command received: position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1
+Command received: d
+Command received: position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1
+Command received: d
+Command received: position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1
+Command received: d
+Command received: position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1
+Command received: d
+Command received: position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1
+Command received: d
+Command received: position fen rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2
+Command received: d
+Command received: position fen rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2
+Command received: d
+Command received: position startpos
+Command received: d
+Command received: quit
+Command received: position fen rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2
+Command received: d
+Command received: ucinewgame
+Command received: d
+Command received: quit

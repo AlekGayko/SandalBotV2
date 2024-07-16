@@ -15,6 +15,8 @@ public:
 	int enPassantFile;
 	int castlingRights = 0b0000;
 	int fiftyMoveCounter;
+	int moveCounter;
+
 	unsigned long long int zobristHash;
 
 	static constexpr int whiteShortCastleMask = 0b0001;
@@ -22,8 +24,11 @@ public:
 	static constexpr int blackShortCastleMask = 0b0100;
 	static constexpr int blackLongCastleMask = 0b1000;
 
+	static constexpr int whiteCastleMask = 0b0011;
+	static constexpr int blackCastleMask = 0b1100;
+
 	BoardState();
-	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, unsigned long long int zobristHash);
+	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, int moves, unsigned long long int zobristHash);
 	constexpr bool canShortCastle(bool isWhite) const;
 	constexpr bool canLongCastle(bool isWhite) const;
 	void nextMove();

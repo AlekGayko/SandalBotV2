@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Bot.h"
+#include "FEN.h"
 #include "StringUtil.h"
 
 class IUCI {
@@ -21,6 +22,7 @@ public:
 	IUCI();
 	~IUCI();
 	void processCommand(std::string command);
+	void newGame();
 	void OnMoveChosen(std::string move);
 	void processGoCommand(std::string command);
 	void processPositionCommand(std::string command);

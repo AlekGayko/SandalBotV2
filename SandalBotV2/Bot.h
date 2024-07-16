@@ -16,6 +16,7 @@ public:
 	Bot();
 	~Bot();
 
+	void setPosition(std::string FEN);
 	void makeMove(std::string move);
 	void generateMove();
 	void stopSearching();

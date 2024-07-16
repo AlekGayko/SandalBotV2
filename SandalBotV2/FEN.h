@@ -9,8 +9,11 @@
 
 #include <string>
 
+class Board;
+
 // Utility class for FEN strings
 class FEN {
+public:
 	struct PositionInfo {
 		std::string FEN;
 		int squares[64] = { 0 };
@@ -24,11 +27,11 @@ class FEN {
 		int moveCount;
 		inline PositionInfo(std::string FEN);
 	};
-public:
 	static const std::string startpos;
-	inline static std::string generateFEN(Board* board, bool includeEPSquare = true);
-	inline static bool enPassantCapturable(Board* board, int epFileIndex, int epRankIndex);
-	inline static std::string flipFEN(std::string FEN);
+	static std::string generateFEN(Board* board, bool includeEPSquare = true);
+	static bool enPassantCapturable(Board* board, int epFileIndex, int epRankIndex);
+	static std::string flipFEN(std::string FEN);
+	static PositionInfo fenToPosition(std::string FEN);
 };
 
 #endif

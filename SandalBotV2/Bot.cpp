@@ -15,6 +15,10 @@ Bot::~Bot() {
     delete board;
 }
 
+void Bot::setPosition(std::string FEN) {
+    board->loadPosition(FEN);
+}
+
 void Bot::makeMove(std::string move) {
     if (move.size() != 4) return;
     int startSquare = CoordHelper::stringToIndex(move.substr(0, 2));

@@ -21,17 +21,15 @@ private:
 	const Coord whitePawnAttacks[2] = { { -1, -1 }, { -1, 1 } };
 	const Coord blackPawnAttacks[2] = { { 1, -1 }, { 1, 1 } };
 
-	// lowkey dont feel like these are needed
-	/*
-	static constexpr int directions[8] = { -8, 8, -1, 1, -7, 7, -9, 9 };
-	static constexpr int knightDirections[8] = { -17, -15, -10, -6, 6, 10, 15, 17 };
-	static constexpr int minOrthogonal = 0;
-	static constexpr int maxOrthogonal = 4;
-	static constexpr int minDiagonal = 4;
-	static constexpr int maxDiagonal = 8;
-	*/
+	const int promotionFlags[4] = { Move::promoteToQueenFlag, Move::promoteToRookFlag, Move::promoteToKnightFlag, Move::promoteToBishopFlag };
 
-	int currentMoves = 0;
+	const int startingKingSquares[2] = { 4, 60 };
+	const int shortCastleKingSquares[2] = { 6, 62 };
+	const int longCastleKingSquares[2] = { 2, 58 };
+	const int shortCastleRookSquares[2] = { 7, 63 };
+	const int longCastleRookSquares[2] = { 0, 56 };
+
+	int currentMoves;
 	int currentColor;
 	int opposingColor;
 public:
@@ -45,6 +43,9 @@ public:
 	void generateKnightMoves(Move moves[], int startSquare);
 	void generateKingMoves(Move moves[], int startSquare);
 	void generatePawnMoves(Move moves[], int startSquare);
+	void enPassantMoves(Move moves[], int targetSquare, int startSquare);
+	void promotionMoves(Move moves[], int targetSquare, int startSquare);
+	void castlingMoves(Move moves[], int startSquare);
 };
 
 #endif

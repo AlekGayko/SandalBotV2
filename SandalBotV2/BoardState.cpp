@@ -4,12 +4,13 @@ BoardState::BoardState() {
 
 }
 
-BoardState::BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, unsigned long long int zobristHash) {
+BoardState::BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, int moveCounter, unsigned long long int zobristHash) {
 	this->whiteTurn = whiteTurn;
 	this->capturedPiece = capturedPiece;
 	this->enPassantFile = enPassantFile;
 	this->castlingRights = castlingRights;
 	this->fiftyMoveCounter = fiftyMoveCounter;
+	this->moveCounter = moveCounter;
 	this->zobristHash = zobristHash;
 }
 

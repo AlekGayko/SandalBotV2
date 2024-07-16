@@ -6,8 +6,9 @@
 #include "PieceList.h"
 #include "Move.h"
 #include "BoardState.h"
-//#include "FEN.h"
 #include "CoordHelper.h"
+
+class FEN;
 
 class Board {
 private:
@@ -27,13 +28,18 @@ public:
 	const int blackIndex = 0;
 	const int whiteIndex = 1;
 
-	int numMoves = 0;
 	int testMoves = 0;
 
 	Board();
 	void loadPosition(std::string fen);
 	void makeMove(Move move);
+	void makeEnPassantChanges(Move move);
+	void makeCastlingChanges(Move move);
+	void makePromotionChanges(Move move);
 	void unMakeMove(Move move);
+	void undoEnPassantChanges(Move move);
+	void undoCastlingChanges(Move move);
+	void undoPromotionChanges(Move move);
 	std::string printBoard();
 };
 

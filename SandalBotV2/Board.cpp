@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "FEN.h"
 
 #include <iostream>
 #include <string>
@@ -17,10 +18,25 @@ Board::Board() {
 			Piece::whiteRook, Piece::whiteKnight, Piece::whiteBishop, Piece::whiteQueen, Piece::whiteKing, Piece::whiteBishop, Piece::whiteKnight, Piece::whiteRook 
 		};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
-	state = BoardState(true, 0, -1, 0b1111, 0, 0);
+	state = BoardState(true, 0, -1, 0b1111, 0, 0, 0);
 }
 
 void Board::loadPosition(std::string fen) {
+	FEN::PositionInfo newPos = FEN::fenToPosition(fen);
+
+	for (int square = 0; square < 64; square++) {
+		squares[square] = newPos.squares[square];
+	}
+	state.enPassantFile = newPos.enPassantFile;
+	state.whiteTurn = newPos.whiteTurn;
+	state.fiftyMoveCounter = newPos.fiftyMoveCount;
+	state.moveCounter = newPos.moveCount;
+
+	state.castlingRights = 0b000;
+	if (newPos.whiteShortCastle) state.castlingRights = state.castlingRights | BoardState::whiteShortCastleMask;
+	if (newPos.whiteLongCastle) state.castlingRights = state.castlingRights | BoardState::whiteLongCastleMask;
+	if (newPos.blackShortCastle) state.castlingRights = state.castlingRights | BoardState::blackShortCastleMask;
+	if (newPos.blackLongCastle) state.castlingRights = state.castlingRights | BoardState::blackLongCastleMask;
 }
 
 void Board::makeMove(Move move) {
@@ -31,20 +47,93 @@ void Board::makeMove(Move move) {
 	state.nextMove();
 }
 
+void Board::makeEnPassantChanges(Move move) {
+	const int fileDiff = move.startSquare % 8 - state.enPassantFile;
+	squares[move.startSquare + fileDiff] = Piece::empty;
+}
+
+void Board::makeCastlingChanges(Move move) {
+	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
+	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? 1 : -1;
+	const int friendlyRook = state.whiteTurn ? Piece::whiteRook : Piece::blackRook;
+
+	squares[move.startSquare + rookDistance] = Piece::empty;
+	squares[move.targetSquare + rookSpawnOffset] = friendlyRook;
+
+	int castleMask = 0b0001;
+	castleMask = state.whiteTurn ? castleMask : castleMask << 2;
+	castleMask = move.targetSquare % 8 < 4 ? castleMask << 1 : castleMask;
+	state.castlingRights = state.castlingRights & (~castleMask & 0b1111);
+}
+
+void Board::makePromotionChanges(Move move) {
+	const int targetSquare = move.targetSquare;
+	const int color = state.whiteTurn ? Piece::white : Piece::black;
+
+	switch (move.flag) {
+	case Move::promoteToQueenFlag:
+		squares[targetSquare] = Piece::queen | color;
+		break;
+	case Move::promoteToRookFlag:
+		squares[targetSquare] = Piece::rook | color;
+		break;
+	case Move::promoteToKnightFlag:
+		squares[targetSquare] = Piece::knight | color;
+		break;
+	case Move::promoteToBishopFlag:
+		squares[targetSquare] = Piece::bishop | color;
+		break;
+	}
+}
+
 void Board::unMakeMove(Move move) {
 	int startSquare = move.startSquare;
 	int targetSquare = move.targetSquare;
 
 	squares[startSquare] = squares[targetSquare];
 	squares[targetSquare] = move.takenPiece;
-	/*
-	if (move.takenPiece != 0) {
-		cout << "takenpiece: " << move.takenPiece << endl;
-		cout << "piece: " << Piece::type(squares[startSquare]) << "startsquare: " << CoordHelper::indexToString(startSquare) << ", targetSquare: " << CoordHelper::indexToString(targetSquare) << endl;
-	}
-	*/
 
 	state.prevMove();
+}
+
+void Board::undoEnPassantChanges(Move move) {
+	// is enpassantfile correct?
+	const int fileDiff = move.startSquare % 8 - state.enPassantFile;
+	squares[move.startSquare + fileDiff] = move.takenPiece;
+}
+
+void Board::undoCastlingChanges(Move move) {
+	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
+	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? 1 : -1;
+	const int friendlyRook = state.whiteTurn ? Piece::whiteRook : Piece::blackRook;
+
+	squares[move.startSquare + rookDistance] = friendlyRook;
+	squares[move.targetSquare + rookSpawnOffset] = Piece::empty;
+
+	int castleMask = 0b0001;
+	castleMask = state.whiteTurn ? castleMask : castleMask << 2;
+	castleMask = move.targetSquare % 8 < 4 ? castleMask << 1 : castleMask;
+	state.castlingRights = state.castlingRights | castleMask;
+}
+
+void Board::undoPromotionChanges(Move move) {
+	const int startSquare = move.startSquare;
+	const int pawn = state.whiteTurn ? Piece::whitePawn : Piece::whitePawn;
+
+	switch (move.flag) {
+	case Move::promoteToQueenFlag:
+		squares[startSquare] = pawn;
+		break;
+	case Move::promoteToRookFlag:
+		squares[startSquare] = pawn;
+		break;
+	case Move::promoteToKnightFlag:
+		squares[startSquare] = pawn;
+		break;
+	case Move::promoteToBishopFlag:
+		squares[startSquare] = pawn;
+		break;
+	}
 }
 
 
@@ -97,6 +186,9 @@ string Board::printBoard() {
 			*/
 		}
 	}
+
+	result += FEN::generateFEN(this);
+	result += '\n';
 
 	return result;
 }

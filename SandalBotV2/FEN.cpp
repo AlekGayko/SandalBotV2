@@ -1,9 +1,10 @@
 #include "FEN.h"
 
-#include <vector>
-#include <string>
-#include <sstream>
 #include <cctype>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -27,13 +28,14 @@ FEN::PositionInfo::PositionInfo(string FEN) {
 			rank++;
 		} else {
 			if (isdigit(symbol)) {
+				int square = rank * 8 + file;
 				file += symbol - '0';
-				squarePieces[rank * 8 + file] = Piece::empty;
+				for (int i = 0; i < std::stoi(std::string(1, symbol)); i++) {
+					squarePieces[square + i] = Piece::empty;
+				}
 			} else {
-				int pieceColor = toupper(symbol) ? Piece::white : Piece::black;
-				int pieceType = Piece::symbolToPiece(symbol);
-
-				squarePieces[rank * 8 + file] = Piece::makePiece(pieceType, pieceColor);
+				int piece = Piece::symbolToPiece(symbol);
+				squarePieces[rank * 8 + file] = piece;
 				file++;
 			}
 		}
@@ -128,7 +130,7 @@ std::string FEN::generateFEN(Board* board, bool includeEPSquare) {
 	FEN += to_string(board->state.fiftyMoveCounter);
 
 	FEN += ' ';
-	FEN += to_string((board->numMoves / 2) + 1);
+	FEN += to_string((board->state.moveCounter / 2) + 1);
 
 	return FEN;
 }
@@ -139,4 +141,9 @@ bool FEN::enPassantCapturable(Board* board, int epFileIndex, int epRankIndex) {
 
 std::string FEN::flipFEN(std::string FEN) {
 	return std::string();
+}
+
+FEN::PositionInfo FEN::fenToPosition(std::string FEN) {
+	PositionInfo position = PositionInfo(FEN);
+	return position;
 }

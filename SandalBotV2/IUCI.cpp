@@ -35,7 +35,7 @@ void IUCI::processCommand(string command) {
 	} else if (commandType == "isready") {
 		respond("readyok");
 	} else if (commandType == "ucinewgame") {
-		//player.NotifyNewGame();
+		newGame();
 	} else if (commandType == "position") {
 		processPositionCommand(command);
 	} else if (commandType == "go") {
@@ -54,8 +54,13 @@ void IUCI::processCommand(string command) {
 	}
 }
 
+void IUCI::newGame() {
+	delete bot;
+	bot = new Bot();
+}
+
 void IUCI::OnMoveChosen(string move) {
-	logInfo("OnMoveChosen: book mov = " /*+ player.LatestMoveIsBookMove*/);
+	logInfo("OnMoveChosen: book move = " /*+ player.LatestMoveIsBookMove*/);
 	respond("bestmove " + move);
 }
 
@@ -81,18 +86,16 @@ void IUCI::processGoCommand(string command) {
 
 void IUCI::processPositionCommand(string command) {
 	if (StringUtil::contains(StringUtil::toLower(command), "startpos")) {
-		//player.SetPosition(FenUtility.StartPositionFEN);
+		bot->setPosition(FEN::startpos);
 	} else if (StringUtil::contains(StringUtil::toLower(command), "fen")) {
 		string customFEN = getLabelledValue(command, "fen", positionLabels);
-		cout << customFEN << endl;
-		//player.SetPosition(customFen);
+		bot->setPosition(customFEN);
 	} else {
 		cout << "Invalid position command (expected 'startpos' or 'fen')" << endl;
 		return;
 	}
 
 	string allMoves = getLabelledValue(command, "moves", positionLabels);
-	cout << allMoves << endl;
 	if (allMoves.size() > 0) {
 		vector<string> moveList = StringUtil::splitString(allMoves);
 		for (string move : moveList) {
