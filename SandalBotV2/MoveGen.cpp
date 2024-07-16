@@ -138,6 +138,7 @@ void MoveGen::generatePawnMoves(Move moves[], int startSquare) {
 			if (targetSquare % 8 == board->state.enPassantFile && targetSquare / 8 == enPassantRow && board->squares[targetSquare] == Piece::empty) {
 				enPassantMoves(moves, targetSquare, startSquare);
 			}
+			continue;
 		}
 		if (startSquare / 8 == promotionRow) {
 			promotionMoves(moves, targetSquare, startSquare);

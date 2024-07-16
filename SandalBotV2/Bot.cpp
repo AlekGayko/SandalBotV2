@@ -19,11 +19,12 @@ void Bot::setPosition(std::string FEN) {
     board->loadPosition(FEN);
 }
 
-void Bot::makeMove(std::string move) {
-    if (move.size() != 4) return;
-    int startSquare = CoordHelper::stringToIndex(move.substr(0, 2));
-    int targetSquare = CoordHelper::stringToIndex(move.substr(2, 2));
-    board->makeMove(Move(startSquare, targetSquare));
+void Bot::makeMove(std::string movestr) {
+    if (movestr.size() != 4) return;
+    int startSquare = CoordHelper::stringToIndex(movestr.substr(0, 2));
+    int targetSquare = CoordHelper::stringToIndex(movestr.substr(2, 2));
+    Move move = Move(startSquare, targetSquare);
+    board->makeMove(move);
 }
 
 void Bot::generateMove() {

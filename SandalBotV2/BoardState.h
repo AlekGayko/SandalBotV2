@@ -3,6 +3,9 @@
 #ifndef BOARDSTATE_H
 #define BOARDSTATE_H
 
+#include "Move.h"
+#include "Piece.h"
+
 #include <bitset>
 
 class BoardState {
@@ -31,8 +34,8 @@ public:
 	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, int moves, unsigned long long int zobristHash);
 	constexpr bool canShortCastle(bool isWhite) const;
 	constexpr bool canLongCastle(bool isWhite) const;
-	void nextMove();
-	void prevMove();
+	void nextMove(Move& move, int piece);
+	void prevMove(Move& move, int piece);
 };
 
 #endif // !BOARDSTATE_H

@@ -18,6 +18,7 @@ private:
 	static const std::string logPath;
 	const std::string startingMessage = "SandalBotV2 by DirtySandals.";
 	void beginningMessage();
+	void emptyLogs();
 public:
 	IUCI();
 	~IUCI();

@@ -22,10 +22,36 @@ constexpr bool BoardState::canLongCastle(bool isWhite) const {
 	return isWhite ? castlingRights & whiteLongCastleMask : castlingRights & blackLongCastleMask;
 }
 
-void BoardState::nextMove() {
+void BoardState::nextMove(Move& move, int piece) {
+	moveCounter++;
+	fiftyMoveCounter++;
+
+	if (piece == Piece::pawn && abs(move.targetSquare - move.startSquare) == 16) {
+		enPassantFile = move.targetSquare % 8;
+	} else {
+		enPassantFile = -1;
+	}
+
+	if (piece == Piece::pawn) {
+		fiftyMoveCounter = 0;
+	} else if (move.takenPiece != Piece::empty) {
+		fiftyMoveCounter = 0;
+	}
+
+	capturedPiece = move.takenPiece;
+	
 	whiteTurn = !whiteTurn;
 }
 
-void BoardState::prevMove() {
+void BoardState::prevMove(Move& move, int piece) {
+	moveCounter--;
+	fiftyMoveCounter--;
+
+	if (piece == Piece::pawn) {
+		fiftyMoveCounter = 0;
+	} else if (move.takenPiece != Piece::empty) {
+		fiftyMoveCounter = 0;
+	}
+
 	whiteTurn = !whiteTurn;
 }

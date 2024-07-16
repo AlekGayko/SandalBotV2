@@ -17,7 +17,7 @@ public:
 	~Bot();
 
 	void setPosition(std::string FEN);
-	void makeMove(std::string move);
+	void makeMove(std::string movestr);
 	void generateMove();
 	void stopSearching();
 	int perft(int depth);

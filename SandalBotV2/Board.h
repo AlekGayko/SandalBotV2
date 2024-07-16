@@ -32,14 +32,14 @@ public:
 
 	Board();
 	void loadPosition(std::string fen);
-	void makeMove(Move move);
-	void makeEnPassantChanges(Move move);
-	void makeCastlingChanges(Move move);
-	void makePromotionChanges(Move move);
-	void unMakeMove(Move move);
-	void undoEnPassantChanges(Move move);
-	void undoCastlingChanges(Move move);
-	void undoPromotionChanges(Move move);
+	void makeMove(Move& move);
+	void makeEnPassantChanges(Move& move);
+	void makeCastlingChanges(Move& move);
+	void makePromotionChanges(Move& move);
+	void unMakeMove(Move& move);
+	void undoEnPassantChanges(Move& move);
+	void undoCastlingChanges(Move& move);
+	void undoPromotionChanges(Move& move);
 	std::string printBoard();
 };
 

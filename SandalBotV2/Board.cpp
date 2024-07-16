@@ -18,7 +18,7 @@ Board::Board() {
 			Piece::whiteRook, Piece::whiteKnight, Piece::whiteBishop, Piece::whiteQueen, Piece::whiteKing, Piece::whiteBishop, Piece::whiteKnight, Piece::whiteRook 
 		};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
-	state = BoardState(true, 0, -1, 0b1111, 0, 0, 0);
+	state = BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0);
 }
 
 void Board::loadPosition(std::string fen) {
@@ -39,20 +39,22 @@ void Board::loadPosition(std::string fen) {
 	if (newPos.blackLongCastle) state.castlingRights = state.castlingRights | BoardState::blackLongCastleMask;
 }
 
-void Board::makeMove(Move move) {
+void Board::makeMove(Move& move) {
+	int piece = Piece::type(squares[move.startSquare]);
 	int startSquare = move.startSquare;
 	int targetSquare = move.targetSquare;
+
 	squares[targetSquare] = squares[startSquare];
 	squares[startSquare] = 0;
-	state.nextMove();
+	state.nextMove(move, piece);
 }
 
-void Board::makeEnPassantChanges(Move move) {
+void Board::makeEnPassantChanges(Move& move) {
 	const int fileDiff = move.startSquare % 8 - state.enPassantFile;
 	squares[move.startSquare + fileDiff] = Piece::empty;
 }
 
-void Board::makeCastlingChanges(Move move) {
+void Board::makeCastlingChanges(Move& move) {
 	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
 	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? 1 : -1;
 	const int friendlyRook = state.whiteTurn ? Piece::whiteRook : Piece::blackRook;
@@ -66,7 +68,7 @@ void Board::makeCastlingChanges(Move move) {
 	state.castlingRights = state.castlingRights & (~castleMask & 0b1111);
 }
 
-void Board::makePromotionChanges(Move move) {
+void Board::makePromotionChanges(Move& move) {
 	const int targetSquare = move.targetSquare;
 	const int color = state.whiteTurn ? Piece::white : Piece::black;
 
@@ -86,23 +88,24 @@ void Board::makePromotionChanges(Move move) {
 	}
 }
 
-void Board::unMakeMove(Move move) {
+void Board::unMakeMove(Move& move) {
+	int piece = Piece::type(squares[move.targetSquare]);
 	int startSquare = move.startSquare;
 	int targetSquare = move.targetSquare;
 
 	squares[startSquare] = squares[targetSquare];
 	squares[targetSquare] = move.takenPiece;
 
-	state.prevMove();
+	state.prevMove(move, piece);
 }
 
-void Board::undoEnPassantChanges(Move move) {
+void Board::undoEnPassantChanges(Move& move) {
 	// is enpassantfile correct?
 	const int fileDiff = move.startSquare % 8 - state.enPassantFile;
 	squares[move.startSquare + fileDiff] = move.takenPiece;
 }
 
-void Board::undoCastlingChanges(Move move) {
+void Board::undoCastlingChanges(Move& move) {
 	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
 	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? 1 : -1;
 	const int friendlyRook = state.whiteTurn ? Piece::whiteRook : Piece::blackRook;
@@ -116,7 +119,7 @@ void Board::undoCastlingChanges(Move move) {
 	state.castlingRights = state.castlingRights | castleMask;
 }
 
-void Board::undoPromotionChanges(Move move) {
+void Board::undoPromotionChanges(Move& move) {
 	const int startSquare = move.startSquare;
 	const int pawn = state.whiteTurn ? Piece::whitePawn : Piece::whitePawn;
 

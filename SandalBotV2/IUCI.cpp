@@ -1,12 +1,14 @@
 #include "IUCI.h"
 
 #include <cctype>
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
 using namespace std;
+using namespace chrono;
 
 const vector<string> IUCI::positionLabels = { "position", "fen", "moves" };
 const vector<string> IUCI::goLabels = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
@@ -16,8 +18,20 @@ void IUCI::beginningMessage() {
 	cout << startingMessage << endl;
 }
 
+void IUCI::emptyLogs() {
+	ofstream logs(logPath, ios::trunc);
+
+	if (!logs.is_open()) {
+		cerr << "Couldn't empty logs" << endl;
+	}
+	logs.close();
+
+	return;
+}
+
 IUCI::IUCI() {
 	beginningMessage();
+	emptyLogs();
 	bot = new Bot();
 }
 
@@ -70,7 +84,12 @@ void IUCI::processGoCommand(string command) {
 		// player.ThinkTimed(moveTimeMs);
 	} else if (StringUtil::contains(command, "perft")) {
 		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
-		respond("Nodes searched: " + to_string(bot->perft(searchDepth)));
+		auto start = high_resolution_clock::now();
+		int nodesSearched = bot->perft(searchDepth);
+		auto end = high_resolution_clock::now();
+		duration<double> duration = end - start;
+		respond("Time taken: " + to_string(duration.count()) + "s, nodes per second: " + to_string(nodesSearched / duration.count()));
+		respond("Nodes searched: " + to_string(nodesSearched));
 	} else {
 		int timeRemainingWhiteMs = getLabelledValueInt(command, "wtime", goLabels, 0);
 		int timeRemainingBlackMs = getLabelledValueInt(command, "btime", goLabels, 0);
