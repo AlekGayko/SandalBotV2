@@ -12,7 +12,12 @@ const vector<string> IUCI::positionLabels = { "position", "fen", "moves" };
 const vector<string> IUCI::goLabels = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
 const string IUCI::logPath = "logs.txt";
 
+void IUCI::beginningMessage() {
+	cout << startingMessage << endl;
+}
+
 IUCI::IUCI() {
+	beginningMessage();
 	bot = new Bot();
 }
 
@@ -60,7 +65,7 @@ void IUCI::processGoCommand(string command) {
 		// player.ThinkTimed(moveTimeMs);
 	} else if (StringUtil::contains(command, "perft")) {
 		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
-		bot->perft(searchDepth);
+		respond("Nodes searched: " + to_string(bot->perft(searchDepth)));
 	} else {
 		int timeRemainingWhiteMs = getLabelledValueInt(command, "wtime", goLabels, 0);
 		int timeRemainingBlackMs = getLabelledValueInt(command, "btime", goLabels, 0);

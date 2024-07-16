@@ -10,7 +10,7 @@ private:
 	
 public:
 	bool check = false;
-	bool whiteTurn;
+	bool whiteTurn = true;
 	int capturedPiece;
 	int enPassantFile;
 	int castlingRights = 0b0000;
@@ -26,6 +26,8 @@ public:
 	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, unsigned long long int zobristHash);
 	constexpr bool canShortCastle(bool isWhite) const;
 	constexpr bool canLongCastle(bool isWhite) const;
+	void nextMove();
+	void prevMove();
 };
 
 #endif // !BOARDSTATE_H

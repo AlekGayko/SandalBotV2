@@ -28,6 +28,7 @@ public:
 	const int whiteIndex = 1;
 
 	int numMoves = 0;
+	int testMoves = 0;
 
 	Board();
 	void loadPosition(std::string fen);

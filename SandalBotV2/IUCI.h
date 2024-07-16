@@ -15,6 +15,8 @@ private:
 	static const std::vector<std::string> positionLabels;
 	static const std::vector<std::string> goLabels;
 	static const std::string logPath;
+	const std::string startingMessage = "SandalBotV2 by DirtySandals.";
+	void beginningMessage();
 public:
 	IUCI();
 	~IUCI();

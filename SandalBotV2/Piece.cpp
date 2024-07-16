@@ -19,7 +19,7 @@
 }
 
  bool Piece::isColor(int piece, int color) {
-    return (piece & colorMask) == color;
+    return (piece & colorMask) == color && piece != empty;
 }
 
  bool Piece::isType(int piece, int pieceType) {

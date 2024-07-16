@@ -167,3 +167,372 @@ Command received: go perft 2
 Command received: go perft 3
 Command received: go perft 1
 Command received: go perft 1
+Command received: d
+Command received: d
+Command received: position startpos moves h1a8
+Make moves after setting position: 1
+Command received: d
+Command received: d
+Command received: go perft 1
+Command received: go perft 1
+Command received: go perft 1
+22
+Command received: go perft 2
+17
+Command received: 
+Command received: go perft 1
+22
+Command received: go perft 1
+Response: 22
+Command received: go perft 1
+Response: 8
+Command received: go perft 1
+Response: 8
+Command received: go perft 1
+Response: 8
+Command received: go perft 2
+Response: 17
+Command received: go perft 10
+Command received: go perft 1
+Response: 22
+Command received: go perft 1
+Response: 22
+Command received: go perft 1
+Response: 22
+Command received: go perft 1
+Response: 0
+Command received: go perft 1
+Response: 0
+Command received: go perft 1
+Response: 0
+Command received: go perft 1
+Response: 0
+Command received: go perft 1
+Response: 0
+Command received: go perft 1
+Command received: go perft 1
+Command received: go perft 1
+Response: 0
+Command received: go perft 1
+Response: 2
+Command received: go perft 1
+Response: 16
+Command received: go perft 1\
+Response: 1
+Command received: go perft 1
+Response: 16
+Command received: go perft 1
+Response: 16
+Command received: go perft 1
+Response: 16
+Command received: go perft 1
+Response: 16
+Command received: go perft 1
+Response: 16
+Command received: go perft 1
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 16
+Command received: go perft 1
+Response: 19
+Command received: go perft 1
+Response: 19
+Command received: go perft 1
+Response: 20
+Command received: go perft 1
+Response: 20
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 18
+Command received: go perft 1
+Response: 20
+Command received: quit
+Command received: go perft 2
+Response: 108
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 108
+Command received: go perft 2
+Response: 108
+Command received: go perft 2
+Response: 108
+Command received: go perft 2
+Response: 108
+Command received: quit
+Command received: go perft 2
+Response: 108
+Command received: quit
+Command received: go perft 2
+Response: 320
+Command received: quit
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 320
+Command received: d
+Command received: go perft 2
+Response: 320
+Command received: go perft 2
+Response: 320
+Command received: go perft 2
+Response: 320
+Command received: go perft 2
+Response: 320
+Command received: go perft 2
+Response: 320
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7453
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 5584
+Command received: go perft 3
+Response: 5584
+Command received: quit
+Command received: go perft 3
+Response: 7460
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7679
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7679
+Command received: quit
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 2
+Response: 400
+Command received: go perft 1
+Response: 20
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: 
+Unknown Command: 
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 3
+Response: 7679
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7679
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 1
+Response: 20
+Command received: go perft 1
+Response: 20
+Command received: go perft 1
+Response: 20
+Command received: go perft 1
+Response: 20
+Command received: quit
+Command received: go perft 1
+Response: 20
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7806
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7806
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7806
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 7806
+Command received: go perft 4
+Response: 152192
+Command received: go perft 5
+Response: 2940110
+Command received: go perft 6
+Response: 56710661
+Command received: go perft 3
+Response: 7806
+Command received: go perft 3
+Response: 7806
+Command received: go perft 3
+Response: 7806
+Command received: go perft 3
+Response: 7806
+Command received: go perft 3
+Response: 7806
+Command received: go perft 3
+Response: 7806
+Command received: go perft 3
+Response: 8023
+Command received: go perft 3
+Response: 8246
+Command received: go perft 3
+Response: 8246
+Command received: go perft 3
+Response: 8246
+Command received: go perft 3
+Response: 8246
+Command received: go perft 3
+Response: 8246
+Command received: go perft 2
+Response: 400
+Command received: go perft 3
+Response: 8246
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 5366
+Command received: go perft 3
+Response: 5366
+Command received: go perft 3
+Response: 8906
+Command received: go perft 3
+Response: 8906
+Command received: go perft 1
+Response: 20
+Command received: go perft 2
+Response: 400
+Command received: go perft 1
+Response: 
+Command received: go perft 1
+Response: Nodes searched: 20
+Command received: go perft 2
+Response: Nodes searched: 400
+Command received: go perft 3
+Response: Nodes searched: 8906
+Command received: go perft 3
+Response: Nodes searched: 8906
+Command received: go perft 3
+Response: Nodes searched: 8906
+Command received: go perft 3
+Response: Nodes searched: 8906
+Command received: go perft 1
+Response: Nodes searched: 20
+Command received: go perft 2
+Response: Nodes searched: 400
+Command received: go perft 3
+Response: Nodes searched: 8902
+Command received: go perft 4
+Response: Nodes searched: 197742
+Command received: go perft 4
+Response: Nodes searched: 197742
+Command received: go perft 5
+Response: Nodes searched: 4896998
+Command received: go perft 6
+Response: Nodes searched: 120909581

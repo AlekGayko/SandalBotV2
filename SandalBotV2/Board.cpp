@@ -17,6 +17,7 @@ Board::Board() {
 			Piece::whiteRook, Piece::whiteKnight, Piece::whiteBishop, Piece::whiteQueen, Piece::whiteKing, Piece::whiteBishop, Piece::whiteKnight, Piece::whiteRook 
 		};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
+	state = BoardState(true, 0, -1, 0b1111, 0, 0);
 }
 
 void Board::loadPosition(std::string fen) {
@@ -27,6 +28,7 @@ void Board::makeMove(Move move) {
 	int targetSquare = move.targetSquare;
 	squares[targetSquare] = squares[startSquare];
 	squares[startSquare] = 0;
+	state.nextMove();
 }
 
 void Board::unMakeMove(Move move) {
@@ -35,6 +37,14 @@ void Board::unMakeMove(Move move) {
 
 	squares[startSquare] = squares[targetSquare];
 	squares[targetSquare] = move.takenPiece;
+	/*
+	if (move.takenPiece != 0) {
+		cout << "takenpiece: " << move.takenPiece << endl;
+		cout << "piece: " << Piece::type(squares[startSquare]) << "startsquare: " << CoordHelper::indexToString(startSquare) << ", targetSquare: " << CoordHelper::indexToString(targetSquare) << endl;
+	}
+	*/
+
+	state.prevMove();
 }
 
 

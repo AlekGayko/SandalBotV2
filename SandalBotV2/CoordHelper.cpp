@@ -9,6 +9,7 @@ const std::string CoordHelper::charRanks = "87654321";
 
 std::string CoordHelper::indexToString(int index) {
     int row = index / 8;
+    row = row < 0 || row > 7 ? 0 : row;
     int col = index % 8;
     std::string coord = std::string(1, charFiles[col]) + std::string(1, charRanks[row]);
     return coord;
@@ -52,8 +53,19 @@ bool CoordHelper::validCoordAddition(Coord coord, Coord direction) {
 
 bool CoordHelper::validCoordAddition(int index, int move) {
     if (index + move < 0 || index + move > 63) return false;
-    int resultCol = index % 8 + move % 8;
+    int indexCol = index % 8;
+    int moveCol = move < 0 ? (move % 8) : move % 8;
+
+    int resultCol = indexCol + moveCol;
     if (resultCol < 0 || resultCol >= 8) return false;
+    return true;
+}
+
+bool CoordHelper::validCoordAddition(int index, Coord direction) {
+    int result = index + direction.row * 8 + direction.col;
+    int resultCol = index % 8 + direction.col;
+    if (result < 0 || result > 63) return false;
+    if (resultCol < 0 || resultCol > 7) return false;
     return true;
 }
 
@@ -85,6 +97,15 @@ Coord Coord::operator+(const Coord& other) const {
     return { row + other.row, col + other.col };
 }
 
+int Coord::operator+(const int& other) const {
+    return other + row * 8 + col;
+}
+
 Coord Coord::operator*(const int other) const {
     return { row * other, col * other };
+}
+
+std::ostream& operator<<(std::ostream& os, const Coord& coord) {
+    os << "{ " << coord.row << ", " << coord.col << " }" << endl;
+    return os;
 }

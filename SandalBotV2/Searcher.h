@@ -11,7 +11,7 @@ class Searcher {
 private:
 	bool cancelSearch = false;
 	const int maxDeepening = 5;
-	int perftMoves = 0;
+
 	Board* board = nullptr;
 	MoveGen* moveGenerator = nullptr;
 
@@ -19,6 +19,10 @@ private:
 	int negaMax(bool isMaximising, int depth, int maxDepth);
 	int QuiescenceSearch();
 public:
+	int perftMoves = 0;
+	int movesSince = 0;
+	int movesSince0[20];
+
 	Searcher();
 	Searcher(Board* board);
 	void startSearch();

@@ -7,30 +7,30 @@
 
 class Piece {
 public:
-	static constexpr int king = 0b0110;
-	static constexpr int queen = 0b0101;
-	static constexpr int rook = 0b0100;
-	static constexpr int bishop = 0b0011;
-	static constexpr int knight = 0b0010;
-	static constexpr int pawn = 0b0001;
-	static constexpr int empty = 0b0000;
+	static constexpr int king = 0b0110; // 6
+	static constexpr int queen = 0b0101; // 5
+	static constexpr int rook = 0b0100; // 4
+	static constexpr int bishop = 0b0011; // 3
+	static constexpr int knight = 0b0010; // 2
+	static constexpr int pawn = 0b0001; // 1
+	static constexpr int empty = 0b0000; // 0
 
-	static constexpr int black = 0b0000;
-	static constexpr int white = 0b1000;
+	static constexpr int black = 0b0000; // 0
+	static constexpr int white = 0b1000; // 8
 
-	static constexpr int blackKing = king | black;
-	static constexpr int blackQueen = queen | black;
-	static constexpr int blackRook = rook | black;
-	static constexpr int blackBishop = bishop | black;
-	static constexpr int blackKnight = knight | black;
-	static constexpr int blackPawn = pawn | black;
+	static constexpr int blackKing = king | black; // 6
+	static constexpr int blackQueen = queen | black; // 5
+	static constexpr int blackRook = rook | black; // 4
+	static constexpr int blackBishop = bishop | black; // 3
+	static constexpr int blackKnight = knight | black; // 2
+	static constexpr int blackPawn = pawn | black; // 1
 
-	static constexpr int whiteKing = king | white;
-	static constexpr int whiteQueen = queen | white;
-	static constexpr int whiteRook = rook | white;
-	static constexpr int whiteBishop = bishop | white;
-	static constexpr int whiteKnight = knight | white;
-	static constexpr int whitePawn = pawn | white;
+	static constexpr int whiteKing = king | white; // 14
+	static constexpr int whiteQueen = queen | white; // 13
+	static constexpr int whiteRook = rook | white; // 12
+	static constexpr int whiteBishop = bishop | white; // 11
+	static constexpr int whiteKnight = knight | white; // 10
+	static constexpr int whitePawn = pawn | white; // 9
 
 	static constexpr int pieceMask = 0b0111;
 	static constexpr int colorMask = 0b1000;

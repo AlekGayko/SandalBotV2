@@ -29,7 +29,9 @@ void Bot::stopSearching() {
 }
 
 int Bot::perft(int depth) {
-    return searcher->perft(depth);
+    searcher->perft(depth);
+    //cout << "test moves: " << board->testMoves << endl;
+    return searcher->perftMoves;
 }
 
 std::string Bot::printBoard() {

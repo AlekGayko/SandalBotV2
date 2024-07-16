@@ -20,3 +20,11 @@ constexpr bool BoardState::canShortCastle(bool isWhite) const {
 constexpr bool BoardState::canLongCastle(bool isWhite) const {
 	return isWhite ? castlingRights & whiteLongCastleMask : castlingRights & blackLongCastleMask;
 }
+
+void BoardState::nextMove() {
+	whiteTurn = !whiteTurn;
+}
+
+void BoardState::prevMove() {
+	whiteTurn = !whiteTurn;
+}

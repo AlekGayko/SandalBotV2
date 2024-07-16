@@ -13,7 +13,9 @@ struct Coord {
 	Coord(int row, int col);
 	Coord(int index);
 	Coord operator+(const Coord& other) const;
+	int operator+(const int& other) const;
 	Coord operator*(const int other) const;
+	friend std::ostream& operator<<(std::ostream& os, const Coord& coord);
 };
 
 class CoordHelper {
@@ -29,6 +31,7 @@ public:
 	static bool validCoord(Coord coord);
 	static bool validCoordAddition(Coord coord, Coord direction);
 	static bool validCoordAddition(Coord coord, Coord direction, int scalar);
+	static bool validCoordAddition(int index, Coord direction);
 	static bool validCoordAddition(int index, int move);
 };
 
