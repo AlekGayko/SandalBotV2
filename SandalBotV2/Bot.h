@@ -12,6 +12,7 @@ private:
 	Board* board = nullptr;
 	OpeningBook* openingBook = nullptr;
 	Searcher* searcher = nullptr;
+	int validateUserMove(Move moves[218], int startSquare, int targetSquare);
 public:
 	Bot();
 	~Bot();

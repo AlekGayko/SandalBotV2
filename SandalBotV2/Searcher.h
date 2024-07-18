@@ -13,12 +13,12 @@ private:
 	const int maxDeepening = 5;
 
 	Board* board = nullptr;
-	MoveGen* moveGenerator = nullptr;
 
 	void iterativeSearch();
-	int negaMax(bool isMaximising, int depth, int maxDepth);
+	void moveSearch(bool isMaximising, int depth, int maxDepth);
 	int QuiescenceSearch();
 public:
+	MoveGen* moveGenerator = nullptr;
 	int perftMoves = 0;
 	int movesSince = 0;
 	int movesSince0[20];

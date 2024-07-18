@@ -10,19 +10,21 @@
 
 class MovePrecomputation {
 public:
-	/*
-	struct PrecompCalc {
+	struct dirDist {
 		// Distances between piece and sides of board
 		int top;
 		int left;
 		int right;
 		int bottom;
+		int direction[8];
+		bool knightSquares[8];
 		int minVertical;
 		int minHorizontal;
-		PrecompCalc(int top, int left, int right, int bottom);
+		dirDist();
+		dirDist(int top, int left, int right, int bottom);
 	};
-	*/
-
+	dirDist directionDistances[64];
+	/*
 	static const std::vector<Coord> orthogonalDirections;
 	static const std::vector<Coord> diagonalDirections;
 	static const std::vector<Coord> knightDirections;
@@ -36,10 +38,11 @@ public:
 	static std::vector<Move> knightMoves[64];
 	static std::vector<Move> blackPawnMoves[64];
 	static std::vector<Move> whitePawnMoves[64];
+	*/
 
 	MovePrecomputation();
-	void initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable = false);
-	void initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite);
+	//void initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable = false);
+	//void initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

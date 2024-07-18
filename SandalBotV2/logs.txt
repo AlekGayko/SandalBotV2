@@ -1,1 +1,1 @@
-Command received: quit
+Command received: go perft 3

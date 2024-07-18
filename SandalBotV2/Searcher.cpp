@@ -8,30 +8,30 @@ using namespace std;
 
 void Searcher::iterativeSearch() {
 	for (int i = 0; i < maxDeepening && !cancelSearch; i++) {
-		negaMax(board->state.whiteTurn, 0, i);
+		moveSearch(board->state.whiteTurn, 0, i);
 	}
 }
 
-int Searcher::negaMax(bool isMaximising, int depth, int maxDepth) {
+void Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 	if (depth == maxDepth) {
 		//cout << board->printBoard() << endl;
 		perftMoves++;
-		return 0;
+		return;
 	}
-	int bestScore = -1000000;
-	int score = 0;
 	Move moves[218];
-	int numMoves = moveGenerator->generateMoves(moves, isMaximising);
+	int numMoves = moveGenerator->generateMoves(moves);
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i]);
-		score = -negaMax(!isMaximising, depth + 1, maxDepth);
-		if (score > bestScore) bestScore = score;
+		moveSearch(!isMaximising, depth + 1, maxDepth);
 		board->unMakeMove(moves[i]);
+		/*
 		if (depth == 0) {
 			movesSince0[i] = perftMoves - movesSince;
 			movesSince = perftMoves;
 		}
+		*/
 	}
+	/*
 	if (depth == 0) { 
 		for (int i = 0; i < numMoves - 4; i+=2) {
 			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
@@ -44,7 +44,7 @@ int Searcher::negaMax(bool isMaximising, int depth, int maxDepth) {
 			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
 		}
 	}
-	return 0;
+	*/
 }
 
 int Searcher::QuiescenceSearch() {
@@ -71,6 +71,6 @@ void Searcher::endSearch() {
 
 int Searcher::perft(int depth) {
 	perftMoves = 0;
-	negaMax(board->state.whiteTurn, 0, depth);
+	moveSearch(board->state.whiteTurn, 0, depth);
 	return perftMoves;
 }

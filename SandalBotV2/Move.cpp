@@ -1,5 +1,7 @@
 #include "Move.h"
 
+#include <iostream>
+
 Move::Move() {
 	
 }
@@ -56,4 +58,9 @@ constexpr int Move::promotionPieceType() const {
 	default:
 		return 0;
 	}
+}
+
+std::ostream& operator<<(std::ostream& os, const Move& move) {
+	os << "startSquare: " << move.startSquare << ", targetsquare: " << move.targetSquare << ", takenpiece: " << move.takenPiece << ", flag: " << move.flag << std::endl;
+	return os;
 }

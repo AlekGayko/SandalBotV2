@@ -5,7 +5,7 @@
 
 class PieceList {
 public:
-	int* occupiedSquares = nullptr;
+	int* occupiedSquares;
 	int map[64];
 	int numPieces = 0;
 

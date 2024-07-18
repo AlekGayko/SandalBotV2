@@ -3,10 +3,11 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "PieceList.h"
-#include "Move.h"
+#include "BoardHistory.h"
 #include "BoardState.h"
 #include "CoordHelper.h"
+#include "Move.h"
+#include "PieceList.h"
 
 class FEN;
 
@@ -17,20 +18,17 @@ public:
 	BoardState state;
 	int squares[64];
 
-	PieceList* pieceLists[6];
-	int kings[2];
-	PieceList queens[2];
-	PieceList rooks[2];
-	PieceList bishop[2];
-	PieceList knights[2];
-	PieceList pawns[2];
+	PieceList pieceLists[2][7]; // index [i][0] is redundant since 0 = empty
+	//int kings[2];
+	BoardHistory history;
 
-	const int blackIndex = 0;
-	const int whiteIndex = 1;
+	static const int blackIndex = 0;
+	static const int whiteIndex = 1;
 
 	int testMoves = 0;
 
 	Board();
+	void loadPieceLists();
 	void loadPosition(std::string fen);
 	void makeMove(Move& move);
 	void makeEnPassantChanges(Move& move);

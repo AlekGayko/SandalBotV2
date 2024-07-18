@@ -19,6 +19,17 @@ Board::Board() {
 		};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
 	state = BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0);
+	loadPieceLists();
+}
+
+void Board::loadPieceLists() {
+	for (int square = 0; square < 64; square++) {
+		int piece = squares[square];
+		int colorIndex = Piece::isColor(piece, Piece::white) ? whiteIndex : blackIndex;
+		int pieceType = Piece::type(piece);
+		
+		pieceLists[colorIndex][pieceType].addPiece(square);
+	}
 }
 
 void Board::loadPosition(std::string fen) {
@@ -37,15 +48,27 @@ void Board::loadPosition(std::string fen) {
 	if (newPos.whiteLongCastle) state.castlingRights = state.castlingRights | BoardState::whiteLongCastleMask;
 	if (newPos.blackShortCastle) state.castlingRights = state.castlingRights | BoardState::blackShortCastleMask;
 	if (newPos.blackLongCastle) state.castlingRights = state.castlingRights | BoardState::blackLongCastleMask;
+
+	loadPieceLists();
 }
 
 void Board::makeMove(Move& move) {
+	if (Piece::type(move.takenPiece) == Piece::king) return;
 	int piece = Piece::type(squares[move.startSquare]);
+	int colorIndex = state.whiteTurn ? whiteIndex : blackIndex;
 	int startSquare = move.startSquare;
 	int targetSquare = move.targetSquare;
-
+	pieceLists[colorIndex][piece].movePiece(startSquare, targetSquare);
 	squares[targetSquare] = squares[startSquare];
 	squares[startSquare] = 0;
+
+	if (move.takenPiece != Piece::empty) {
+		//cout << move << endl;
+		int type = Piece::type(move.takenPiece);
+		//cout << type << ", " << !state.whiteTurn << endl;
+		pieceLists[!state.whiteTurn][type].deletePiece(targetSquare);
+	}
+
 	state.nextMove(move, piece);
 }
 
@@ -89,12 +112,22 @@ void Board::makePromotionChanges(Move& move) {
 }
 
 void Board::unMakeMove(Move& move) {
-	int piece = Piece::type(squares[move.targetSquare]);
-	int startSquare = move.startSquare;
-	int targetSquare = move.targetSquare;
+	if (Piece::type(move.takenPiece) == Piece::king) return;
+	const int piece = Piece::type(squares[move.targetSquare]);
+	const int colorIndex = !state.whiteTurn ? whiteIndex : blackIndex;
+	const int startSquare = move.startSquare;
+	const int targetSquare = move.targetSquare;
+
+	pieceLists[colorIndex][piece].movePiece(targetSquare, startSquare);
 
 	squares[startSquare] = squares[targetSquare];
 	squares[targetSquare] = move.takenPiece;
+	if (move.takenPiece != Piece::empty) {
+		//cout << move << endl;
+		//cout << printBoard() << endl;
+		int type = Piece::type(move.takenPiece);
+		pieceLists[!state.whiteTurn][type].addPiece(targetSquare);
+	}
 
 	state.prevMove(move, piece);
 }

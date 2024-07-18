@@ -6,6 +6,20 @@
 
 using namespace std;
 
+int Bot::validateUserMove(Move moves[218], int startSquare, int targetSquare) {
+    int numMoves = searcher->moveGenerator->generateMoves(moves);
+    int moveIndex = -1;
+
+    for (int i = 0; i < numMoves; i++) {
+        if (moves[i].startSquare == startSquare && moves[i].targetSquare == targetSquare) {
+            moveIndex = i;
+            break;
+        }
+    }
+
+    return moveIndex;
+}
+
 Bot::Bot() {
     board = new Board();
     searcher = new Searcher(board);
@@ -21,10 +35,16 @@ void Bot::setPosition(std::string FEN) {
 
 void Bot::makeMove(std::string movestr) {
     if (movestr.size() != 4) return;
+
     int startSquare = CoordHelper::stringToIndex(movestr.substr(0, 2));
     int targetSquare = CoordHelper::stringToIndex(movestr.substr(2, 2));
-    Move move = Move(startSquare, targetSquare);
-    board->makeMove(move);
+
+    Move positionMoves[218];
+    int moveIndex = validateUserMove(positionMoves, startSquare, targetSquare);
+
+    if (moveIndex == -1) return;
+
+    board->makeMove(positionMoves[moveIndex]);
 }
 
 void Bot::generateMove() {

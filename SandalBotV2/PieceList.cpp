@@ -19,17 +19,20 @@ PieceList::~PieceList() {
 }
 
 void PieceList::addPiece(int square) {
+	if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
 	occupiedSquares[numPieces] = square;
 	map[square] = numPieces;
 	numPieces++;
 }
 
 void PieceList::deletePiece(int square) {
+	if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
+	if (numPieces <= 0) throw std::out_of_range("Can't delete piece");
 	const int occupiedIndex = map[square];
 	const int lastOccupiedIndex = numPieces - 1;
 	const int lastSquare = occupiedSquares[lastOccupiedIndex];
 
-	occupiedSquares[map[square]] = occupiedSquares[lastOccupiedIndex];
+	occupiedSquares[occupiedIndex] = occupiedSquares[lastOccupiedIndex];
 	map[lastSquare] = occupiedIndex;
 	map[square] = -1;
 
