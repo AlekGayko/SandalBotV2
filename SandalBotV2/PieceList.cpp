@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 PieceList::PieceList(int maxNumPieces) {
-	occupiedSquares = new int[maxNumPieces];
 	for (int i = 0; i < maxNumPieces; i++) {
 		occupiedSquares[i] = -1;
 	}
@@ -13,9 +12,7 @@ PieceList::PieceList(int maxNumPieces) {
 }
 
 PieceList::~PieceList() {
-	if (occupiedSquares != nullptr) {
-		delete[] occupiedSquares;
-	}
+
 }
 
 void PieceList::addPiece(int square) {

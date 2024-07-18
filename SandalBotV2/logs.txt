@@ -1,1 +1,3 @@
 Command received: go perft 3
+Response: Time taken: 0.097479s, nodes per second: 84141.285960
+Response: Nodes searched: 8202

@@ -56,6 +56,7 @@ void Board::makeMove(Move& move) {
 	if (Piece::type(move.takenPiece) == Piece::king) return;
 	int piece = Piece::type(squares[move.startSquare]);
 	int colorIndex = state.whiteTurn ? whiteIndex : blackIndex;
+	int oppositeIndex = !state.whiteTurn ? whiteIndex : blackIndex;
 	int startSquare = move.startSquare;
 	int targetSquare = move.targetSquare;
 	pieceLists[colorIndex][piece].movePiece(startSquare, targetSquare);
@@ -66,7 +67,7 @@ void Board::makeMove(Move& move) {
 		//cout << move << endl;
 		int type = Piece::type(move.takenPiece);
 		//cout << type << ", " << !state.whiteTurn << endl;
-		pieceLists[!state.whiteTurn][type].deletePiece(targetSquare);
+		pieceLists[oppositeIndex][type].deletePiece(targetSquare);
 	}
 
 	state.nextMove(move, piece);
@@ -115,6 +116,7 @@ void Board::unMakeMove(Move& move) {
 	if (Piece::type(move.takenPiece) == Piece::king) return;
 	const int piece = Piece::type(squares[move.targetSquare]);
 	const int colorIndex = !state.whiteTurn ? whiteIndex : blackIndex;
+	const int oppositeIndex = state.whiteTurn ? whiteIndex : blackIndex;
 	const int startSquare = move.startSquare;
 	const int targetSquare = move.targetSquare;
 
@@ -126,7 +128,7 @@ void Board::unMakeMove(Move& move) {
 		//cout << move << endl;
 		//cout << printBoard() << endl;
 		int type = Piece::type(move.takenPiece);
-		pieceLists[!state.whiteTurn][type].addPiece(targetSquare);
+		pieceLists[oppositeIndex][type].addPiece(targetSquare);
 	}
 
 	state.prevMove(move, piece);

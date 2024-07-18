@@ -24,14 +24,14 @@ void Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 		board->makeMove(moves[i]);
 		moveSearch(!isMaximising, depth + 1, maxDepth);
 		board->unMakeMove(moves[i]);
-		/*
+		
 		if (depth == 0) {
 			movesSince0[i] = perftMoves - movesSince;
 			movesSince = perftMoves;
 		}
-		*/
+		
 	}
-	/*
+	
 	if (depth == 0) { 
 		for (int i = 0; i < numMoves - 4; i+=2) {
 			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
@@ -44,7 +44,7 @@ void Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
 		}
 	}
-	*/
+	
 }
 
 int Searcher::QuiescenceSearch() {

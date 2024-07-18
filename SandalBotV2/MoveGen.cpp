@@ -18,28 +18,20 @@ int MoveGen::generateMoves(Move moves[]) {
 	initVariables();
 
 	generatePawnMoves(moves);
-	cout << "moves after pawns: " << currentMoves << endl;
+	//cout << "moves after pawns: " << currentMoves << endl;
 	generateKnightMoves(moves);
-	cout << "moves after knight: " << currentMoves << endl;
+	//cout << "moves after knight: " << currentMoves << endl;
 	generateKingMoves(moves);
-	cout << "moves after king: " << currentMoves << endl;
+	//cout << "moves after king: " << currentMoves << endl;
 	generateOrthogonalMoves(moves);
-	cout << "moves after orthog: " << currentMoves << endl;
+	//cout << "moves after orthog: " << currentMoves << endl;
 	generateDiagonalMoves(moves);
-	cout << "moves after diag: " << currentMoves << endl;
+	//cout << "moves after diag: " << currentMoves << endl;
 
 	//cout << board->printBoard() << endl;
-	cout << ".currentmoves: " << currentMoves << endl;
+	//cout << ".currentmoves: " << currentMoves << endl;
 	short int maxstart = moves[0].startSquare;
 	short int maxtarget = moves[0].targetSquare;
-	for (int i = 0; i < currentMoves; i++) {
-		maxstart = std::max(moves[i].startSquare, maxstart);
-		maxtarget = std::max(moves[i].targetSquare, maxtarget);
-	}
-	if (maxstart < 0 || maxstart > 63 || maxtarget < 0 || maxtarget > 63) {
-		cout << "max start: " << maxstart << ", maxtarget: " << maxtarget << endl;
-		throw std::out_of_range("yo");
-	}
 
 	return currentMoves;
 }
@@ -73,6 +65,7 @@ void MoveGen::generateSlideMoves(Move moves[]) {
 }
 
 void MoveGen::generateOrthogonalMoves(Move moves[]) {
+	int a = currentMoves;
 	for (int type = 0; type < 2; type++) {
 		int numOrthoSliders = orthogonalSliders[type].numPieces;
 		for (int it = 0; it < numOrthoSliders; it++) {
@@ -99,9 +92,13 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 			}
 		}
 	}
+	if (currentMoves - a > 1) {
+		cout << "there are ortho moves: " << currentMoves - a << endl;
+	}
 }
 
 void MoveGen::generateDiagonalMoves(Move moves[]) {
+	int a = currentMoves;
 	for (int type = 0; type < 2; type++) {
 		int numOrthoSliders = orthogonalSliders[type].numPieces;
 		for (int it = 0; it < numOrthoSliders; it++) {
@@ -128,11 +125,14 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 			}
 		}
 	}
+	if (currentMoves - a > 1) {
+		cout << "there are diag moves: " << currentMoves - a << endl;
+	}
 }
 
 void MoveGen::generateKnightMoves(Move moves[]) {
 	int numKnights = friendlyPieceLists[Piece::knight].numPieces;
-	cout << "numknights: " << numKnights << endl;
+	//cout << "numknights: " << numKnights << endl;
 	for (int it = 0; it < numKnights; it++) {
 		//cout << "it: " << it << ", currentmoves: " << currentMoves << endl;
 		const int startSquare = friendlyPieceLists[Piece::knight][it];
@@ -147,7 +147,7 @@ void MoveGen::generateKnightMoves(Move moves[]) {
 				throw std::out_of_range("yo");
 			}
 			if (Piece::isColor(board->squares[targetSquare], currentColor)) continue;
-			cout << "targetsquare: " << targetSquare << endl;
+			//cout << "targetsquare: " << targetSquare << endl;
 			//cout << "making move" << endl;
 			moves[currentMoves++] = Move(startSquare, targetSquare);
 			//cout << "made move: " << currentMoves << endl;
@@ -185,6 +185,7 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 		if (startSquare / 8 == 7) throw std::out_of_range("Pawn cannot exist on last rank.");
 		
 		for (int i = 0; i < 2; i++) {
+			if (preComp.directionDistances[startSquare].direction[3 - i * 2] <= 1) continue;
 			int targetSquare = attackDirection[i] + startSquare;
 			if (!Piece::isColor(board->squares[targetSquare], opposingColor)) {
 				if (targetSquare % 8 == enPassantFile && targetSquare / 8 == enPassantRow && board->squares[targetSquare] == Piece::empty) {
