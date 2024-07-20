@@ -53,9 +53,12 @@ void Bot::generateMove() {
 void Bot::stopSearching() {
 }
 
-int Bot::perft(int depth) {
+unsigned long long int Bot::perft(int depth) {
+    searcher->moveGenerator->perftRes.reset();
     searcher->perft(depth);
     //cout << "test moves: " << board->testMoves << endl;
+    cout << "Results: " << endl;
+    cout << searcher->moveGenerator->perftRes << endl;
     return searcher->perftMoves;
 }
 

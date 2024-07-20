@@ -21,7 +21,7 @@ public:
 	void makeMove(std::string movestr);
 	void generateMove();
 	void stopSearching();
-	int perft(int depth);
+	unsigned long long int perft(int depth);
 	std::string printBoard();
 };
 

@@ -16,15 +16,15 @@ PieceList::~PieceList() {
 }
 
 void PieceList::addPiece(int square) {
-	if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
+	//if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
 	occupiedSquares[numPieces] = square;
 	map[square] = numPieces;
 	numPieces++;
 }
 
 void PieceList::deletePiece(int square) {
-	if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
-	if (numPieces <= 0) throw std::out_of_range("Can't delete piece");
+	//if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
+	//if (numPieces <= 0) throw std::out_of_range("Can't delete piece");
 	const int occupiedIndex = map[square];
 	const int lastOccupiedIndex = numPieces - 1;
 	const int lastSquare = occupiedSquares[lastOccupiedIndex];
@@ -46,8 +46,6 @@ void PieceList::movePiece(int startSquare, int targetSquare) {
 
 
 int& PieceList::operator[](int index) {
-	if (index < 0 || index >= numPieces) {
-		throw std::out_of_range("Index out of range.");
-	}
+	//if (index < 0 || index >= numPieces) throw std::out_of_range("Index out of range.");
 	return occupiedSquares[index];
 }

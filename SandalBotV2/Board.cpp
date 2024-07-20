@@ -20,6 +20,10 @@ Board::Board() {
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
 	state = BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0);
 	loadPieceLists();
+	//loadBitBoards();
+}
+
+Board::~Board() {
 }
 
 void Board::loadPieceLists() {
@@ -27,17 +31,15 @@ void Board::loadPieceLists() {
 		int piece = squares[square];
 		int colorIndex = Piece::isColor(piece, Piece::white) ? whiteIndex : blackIndex;
 		int pieceType = Piece::type(piece);
-		
+		if (pieceType == Piece::empty) continue;
 		pieceLists[colorIndex][pieceType].addPiece(square);
 	}
 }
 
 void Board::loadPosition(std::string fen) {
 	FEN::PositionInfo newPos = FEN::fenToPosition(fen);
+	std::copy(std::begin(newPos.squares), std::end(newPos.squares), squares);
 
-	for (int square = 0; square < 64; square++) {
-		squares[square] = newPos.squares[square];
-	}
 	state.enPassantFile = newPos.enPassantFile;
 	state.whiteTurn = newPos.whiteTurn;
 	state.fiftyMoveCounter = newPos.fiftyMoveCount;
@@ -50,15 +52,17 @@ void Board::loadPosition(std::string fen) {
 	if (newPos.blackLongCastle) state.castlingRights = state.castlingRights | BoardState::blackLongCastleMask;
 
 	loadPieceLists();
+	//loadBitBoards();
 }
 
 void Board::makeMove(Move& move) {
-	if (Piece::type(move.takenPiece) == Piece::king) return;
+	if (Piece::isType(move.takenPiece, Piece::king)) return;
 	int piece = Piece::type(squares[move.startSquare]);
 	int colorIndex = state.whiteTurn ? whiteIndex : blackIndex;
 	int oppositeIndex = !state.whiteTurn ? whiteIndex : blackIndex;
 	int startSquare = move.startSquare;
 	int targetSquare = move.targetSquare;
+
 	pieceLists[colorIndex][piece].movePiece(startSquare, targetSquare);
 	squares[targetSquare] = squares[startSquare];
 	squares[startSquare] = 0;
@@ -69,7 +73,7 @@ void Board::makeMove(Move& move) {
 		//cout << type << ", " << !state.whiteTurn << endl;
 		pieceLists[oppositeIndex][type].deletePiece(targetSquare);
 	}
-
+	//updateBitBoards(move);
 	state.nextMove(move, piece);
 }
 
@@ -113,7 +117,7 @@ void Board::makePromotionChanges(Move& move) {
 }
 
 void Board::unMakeMove(Move& move) {
-	if (Piece::type(move.takenPiece) == Piece::king) return;
+	if (Piece::isType(move.takenPiece, Piece::king)) return;
 	const int piece = Piece::type(squares[move.targetSquare]);
 	const int colorIndex = !state.whiteTurn ? whiteIndex : blackIndex;
 	const int oppositeIndex = state.whiteTurn ? whiteIndex : blackIndex;
@@ -130,8 +134,51 @@ void Board::unMakeMove(Move& move) {
 		int type = Piece::type(move.takenPiece);
 		pieceLists[oppositeIndex][type].addPiece(targetSquare);
 	}
-
+	//undoBitBoards(move);
 	state.prevMove(move, piece);
+}
+
+void Board::loadBitBoards() {
+	whitePieces = 0ULL;
+	blackPieces = 0ULL;
+	orthogonalPieces = 0ULL;
+	diagonalPieces = 0ULL;
+	knights = 0ULL;
+	pawns = 0ULL;
+
+	for (int square = 0; square < 64; square++) {
+		int type = Piece::type(squares[square]);
+		int color = Piece::color(squares[square]);
+		switch (type) {
+		case Piece::pawn:
+			pawns |= 0b1 << square;
+			break;
+		case Piece::knight:
+			knights |= 0b1 << square;
+			break;
+		case Piece::king:
+			//kings |= 0b1 << square;
+			break;
+		case Piece::bishop:
+			diagonalPieces |= 0b1 << square;
+			break;
+		case Piece::rook:
+			orthogonalPieces |= 0b1 << square;
+			break;
+		case Piece::queen:
+			orthogonalPieces |= 0b1 << square;
+			diagonalPieces |= 0b1 << square;
+			break;
+		}
+
+		switch (color) {
+		case Piece::white:
+			whitePieces |= 0b1 << square;
+		case Piece::black:
+			blackPieces |= 0b1 << square;
+		}
+	}
+	allPieces = whitePieces | blackPieces;
 }
 
 void Board::undoEnPassantChanges(Move& move) {
@@ -229,4 +276,60 @@ string Board::printBoard() {
 	result += '\n';
 
 	return result;
+}
+
+void Board::updateBitBoards(Move& move, int pieceType, int takenPiece) {
+	const int startSquare = move.startSquare;
+	const int targetSquare = move.targetSquare;
+	unsigned long long int* friendlyBoard = state.whiteTurn ? &whitePieces : &blackPieces;
+	unsigned long long int* enemyBoard = !state.whiteTurn ? &whitePieces : &blackPieces;
+
+	switch (pieceType) {
+	case Piece::pawn:
+		pawns &= ~(0b1 << startSquare);
+		pawns |= (0b1 << targetSquare);
+		break;
+	case Piece::knight:
+		knights &= ~(0b1 << startSquare);
+		knights |= (0b1 << targetSquare);
+		break;
+	case Piece::rook:
+		orthogonalPieces &= ~(0b1 << startSquare);
+		orthogonalPieces |= (0b1 << targetSquare);
+		break;
+	case Piece::queen:
+		orthogonalPieces &= ~(0b1 << startSquare);
+		diagonalPieces &= ~(0b1 << startSquare);
+		
+		orthogonalPieces |= 0b1 << targetSquare;
+		diagonalPieces |= 0b1 << targetSquare;
+		break;
+	case Piece::bishop:
+		diagonalPieces &= ~(0b1 << startSquare);
+		diagonalPieces |= (0b1 << targetSquare);
+		break;
+	}
+
+	switch (takenPiece) {
+	case Piece::pawn:
+		pawns &= ~(0b1 << targetSquare);
+		break;
+	case Piece::knight:
+		knights &= ~(0b1 << targetSquare);
+		break;
+	case Piece::rook:
+		orthogonalPieces &= ~(0b1 << targetSquare);
+		break;
+	case Piece::queen:
+		orthogonalPieces &= ~(0b1 << targetSquare);
+		diagonalPieces &= ~(0b1 << targetSquare);
+		break;
+	case Piece::bishop:
+		diagonalPieces &= ~(0b1 << targetSquare);
+		break;
+	}
+
+}
+
+void Board::undoBitBoards(Move& move, int pieceType, int takenPiece) {
 }

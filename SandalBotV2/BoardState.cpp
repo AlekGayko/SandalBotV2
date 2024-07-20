@@ -26,7 +26,7 @@ void BoardState::nextMove(Move& move, int piece) {
 	moveCounter++;
 	fiftyMoveCounter++;
 
-	if (piece == Piece::pawn && abs(move.targetSquare - move.startSquare) == 16) {
+	if (move.flag == Move::pawnTwoSquaresFlag) {
 		enPassantFile = move.targetSquare % 8;
 	} else {
 		enPassantFile = -1;

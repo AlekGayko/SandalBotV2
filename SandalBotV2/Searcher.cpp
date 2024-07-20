@@ -24,23 +24,14 @@ void Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 		board->makeMove(moves[i]);
 		moveSearch(!isMaximising, depth + 1, maxDepth);
 		board->unMakeMove(moves[i]);
-		
 		if (depth == 0) {
 			movesSince0[i] = perftMoves - movesSince;
 			movesSince = perftMoves;
 		}
 		
 	}
-	
 	if (depth == 0) { 
-		for (int i = 0; i < numMoves - 4; i+=2) {
-			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
-		}
-		for (int i = 1; i < numMoves - 4; i += 2) {
-			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
-		}
-		for (int i = numMoves - 4; i < numMoves; i+=2) {
-			cout << CoordHelper::indexToString(moves[i + 1].startSquare) << CoordHelper::indexToString(moves[i + 1].targetSquare) << ": " << movesSince0[i+1] << endl;
+		for (int i = 0; i < numMoves; i++) {
 			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
 		}
 	}
@@ -71,6 +62,7 @@ void Searcher::endSearch() {
 
 int Searcher::perft(int depth) {
 	perftMoves = 0;
+	movesSince = 0;
 	moveSearch(board->state.whiteTurn, 0, depth);
 	return perftMoves;
 }

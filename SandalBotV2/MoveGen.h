@@ -8,20 +8,24 @@
 #include "CoordHelper.h"
 #include "Piece.h"
 
+struct PerftResults {
+	int captures;
+	int enPassants;
+	int castles;
+	int promotions;
+	int checks;
+	int discoveryChecks;
+	int doubleChecks;
+	int checkmates;
+	int stalemates;
+	void reset();
+	friend std::ostream& operator<<(std::ostream& os, const PerftResults& res);
+};
+
 class MoveGen {
 private:
 	Board* board = nullptr;
 	MovePrecomputation preComp;
-	/*
-	const Coord orthogonalDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
-	const Coord diagonalDirections[4] = { { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
-	const Coord kingDirections[8] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
-	const Coord knightDirections[8] = { { 2, 1 }, { 2, -1 }, { 1, 2 }, { 1, -2 }, { -1, 2 }, { -1, -2 }, { -2, 1 }, { -2, -1 } };
-	const Coord whitePawnDirection = { -1, 0 };
-	const Coord blackPawnDirection = { 1, 0 };
-	const Coord whitePawnAttacks[2] = { { -1, -1 }, { -1, 1 } };
-	const Coord blackPawnAttacks[2] = { { 1, -1 }, { 1, 1 } };
-	*/
 
 	const int slideDirections[8] = { -8, 1, 8, -1, -9, -7, 9, 7 };
 	const int knightDirections[8] = { -17, -15, -6, 10, 17, 15, 6, -10 };
@@ -45,7 +49,7 @@ private:
 	const int shortCastleRookSquares[2] = { 7, 63 };
 	const int longCastleRookSquares[2] = { 0, 56 };
 
-	int currentMoves;
+	unsigned long long int currentMoves;
 	int colorIndex;
 	int enemyColorIndex;
 	int currentColor;
@@ -56,6 +60,11 @@ private:
 	PieceList orthogonalSliders[2];
 	PieceList diagonalSliders[2];
 
+	PieceList enemyOrthogonalSliders[2];
+	PieceList enemyDiagonalSliders[2];
+
+	PieceList pawns;
+
 	bool isCheck;
 	bool whiteTurn;
 	int enPassantFile;
@@ -63,8 +72,12 @@ private:
 	int fiftyMoveCounter;
 	int moveCounter;
 
+	unsigned long long int opponentAttacks;
+	unsigned long long int checkBB;
+	unsigned long long int checkRayBB;
 
 public:
+	PerftResults perftRes;
 	const int maxMoves = 218;
 
 	MoveGen();
@@ -81,7 +94,14 @@ public:
 	void promotionMoves(Move moves[], int targetSquare, int startSquare);
 	void castlingMoves(Move moves[], int startSquare);
 
+	void generateKnightAttackData();
+	void generatePawnAttackData();
+	void generateKingAttackData();
+	void generateSlideAttackData();
+	void generateAttackData();
 	void generateCheckData();
+
+	void updateResults(Move moves[]);
 };
 
 #endif

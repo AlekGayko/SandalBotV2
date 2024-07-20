@@ -21,7 +21,7 @@ public:
 	MoveGen* moveGenerator = nullptr;
 	int perftMoves = 0;
 	int movesSince = 0;
-	int movesSince0[20];
+	int movesSince0[218];
 
 	Searcher();
 	Searcher(Board* board);
