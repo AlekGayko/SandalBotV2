@@ -44,11 +44,13 @@ private:
 
 	const int promotionFlags[4] = { Move::promoteToQueenFlag, Move::promoteToRookFlag, Move::promoteToKnightFlag, Move::promoteToBishopFlag };
 
-	const int startingKingSquares[2] = { 4, 60 };
-	const int shortCastleKingSquares[2] = { 6, 62 };
-	const int longCastleKingSquares[2] = { 2, 58 };
-	const int shortCastleRookSquares[2] = { 7, 63 };
-	const int longCastleRookSquares[2] = { 0, 56 };
+	static const int startingKingSquares[2];
+	static const int shortCastleKingSquares[2];
+	static const int longCastleKingSquares[2];
+	static const int shortCastleRookSquares[2];
+	static const int longCastleRookSquares[2];
+	static const int shortCastleRookSpawn[2];
+	static const int longCastleRookSpawn[2];
 
 	unsigned long long int currentMoves;
 	int colorIndex;

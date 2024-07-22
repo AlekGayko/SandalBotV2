@@ -5,6 +5,14 @@
 
 using namespace std;
 
+const int MoveGen::startingKingSquares[2] = { 4, 60 };
+const int MoveGen::shortCastleKingSquares[2] = { 6, 62 };
+const int MoveGen::longCastleKingSquares[2] = { 2, 58 };
+const int MoveGen::shortCastleRookSquares[2] = { 7, 63 };
+const int MoveGen::longCastleRookSquares[2] = { 0, 56 };
+const int MoveGen::shortCastleRookSpawn[2] = { 5, 61 };
+const int MoveGen::longCastleRookSpawn[2] = { 3, 59 };
+
 MoveGen::MoveGen() {
 
 }
@@ -262,13 +270,12 @@ void MoveGen::castlingMoves(Move moves[], int startSquare) {
 	const bool shortAttacked = opponentAttacks & (1ULL << travellingShortSquare);
 	const bool longAttacked = opponentAttacks & (1ULL << travellingLongSquare);
 
-
-	if (!shortAttacked && castlingRights & shortMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare + 1] == Piece::empty && squares[startSquare + 2] == Piece::empty) {
-		cout << "castling short" << endl;
+	if (!(opponentAttacks & (1ULL << shortCastleKingSquares[colorIndex])) && !shortAttacked && castlingRights & shortMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare + 1] == Piece::empty && squares[startSquare + 2] == Piece::empty) {
+		//cout << "castling short" << endl;
 		moves[currentMoves++] = Move(startingKingSquares[colorIndex], shortCastleKingSquares[colorIndex], Move::castleFlag);
 	}
-	if (!longAttacked && castlingRights & longMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare - 1] == Piece::empty && squares[startSquare - 2] == Piece::empty && squares[startSquare - 3]) {
-		cout << "castling long" << endl;
+	if (!(opponentAttacks & (1ULL << longCastleKingSquares[colorIndex])) && !longAttacked && castlingRights & longMask && squares[longCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare - 1] == Piece::empty && squares[startSquare - 2] == Piece::empty && squares[startSquare - 3] == Piece::empty) {
+		//cout << "castling long" << endl;
 		moves[currentMoves++] = Move(startingKingSquares[colorIndex], longCastleKingSquares[colorIndex], Move::castleFlag);
 	}
 }

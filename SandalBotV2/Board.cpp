@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "FEN.h"
+#include "MoveGen.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -154,7 +155,8 @@ void Board::makeMove(Move& move) {
 	}
 
 	int pawnToBeDeleted;
-
+	int rookOffset;
+	int rookSquareOffset;
 	switch (flag) {
 	case Move::noFlag:
 		break;
@@ -168,6 +170,9 @@ void Board::makeMove(Move& move) {
 		break;
 	case Move::castleFlag:
 		makeCastlingChanges(move, castlingRights);
+		rookOffset = targetSquare % 8 > 4 ? 1 : -1;
+		rookSquareOffset = rookOffset == 1 ? 3 : -4;
+		pieceLists[colorIndex][Piece::rook].movePiece(startSquare + rookSquareOffset, startSquare + rookOffset);
 		break;
 	}
 
@@ -212,7 +217,8 @@ void Board::unMakeMove(Move& move) {
 	}
 
 	int pawnToBeDeleted;
-
+	int rookOffset;
+	int rookSquareOffset;
 	switch (flag) {
 	case Move::noFlag:
 		break;
@@ -223,6 +229,9 @@ void Board::unMakeMove(Move& move) {
 		break;
 	case Move::castleFlag:
 		undoCastlingChanges(move);
+		rookOffset = targetSquare % 8 > 4 ? 1 : -1;
+		rookSquareOffset = rookOffset == 1 ? 3 : -4;
+		pieceLists[colorIndex][Piece::rook].movePiece(startSquare + rookOffset, startSquare + rookSquareOffset);
 		break;
 	}
 
@@ -237,17 +246,19 @@ void Board::makeEnPassantChanges(Move& move) {
 }
 
 void Board::makeCastlingChanges(Move& move, int& castlingRights) {
+	//cout << "making castle move" << endl;
+	//cout << printBoard() << endl;
 	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
 	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
 	const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
-
 	squares[move.startSquare + rookDistance] = Piece::empty;
-	squares[move.targetSquare + rookSpawnOffset] = friendlyRook;
+	squares[move.startSquare + rookSpawnOffset] = friendlyRook;
 
 	int castleMask = 0b0001;
 	castleMask = state->whiteTurn ? castleMask : castleMask << 2;
 	castleMask = move.targetSquare % 8 < 4 ? castleMask << 1 : castleMask;
 	castlingRights &= ~castleMask & 0b1111;
+	//cout << printBoard() << endl;
 }
 
 void Board::makePromotionChanges(Move& move, int& piece) {
@@ -282,12 +293,14 @@ void Board::undoEnPassantChanges(Move& move) {
 }
 
 void Board::undoCastlingChanges(Move& move) {
+	//cout << printBoard() << endl;
 	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
 	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
-	const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
+	const int friendlyRook = state->whiteTurn ? Piece::blackRook : Piece::whiteRook;
 
 	squares[move.startSquare + rookDistance] = friendlyRook;
-	squares[move.targetSquare + rookSpawnOffset] = Piece::empty;
+	squares[move.startSquare + rookSpawnOffset] = Piece::empty;
+	//cout << printBoard() << endl;
 }
 
 string Board::printBoard() {

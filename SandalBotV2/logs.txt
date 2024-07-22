@@ -1,4 +1,8 @@
+Command received: go perft 4
+Response: Time taken: 0.015470s, nodes per second: 12752158.961630
+Response: Nodes searched: 197281
 Command received: position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -
-Command received: go perft 1
-Response: Time taken: 0.009082s, nodes per second: 5174.900631
-Response: Nodes searched: 47
+Command received: d
+Command received: go perft 4
+Response: Time taken: 7.633246s, nodes per second: 535595.872786
+Response: Nodes searched: 4088335
