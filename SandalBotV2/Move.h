@@ -5,6 +5,7 @@
 
 #include <bitset>
 
+#include "CoordHelper.h"
 #include "Piece.h"
 
 struct Move {
@@ -26,7 +27,6 @@ struct Move {
 	short int startSquare = 0;
 	short int targetSquare = 0;
 	short int flag = 0;
-	int takenPiece = Piece::empty;
 
 	Move();
 	Move(unsigned short int move);

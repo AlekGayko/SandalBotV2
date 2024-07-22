@@ -14,13 +14,13 @@ Move::Move(unsigned short int move) {
 }
 
 Move::Move(int startingSquare, int targetSquare) {
-	this->moveValue = (startingSquare << 6) & targetSquare;
+	this->moveValue = (startingSquare << 6) | targetSquare;
 	this->startSquare = startingSquare;
 	this->targetSquare = targetSquare;
 }
 
 Move::Move(int startingSquare, int targetSquare, int flag) {
-	this->moveValue = (flag << 12) & (startingSquare << 6) & targetSquare;
+	this->moveValue = (flag << 12) | (startingSquare << 6) | targetSquare;
 	this->startSquare = startingSquare;
 	this->targetSquare = targetSquare;
 	this->flag = flag;
@@ -61,6 +61,6 @@ constexpr int Move::promotionPieceType() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const Move& move) {
-	os << "startSquare: " << move.startSquare << ", targetsquare: " << move.targetSquare << ", takenpiece: " << move.takenPiece << ", flag: " << move.flag << std::endl;
+	os << "startSquare: " << CoordHelper::indexToString(move.startSquare) << ", targetsquare: " << CoordHelper::indexToString(move.targetSquare) << ", flag: " << move.flag << std::endl;
 	return os;
 }

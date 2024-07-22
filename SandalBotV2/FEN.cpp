@@ -48,18 +48,17 @@ FEN::PositionInfo::PositionInfo(string FEN) {
 	whiteTurn = sections[1] == "w";
 
 	string castlingRights = sections[2];
-	whiteShortCastle = StringUtil::contains(castlingRights, 'K');
-	whiteLongCastle = StringUtil::contains(castlingRights, 'Q');
-	blackShortCastle = StringUtil::contains(castlingRights, 'k');
-	blackLongCastle = StringUtil::contains(castlingRights, 'q');
+	this->whiteShortCastle = StringUtil::contains(castlingRights, 'K');
+	this->whiteLongCastle = StringUtil::contains(castlingRights, 'Q');
+	this->blackShortCastle = StringUtil::contains(castlingRights, 'k');
+	this->blackLongCastle = StringUtil::contains(castlingRights, 'q');
+	this->enPassantSquare = -1;
+	this->fiftyMoveCount = 0;
+	this->moveCount = 0;
 
-	enPassantFile = 0;
-	fiftyMoveCount = 0;
-	moveCount = 0;
-
-	if (sections.size() > 3 && sections[3].size() == 1) {
-		string enPassantFileName = sections[3];
-		// get boardhelper to convert char to string of enpassantfile
+	if (sections.size() > 3 && sections[3].size() == 2) {
+		string enPassantSquareName = sections[3];
+		enPassantSquare = CoordHelper::stringToIndex(enPassantSquareName);
 	}
 
 	if (sections.size() > 4) {
@@ -92,45 +91,44 @@ std::string FEN::generateFEN(Board* board, bool includeEPSquare) {
 		if (numEmptyFiles != 0) {
 			FEN += to_string(numEmptyFiles);
 		}
-		if (rank != 0) {
+		if (rank != 7) {
 			FEN += '/';
 		}
 	}
 
 	FEN += ' ';
-	FEN += board->state.whiteTurn ? 'w' : 'b';
+	FEN += board->state->whiteTurn ? 'w' : 'b';
 
-	bool whiteShortCastle = (board->state.whiteShortCastleMask & board->state.castlingRights);
-	bool whiteLongCastle = (board->state.whiteLongCastleMask & board->state.castlingRights);
-	bool blackShortCastle = (board->state.blackShortCastleMask & board->state.castlingRights);
-	bool blackLongCastle = (board->state.blackLongCastleMask & board->state.castlingRights);
+	bool whiteShortCastle = (board->state->whiteShortCastleMask & board->state->castlingRights);
+	bool whiteLongCastle = (board->state->whiteLongCastleMask & board->state->castlingRights);
+	bool blackShortCastle = (board->state->blackShortCastleMask & board->state->castlingRights);
+	bool blackLongCastle = (board->state->blackLongCastleMask & board->state->castlingRights);
 
 	FEN += ' ';
 	FEN += whiteShortCastle ? "K" : "";
 	FEN += whiteLongCastle ? "Q" : "";
 	FEN += blackShortCastle ? "k" : "";
 	FEN += blackLongCastle ? "q" : "";
-	FEN += (board->state.castlingRights == 0) ? "-" : "";
+	FEN += (board->state->castlingRights == 0) ? "-" : "";
 
 	FEN += ' ';
-	int enPassantFileIndex = board->state.enPassantFile;
-	int enPassantRankIndex = board->state.whiteTurn ? 5 : 2;
+	int enPassantFileIndex = board->state->enPassantSquare;
+	int enPassantRankIndex = board->state->whiteTurn ? 5 : 2;
 
 	bool isEnPassant = enPassantFileIndex != -1;
 	bool includeEnPassant = includeEPSquare || enPassantCapturable(board, enPassantFileIndex, enPassantRankIndex);
 
 	if (isEnPassant && includeEnPassant) {
-		// need boardhelper (squarename from coordinate)
-		
+		FEN += CoordHelper::indexToString(board->state->enPassantSquare);
 	} else {
 		FEN += '-';
 	}
 
 	FEN += ' ';
-	FEN += to_string(board->state.fiftyMoveCounter);
+	FEN += to_string(board->state->fiftyMoveCounter);
 
 	FEN += ' ';
-	FEN += to_string((board->state.moveCounter / 2) + 1);
+	FEN += to_string((board->state->moveCounter / 2) + 1);
 
 	return FEN;
 }

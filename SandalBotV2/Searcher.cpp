@@ -8,7 +8,7 @@ using namespace std;
 
 void Searcher::iterativeSearch() {
 	for (int i = 0; i < maxDeepening && !cancelSearch; i++) {
-		moveSearch(board->state.whiteTurn, 0, i);
+		moveSearch(board->state->whiteTurn, 0, i);
 	}
 }
 
@@ -63,6 +63,6 @@ void Searcher::endSearch() {
 int Searcher::perft(int depth) {
 	perftMoves = 0;
 	movesSince = 0;
-	moveSearch(board->state.whiteTurn, 0, depth);
+	moveSearch(board->state->whiteTurn, 0, depth);
 	return perftMoves;
 }

@@ -21,7 +21,7 @@ public:
 		bool whiteLongCastle;
 		bool blackShortCastle;
 		bool blackLongCastle;
-		int enPassantFile;
+		int enPassantSquare;
 		bool whiteTurn;
 		int fiftyMoveCount;
 		int moveCount;

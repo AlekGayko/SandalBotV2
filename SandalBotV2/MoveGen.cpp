@@ -33,17 +33,29 @@ int MoveGen::generateMoves(Move moves[]) {
 
 	updateResults(moves);
 
+	for (int i = 0; i < currentMoves; i++) {
+		if (Piece::isType(squares[moves[i].targetSquare], Piece::king)) {
+			BitBoardUtility::printBB(opponentAttacks);
+			BitBoardUtility::printBB(checkBB);
+			BitBoardUtility::printBB(checkRayBB);
+		}
+	}
+
+	//BitBoardUtility::printBB(opponentAttacks);
+	//BitBoardUtility::printBB(checkBB);
+	//BitBoardUtility::printBB(checkRayBB);
 	return currentMoves;
 }
 
 void MoveGen::initVariables() {
-	isCheck = board->state.check;
+	squares = board->squares;
+	isCheck = false;// board->state->check;
 	doubleCheck = false;
-	whiteTurn = board->state.whiteTurn;
-	enPassantFile = board->state.enPassantFile;
-	castlingRights = board->state.castlingRights;
-	fiftyMoveCounter = board->state.fiftyMoveCounter;
-	moveCounter = board->state.moveCounter;
+	whiteTurn = board->state->whiteTurn;
+	enPassantSquare = board->state->enPassantSquare;
+	castlingRights = board->state->castlingRights;
+	fiftyMoveCounter = board->state->fiftyMoveCounter;
+	moveCounter = board->state->moveCounter;
 
 	colorIndex = whiteTurn ? Board::whiteIndex : Board::blackIndex;
 	enemyColorIndex = !whiteTurn ? Board::whiteIndex : Board::blackIndex;
@@ -89,23 +101,20 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 		numOrthoSliders = orthogonalSliders[type].numPieces;
 		for (int it = 0; it < numOrthoSliders; it++) {
 			startSquare = orthogonalSliders[type][it];
-			isPinned = checkRayBB & (0b1 << startSquare);
+			isPinned = checkRayBB & (1ULL << startSquare);
 			for (int dirIndex = startOrthogonal; dirIndex < endOrthogonal; dirIndex++) {
 				direction = slideDirections[dirIndex];
 				distance = preComp.directionDistances[startSquare].direction[dirIndex];
 				for (int it = 1; it < distance; it++) {
 					int targetSquare = direction * it + startSquare;
-					if (isPinned && !(checkRayBB & (0b1 << targetSquare))) break;
-					if (isCheck && !(checkBB & 0b1 << targetSquare)) continue;
 					// If targetsquare contains friendly piece break
-					if (Piece::isColor(board->squares[targetSquare], currentColor)) break;
+					if (Piece::isColor(squares[targetSquare], currentColor)) break;
+					if (isPinned && !(checkRayBB & (1ULL << targetSquare))) break;
+					if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
 					// Add move
 					moves[currentMoves++] = Move(startSquare, targetSquare);
 					// If targetsquare contains opposing piece break
-					if (Piece::isColor(board->squares[targetSquare], opposingColor)) {
-						moves[currentMoves - 1].takenPiece = board->squares[targetSquare];
-						break;
-					}
+					if (squares[targetSquare] != Piece::empty)	break;
 				}
 			}
 		}
@@ -124,23 +133,20 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 		numDiagSliders = diagonalSliders[type].numPieces;
 		for (int it = 0; it < numDiagSliders; it++) {
 			const int startSquare = diagonalSliders[type][it];
-			isPinned = checkRayBB & (0b1 << startSquare);
+			isPinned = checkRayBB & (1ULL << startSquare);
 			for (int dirIndex = startDiagonal; dirIndex < endDiagonal; dirIndex++) {
 				direction = slideDirections[dirIndex];
 				distance = preComp.directionDistances[startSquare].direction[dirIndex];
 				for (int it = 1; it < distance; it++) {
 					targetSquare = direction * it + startSquare;
-					if (isPinned && !(checkRayBB & (0b1 << targetSquare))) break;
-					if (isCheck && !(checkBB & 0b1 << targetSquare)) continue;
 					// If targetsquare contains friendly piece break
-					if (Piece::isColor(board->squares[targetSquare], currentColor)) break;
+					if (Piece::isColor(squares[targetSquare], currentColor)) break;
+					if (isPinned && !(checkRayBB & (1ULL << targetSquare))) break;
+					if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
 					// Add move
 					moves[currentMoves++] = Move(startSquare, targetSquare);
 					// If targetsquare contains opposing piece break
-					if (Piece::isColor(board->squares[targetSquare], opposingColor)) {
-						moves[currentMoves - 1].takenPiece = board->squares[targetSquare];
-						break;
-					}
+					if (squares[targetSquare] != Piece::empty) break;
 				}
 			}
 		}
@@ -152,16 +158,14 @@ void MoveGen::generateKnightMoves(Move moves[]) {
 	bool isPinned;
 	for (int it = 0; it < numKnights; it++) {
 		const int startSquare = friendlyPieceLists[Piece::knight][it];
-		isPinned = checkRayBB & (0b1 << startSquare);
+		isPinned = checkRayBB & (1ULL << startSquare);
 		if (isPinned) continue;
 		for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
 			if (!preComp.directionDistances[startSquare].knightSquares[dirIndex]) continue;
 			const int targetSquare = knightDirections[dirIndex] + startSquare;
-			if (isCheck && !(checkBB & 0b1 << targetSquare)) continue;
-			if (Piece::isColor(board->squares[targetSquare], currentColor)) continue;
+			if (Piece::isColor(squares[targetSquare], currentColor)) continue;
+			if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
 			moves[currentMoves++] = Move(startSquare, targetSquare);
-
-			if (Piece::isColor(board->squares[targetSquare], opposingColor)) moves[currentMoves - 1].takenPiece = board->squares[targetSquare];
 		}
 	}
 }
@@ -170,15 +174,14 @@ void MoveGen::generateKingMoves(Move moves[]) {
 	const int startSquare = friendlyPieceLists[Piece::king][0];
 	const int castleMask = whiteTurn ? BoardState::whiteCastleMask : BoardState::blackCastleMask;
 	const int colorIndex = whiteTurn ? board->whiteIndex : board->blackIndex;
-	if (startSquare % 8 == startingKingSquares[colorIndex] && castlingRights & castleMask) castlingMoves(moves, startSquare);
+	if (startSquare == startingKingSquares[colorIndex] && castlingRights & castleMask && !isCheck) castlingMoves(moves, startSquare);
 
 	for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
 		if (preComp.directionDistances[startSquare].direction[dirIndex] <= 1) continue;
 		const int targetSquare = slideDirections[dirIndex] + startSquare;
-		if (opponentAttacks & (0b1 << targetSquare)) continue;
-		if (Piece::isColor(board->squares[targetSquare], currentColor)) continue;
+		if (Piece::isColor(squares[targetSquare], currentColor)) continue;
+		if (opponentAttacks & (1ULL << targetSquare)) continue;
 		moves[currentMoves++] = Move(startSquare, targetSquare);
-		if (Piece::isColor(board->squares[targetSquare], opposingColor)) moves[currentMoves - 1].takenPiece = board->squares[targetSquare];
 	}
 }
 
@@ -187,21 +190,20 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 	int direction = whiteTurn ? whitePawnDirection : blackPawnDirection;
 	const int* attackDirection = whiteTurn ? whitePawnAttackDirections : blackPawnAttackDirections;
 	const int startRow = whiteTurn ? 6 : 1;
-	const int enPassantRow = whiteTurn ? 3 : 4;
-	const int promotionRow = whiteTurn ? 0 : 7;
+	const int promotionRow = whiteTurn ? 1 : 6;
 	bool isPinned;
 
 	for (int it = 0; it < numPawns; it++) {
 		const int startSquare = pawns[it];
-		isPinned = checkRayBB & (0b1 << startSquare);
+		isPinned = checkRayBB & (1ULL << startSquare);
 		//if (startSquare / 8 == 7) throw std::out_of_range("Pawn cannot exist on last rank.");
 		for (int i = 0; i < 2; i++) {
 			if (preComp.directionDistances[startSquare].direction[3 - i * 2] <= 1) continue;
 			int targetSquare = attackDirection[i] + startSquare;
-			if (isPinned && !(checkRayBB & (0b1 << targetSquare))) break;
-			if (isCheck && !(checkBB & 0b1 << targetSquare)) continue;
-			if (!Piece::isColor(board->squares[targetSquare], opposingColor)) {
-				if (targetSquare % 8 == enPassantFile && targetSquare / 8 == enPassantRow && board->squares[targetSquare] == Piece::empty) {
+			if (isPinned && !(checkRayBB & (1ULL << targetSquare))) continue;
+			if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
+			if (!Piece::isColor(squares[targetSquare], opposingColor)) {
+				if (targetSquare == enPassantSquare && squares[targetSquare] == Piece::empty) {
 					enPassantMoves(moves, targetSquare, startSquare);
 				}
 				continue;
@@ -211,16 +213,28 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 				continue;
 			}
 			moves[currentMoves++] = Move(startSquare, targetSquare);
-			moves[currentMoves - 1].takenPiece = board->squares[targetSquare];
 		}
-		if (isPinned && !(checkRayBB & (0b1 << (direction + startSquare)))) continue;
-		if (isCheck && !(checkBB & 0b1 << direction + startSquare)) continue;
-		if (board->squares[direction + startSquare] == Piece::empty) {
-			moves[currentMoves++] = Move(startSquare, direction + startSquare);
-			if (startSquare / 8 == promotionRow) promotionMoves(moves, direction + startSquare, startSquare);
+
+		bool stillPinned, blockingCheck;
+		stillPinned = isPinned && !(checkRayBB & (1ULL << (direction + startSquare)));
+		blockingCheck = isCheck && !(checkBB & 1ULL << direction + startSquare);
+
+		if (squares[direction + startSquare] == Piece::empty) {
+			if (!stillPinned && !blockingCheck) {
+				moves[currentMoves++] = Move(startSquare, direction + startSquare);
+				if (startSquare / 8 == promotionRow) {
+					promotionMoves(moves, direction + startSquare, startSquare);
+				}
+			}
 		} else continue;
-		if (startSquare / 8 == startRow && board->squares[direction * 2 + startSquare] == Piece::empty) {
-			moves[currentMoves++] = Move(startSquare, direction * 2 + startSquare, Move::pawnTwoSquaresFlag);
+
+		stillPinned = isPinned && !(checkRayBB & (1ULL << (direction * 2 + startSquare)));
+		blockingCheck = isCheck && !(checkBB & 1ULL << direction * 2 + startSquare);
+
+		if (startSquare / 8 == startRow && squares[direction * 2 + startSquare] == Piece::empty) {
+			if (!stillPinned && !blockingCheck) {
+				moves[currentMoves++] = Move(startSquare, direction * 2 + startSquare, Move::pawnTwoSquaresFlag);
+			}
 		}
 	}
 }
@@ -234,6 +248,8 @@ void MoveGen::promotionMoves(Move moves[], int targetSquare, int startSquare) {
 	cout << "promoting" << endl;
 	for (int i = 0; i < 4; i++) {
 		moves[currentMoves++] = Move(startSquare, targetSquare, promotionFlags[i]);
+		cout << moves[currentMoves - 1] << endl;
+		cout << board->printBoard() << endl;
 	}
 }
 
@@ -241,14 +257,18 @@ void MoveGen::castlingMoves(Move moves[], int startSquare) {
 	const int shortMask = whiteTurn ? BoardState::whiteShortCastleMask : BoardState::blackShortCastleMask;
 	const int longMask = whiteTurn ? BoardState::whiteLongCastleMask : BoardState::blackLongCastleMask;
 	const int friendlyRook = whiteTurn ? Piece::whiteRook : Piece::blackRook;
+	const int travellingShortSquare = startSquare + 1;
+	const int travellingLongSquare = startSquare - 1;
+	const bool shortAttacked = opponentAttacks & (1ULL << travellingShortSquare);
+	const bool longAttacked = opponentAttacks & (1ULL << travellingLongSquare);
 
 
-	if (castlingRights & shortMask && board->squares[shortCastleRookSquares[colorIndex]] == friendlyRook && board->squares[startSquare + 1] == Piece::empty && board->squares[startSquare + 2] == Piece::empty) {
-		cout << "castling" << endl;
+	if (!shortAttacked && castlingRights & shortMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare + 1] == Piece::empty && squares[startSquare + 2] == Piece::empty) {
+		cout << "castling short" << endl;
 		moves[currentMoves++] = Move(startingKingSquares[colorIndex], shortCastleKingSquares[colorIndex], Move::castleFlag);
 	}
-	if (castlingRights & longMask && board->squares[shortCastleRookSquares[colorIndex]] == friendlyRook && board->squares[startSquare - 1] == Piece::empty && board->squares[startSquare - 2] == Piece::empty && board->squares[startSquare - 3]) {
-		cout << "castling" << endl;
+	if (!longAttacked && castlingRights & longMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare - 1] == Piece::empty && squares[startSquare - 2] == Piece::empty && squares[startSquare - 3]) {
+		cout << "castling long" << endl;
 		moves[currentMoves++] = Move(startingKingSquares[colorIndex], longCastleKingSquares[colorIndex], Move::castleFlag);
 	}
 }
@@ -271,11 +291,11 @@ void MoveGen::generateSlideAttackData() {
 				for (int it = 1; it < distance; it++) {
 					int targetSquare = direction * it + startSquare;
 					// If targetsquare contains friendly piece break
-					if (Piece::isColor(board->squares[targetSquare], opposingColor)) break;
+					if (Piece::isColor(squares[targetSquare], opposingColor)) break;
 					// Add move
-					opponentAttacks |= 0b1 << targetSquare;
+					opponentAttacks |= 1ULL << targetSquare;
 					// If targetsquare contains opposing piece break
-					if (Piece::isColor(board->squares[targetSquare], currentColor)) break;
+					if (Piece::isColor(squares[targetSquare], currentColor) && !Piece::isType(squares[targetSquare], Piece::king)) break;
 				}
 			}
 		}
@@ -291,11 +311,11 @@ void MoveGen::generateSlideAttackData() {
 				for (int it = 1; it < distance; it++) {
 					targetSquare = direction * it + startSquare;
 					// If targetsquare contains friendly piece break
-					if (Piece::isColor(board->squares[targetSquare], opposingColor)) break;
+					if (Piece::isColor(squares[targetSquare], opposingColor)) break;
 					// Add move
-					opponentAttacks |= 0b1 << targetSquare;
+					opponentAttacks |= 1ULL << targetSquare;
 					// If targetsquare contains opposing piece break
-					if (Piece::isColor(board->squares[targetSquare], currentColor)) break;
+					if (Piece::isColor(squares[targetSquare], currentColor) && !Piece::isType(squares[targetSquare], Piece::king)) break;
 				}
 			}
 		}
@@ -310,8 +330,8 @@ void MoveGen::generateKnightAttackData() {
 		for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
 			if (!preComp.directionDistances[startSquare].knightSquares[dirIndex]) continue;
 			const int targetSquare = knightDirections[dirIndex] + startSquare;
-			if (Piece::isColor(board->squares[targetSquare], opposingColor)) continue;
-			opponentAttacks |= 0b1 << targetSquare;
+			if (Piece::isColor(squares[targetSquare], opposingColor)) continue;
+			opponentAttacks |= 1ULL << targetSquare;
 
 		}
 	}
@@ -326,8 +346,7 @@ void MoveGen::generatePawnAttackData() {
 		for (int i = 0; i < 2; i++) {
 			if (preComp.directionDistances[startSquare].direction[3 - i * 2] <= 1) continue;
 			int targetSquare = attackDirection[i] + startSquare;
-			if (!Piece::isColor(board->squares[targetSquare], currentColor)) continue;
-			opponentAttacks |= 0b1 << targetSquare;
+			opponentAttacks |= 1ULL << targetSquare;
 		}
 	}
 }
@@ -337,47 +356,12 @@ void MoveGen::generateKingAttackData() {
 	for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
 		if (preComp.directionDistances[startSquare].direction[dirIndex] <= 1) continue;
 		const int targetSquare = slideDirections[dirIndex] + startSquare;
-		if (Piece::isColor(board->squares[targetSquare], opposingColor)) continue;
-		opponentAttacks |= 0b1 << targetSquare;
-	}
-}
-
-void MoveGen::updateResults(Move moves[]) {
-	for (int i = 0; i < currentMoves; i++) {
-		if (moves[i].takenPiece != Piece::empty) {
-			perftRes.captures++;
-			continue;
-		}
-		if (moves[i].flag == Move::enPassantCaptureFlag) {
-			perftRes.enPassants++;
-			continue;
-		}
-		if (moves[i].flag == Move::castleFlag) {
-			perftRes.castles++;
-			continue;
-		}
-		if (moves[i].flag > Move::castleFlag) {
-			perftRes.promotions++;
-			continue;
-		}
-		if (isCheck) {
-			perftRes.checks++;
-			continue;
-		}
-		if (doubleCheck) {
-			perftRes.doubleChecks++;
-			continue;
-		}
-		if (currentMoves == 0) {
-			if (isCheck) perftRes.checkmates++;
-			else perftRes.stalemates++;
-			continue;
-		}
+		if (Piece::isColor(squares[targetSquare], opposingColor)) continue;
+		opponentAttacks |= 1ULL << targetSquare;
 	}
 }
 
 void MoveGen::generateAttackData() {
-	opponentAttacks = 0ULL;
 	generateSlideAttackData();
 	generateKingAttackData();
 	generateKnightAttackData();
@@ -385,6 +369,8 @@ void MoveGen::generateAttackData() {
 }
 
 void MoveGen::generateCheckData() {
+	generateAttackData();
+
 	const int kingSquare = friendlyPieceLists[Piece::king][0];
 	int targetSquare;
 	int direction;
@@ -399,26 +385,26 @@ void MoveGen::generateCheckData() {
 		distance = preComp.directionDistances[kingSquare].direction[dirIndex];
 		for (int it = 1; it < distance; it++) {
 			targetSquare = direction * it + kingSquare;
-			if (board->squares[targetSquare] == Piece::empty) {
-				dirBB |= 0b1 << targetSquare;
+			if (squares[targetSquare] == Piece::empty) {
+				dirBB |= 1ULL << targetSquare;
 				continue;
 			}
-			bool dangerPiece = isOrth ? Piece::isOrthogonal(board->squares[targetSquare]) : Piece::isDiagonal(board->squares[targetSquare]);
+			bool dangerPiece = isOrth ? Piece::isOrthogonal(squares[targetSquare]) : Piece::isDiagonal(squares[targetSquare]);
 			// If targetsquare contains opposing sliding piece break
-			if (Piece::isColor(board->squares[targetSquare], opposingColor) && dangerPiece) {
-				dirBB |= 0b1 << targetSquare;
+			if (Piece::isColor(squares[targetSquare], opposingColor) && dangerPiece) {
+				dirBB |= 1ULL << targetSquare;
 				if (foundFriendly) checkRayBB |= dirBB;
 				else {
 					checkBB |= dirBB;
 					doubleCheck = isCheck;
 					isCheck = true;
-					//cout << "kingsquare: " << kingSquare << ", targetsquare: " << targetSquare << ", piece: " << board->squares[targetSquare] << endl;
+					//cout << "kingsquare: " << kingSquare << ", targetsquare: " << targetSquare << ", piece: " << squares[targetSquare] << endl;
 				}
 				break;
 			} // If isnt sliding opposite piece
 			else {
 				if (foundFriendly) break;
-				dirBB |= 0b1 << targetSquare;
+				dirBB |= 1ULL << targetSquare;
 				foundFriendly = true;
 				continue;
 			}
@@ -431,7 +417,8 @@ void MoveGen::generateCheckData() {
 	for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
 		if (!preComp.directionDistances[kingSquare].knightSquares[dirIndex]) continue;
 		targetSquare = knightDirections[dirIndex] + kingSquare;
-		if (board->squares[targetSquare] != enemyKnight) continue;
+		if (squares[targetSquare] != enemyKnight) continue;
+		checkBB |= 1ULL << targetSquare;
 		doubleCheck = isCheck;
 		isCheck = true;
 	}
@@ -441,7 +428,8 @@ void MoveGen::generateCheckData() {
 	for (int i = 0; i < 2; i++) {
 		if (preComp.directionDistances[kingSquare].direction[3 - i * 2] <= 1) continue;
 		targetSquare = attackDirection[i] + kingSquare;
-		if (board->squares[targetSquare] != enemyPawn) continue;
+		if (squares[targetSquare] != enemyPawn) continue;
+		checkBB |= 1ULL << targetSquare;
 		doubleCheck = isCheck;
 		isCheck = true;
 	}
@@ -470,4 +458,35 @@ std::ostream& operator<<(std::ostream& os, const PerftResults& res) {
 	os << "Checkmates: " << res.checkmates << std::endl;
 	os << "Stalemates: " << res.stalemates << std::endl;
 	return os;
+}
+
+void MoveGen::updateResults(Move moves[]) {
+	for (int i = 0; i < currentMoves; i++) {
+		if (squares[moves[i].targetSquare] != Piece::empty) {
+			perftRes.captures++;
+			continue;
+		}
+		if (moves[i].flag == Move::enPassantCaptureFlag) {
+			perftRes.enPassants++;
+			continue;
+		}
+		if (moves[i].flag == Move::castleFlag) {
+			perftRes.castles++;
+			continue;
+		}
+		if (moves[i].flag > Move::castleFlag) {
+			perftRes.promotions++;
+			continue;
+		}
+	}
+	if (isCheck) {
+		perftRes.checks++;
+	}
+	if (doubleCheck) {
+		perftRes.doubleChecks++;
+	}
+	if (currentMoves == 0) {
+		if (isCheck) perftRes.checkmates++;
+		else perftRes.stalemates++;
+	}
 }

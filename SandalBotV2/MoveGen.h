@@ -3,6 +3,7 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 
+#include "BitBoardUtility.h"
 #include "Board.h"
 #include "MovePrecomputation.h"
 #include "CoordHelper.h"
@@ -55,6 +56,7 @@ private:
 	int currentColor;
 	int opposingColor;
 	bool doubleCheck;
+	int* squares = nullptr;
 	PieceList* friendlyPieceLists;
 	PieceList* enemyPieceLists;
 	PieceList orthogonalSliders[2];
@@ -67,7 +69,7 @@ private:
 
 	bool isCheck;
 	bool whiteTurn;
-	int enPassantFile;
+	int enPassantSquare;
 	int castlingRights;
 	int fiftyMoveCounter;
 	int moveCounter;

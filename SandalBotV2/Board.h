@@ -10,6 +10,7 @@
 #include "PieceList.h"
 
 #include <stack>
+#include <vector>
 
 class FEN;
 
@@ -17,14 +18,15 @@ class Board {
 private:
 	
 public:
-	BoardState state;
+	
 	int squares[64];
 
 	PieceList pieceLists[2][7]; // index [i][0] is redundant since 0 = empty
 	//int kings[2];
 
 	BoardHistory history;
-	std::stack<BoardState> boardStateHistory;
+	std::vector<BoardState> boardStateHistory;
+	BoardState* state = nullptr;
 
 	// Bitboards
 	unsigned long long int bitBoards[7];
@@ -49,12 +51,11 @@ public:
 	void loadPosition(std::string fen);
 	void makeMove(Move& move);
 	void makeEnPassantChanges(Move& move);
-	void makeCastlingChanges(Move& move);
-	void makePromotionChanges(Move& move);
+	void makeCastlingChanges(Move& move, int& castlingRights);
+	void makePromotionChanges(Move& move, int& piece);
 	void unMakeMove(Move& move);
 	void undoEnPassantChanges(Move& move);
 	void undoCastlingChanges(Move& move);
-	void undoPromotionChanges(Move& move);
 	void updateBitBoards(Move& move, int pieceType, int takenPiece);
 	void undoBitBoards(Move& move, int pieceType, int takenPiece);
 	std::string printBoard();

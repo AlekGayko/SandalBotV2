@@ -8,14 +8,10 @@
 
 #include <bitset>
 
-class BoardState {
-private:
-	
-public:
-	bool check = false;
+struct BoardState {
 	bool whiteTurn = true;
 	int capturedPiece;
-	int enPassantFile;
+	int enPassantSquare;
 	int castlingRights = 0b0000;
 	int fiftyMoveCounter;
 	int moveCounter;
@@ -34,8 +30,6 @@ public:
 	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, int moves, unsigned long long int zobristHash);
 	constexpr bool canShortCastle(bool isWhite) const;
 	constexpr bool canLongCastle(bool isWhite) const;
-	void nextMove(Move& move, int piece);
-	void prevMove(Move& move, int piece);
 };
 
 #endif // !BOARDSTATE_H

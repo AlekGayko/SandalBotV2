@@ -2,6 +2,7 @@
 #include "FEN.h"
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 using namespace std;
@@ -18,7 +19,9 @@ Board::Board() {
 			Piece::whiteRook, Piece::whiteKnight, Piece::whiteBishop, Piece::whiteQueen, Piece::whiteKing, Piece::whiteBishop, Piece::whiteKnight, Piece::whiteRook 
 		};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
-	state = BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0);
+	boardStateHistory.reserve(150);
+	boardStateHistory.push_back(BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0));
+	state = &boardStateHistory.back();
 	loadPieceLists();
 	//loadBitBoards();
 }
@@ -27,6 +30,12 @@ Board::~Board() {
 }
 
 void Board::loadPieceLists() {
+	for (int color = 0; color < 2; color++) {
+		for (int piece = 0; piece < 7; piece++) {
+			pieceLists[color][piece].numPieces = 0;
+		}
+	}
+
 	for (int square = 0; square < 64; square++) {
 		int piece = squares[square];
 		int colorIndex = Piece::isColor(piece, Piece::white) ? whiteIndex : blackIndex;
@@ -40,102 +49,24 @@ void Board::loadPosition(std::string fen) {
 	FEN::PositionInfo newPos = FEN::fenToPosition(fen);
 	std::copy(std::begin(newPos.squares), std::end(newPos.squares), squares);
 
-	state.enPassantFile = newPos.enPassantFile;
-	state.whiteTurn = newPos.whiteTurn;
-	state.fiftyMoveCounter = newPos.fiftyMoveCount;
-	state.moveCounter = newPos.moveCount;
+	boardStateHistory.clear();
 
-	state.castlingRights = 0b000;
-	if (newPos.whiteShortCastle) state.castlingRights = state.castlingRights | BoardState::whiteShortCastleMask;
-	if (newPos.whiteLongCastle) state.castlingRights = state.castlingRights | BoardState::whiteLongCastleMask;
-	if (newPos.blackShortCastle) state.castlingRights = state.castlingRights | BoardState::blackShortCastleMask;
-	if (newPos.blackLongCastle) state.castlingRights = state.castlingRights | BoardState::blackLongCastleMask;
+	int enPassantSquare = newPos.enPassantSquare;
+	bool whiteTurn = newPos.whiteTurn;
+	int fiftyMoveCounter = newPos.fiftyMoveCount;
+	int moveCounter = newPos.moveCount;
+	int castlingRights = 0b000;
+
+	if (newPos.whiteShortCastle) castlingRights = BoardState::whiteShortCastleMask;
+	if (newPos.whiteLongCastle) castlingRights |= BoardState::whiteLongCastleMask;
+	if (newPos.blackShortCastle) castlingRights |= BoardState::blackShortCastleMask;
+	if (newPos.blackLongCastle) castlingRights |= BoardState::blackLongCastleMask;
+
+	boardStateHistory.push_back(BoardState(whiteTurn, Piece::empty, enPassantSquare, castlingRights, fiftyMoveCounter, moveCounter, 0ULL));
+	state = &boardStateHistory.back();
 
 	loadPieceLists();
 	//loadBitBoards();
-}
-
-void Board::makeMove(Move& move) {
-	if (Piece::isType(move.takenPiece, Piece::king)) return;
-	int piece = Piece::type(squares[move.startSquare]);
-	int colorIndex = state.whiteTurn ? whiteIndex : blackIndex;
-	int oppositeIndex = !state.whiteTurn ? whiteIndex : blackIndex;
-	int startSquare = move.startSquare;
-	int targetSquare = move.targetSquare;
-
-	pieceLists[colorIndex][piece].movePiece(startSquare, targetSquare);
-	squares[targetSquare] = squares[startSquare];
-	squares[startSquare] = 0;
-
-	if (move.takenPiece != Piece::empty) {
-		//cout << move << endl;
-		int type = Piece::type(move.takenPiece);
-		//cout << type << ", " << !state.whiteTurn << endl;
-		pieceLists[oppositeIndex][type].deletePiece(targetSquare);
-	}
-	//updateBitBoards(move);
-	state.nextMove(move, piece);
-}
-
-void Board::makeEnPassantChanges(Move& move) {
-	const int fileDiff = move.startSquare % 8 - state.enPassantFile;
-	squares[move.startSquare + fileDiff] = Piece::empty;
-}
-
-void Board::makeCastlingChanges(Move& move) {
-	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
-	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? 1 : -1;
-	const int friendlyRook = state.whiteTurn ? Piece::whiteRook : Piece::blackRook;
-
-	squares[move.startSquare + rookDistance] = Piece::empty;
-	squares[move.targetSquare + rookSpawnOffset] = friendlyRook;
-
-	int castleMask = 0b0001;
-	castleMask = state.whiteTurn ? castleMask : castleMask << 2;
-	castleMask = move.targetSquare % 8 < 4 ? castleMask << 1 : castleMask;
-	state.castlingRights = state.castlingRights & (~castleMask & 0b1111);
-}
-
-void Board::makePromotionChanges(Move& move) {
-	const int targetSquare = move.targetSquare;
-	const int color = state.whiteTurn ? Piece::white : Piece::black;
-
-	switch (move.flag) {
-	case Move::promoteToQueenFlag:
-		squares[targetSquare] = Piece::queen | color;
-		break;
-	case Move::promoteToRookFlag:
-		squares[targetSquare] = Piece::rook | color;
-		break;
-	case Move::promoteToKnightFlag:
-		squares[targetSquare] = Piece::knight | color;
-		break;
-	case Move::promoteToBishopFlag:
-		squares[targetSquare] = Piece::bishop | color;
-		break;
-	}
-}
-
-void Board::unMakeMove(Move& move) {
-	if (Piece::isType(move.takenPiece, Piece::king)) return;
-	const int piece = Piece::type(squares[move.targetSquare]);
-	const int colorIndex = !state.whiteTurn ? whiteIndex : blackIndex;
-	const int oppositeIndex = state.whiteTurn ? whiteIndex : blackIndex;
-	const int startSquare = move.startSquare;
-	const int targetSquare = move.targetSquare;
-
-	pieceLists[colorIndex][piece].movePiece(targetSquare, startSquare);
-
-	squares[startSquare] = squares[targetSquare];
-	squares[targetSquare] = move.takenPiece;
-	if (move.takenPiece != Piece::empty) {
-		//cout << move << endl;
-		//cout << printBoard() << endl;
-		int type = Piece::type(move.takenPiece);
-		pieceLists[oppositeIndex][type].addPiece(targetSquare);
-	}
-	//undoBitBoards(move);
-	state.prevMove(move, piece);
 }
 
 void Board::loadBitBoards() {
@@ -181,46 +112,183 @@ void Board::loadBitBoards() {
 	allPieces = whitePieces | blackPieces;
 }
 
-void Board::undoEnPassantChanges(Move& move) {
-	// is enpassantfile correct?
-	const int fileDiff = move.startSquare % 8 - state.enPassantFile;
-	squares[move.startSquare + fileDiff] = move.takenPiece;
+void Board::makeMove(Move& move) {
+	int startSquare = move.startSquare;
+	int targetSquare = move.targetSquare;
+	int piece = Piece::type(squares[startSquare]);
+	int colorIndex = state->whiteTurn ? whiteIndex : blackIndex;
+	int oppositeIndex = !(state->whiteTurn) ? whiteIndex : blackIndex;
+	int takenPiece = squares[targetSquare];
+	int flag = move.flag;
+	int enPassantSquare = -1;
+	int fiftyMoveCounter = piece == Piece::pawn || takenPiece != Piece::empty ? 0 : state->fiftyMoveCounter + 1;
+	int castlingRights = state->castlingRights;
+
+	if (Piece::isType(takenPiece, Piece::king)) {
+		cout << printBoard() << endl;
+		cout << move << endl;
+		throw std::out_of_range("");
+	}
+
+	if (flag > Move::castleFlag) {
+		pieceLists[colorIndex][piece].deletePiece(startSquare);
+		makePromotionChanges(move, piece);
+		pieceLists[colorIndex][piece].addPiece(targetSquare);
+	} else {
+		pieceLists[colorIndex][piece].movePiece(startSquare, targetSquare);
+		squares[targetSquare] = squares[startSquare];
+		squares[startSquare] = Piece::empty;
+	}
+
+	if (takenPiece != Piece::empty) {
+		int type = Piece::type(takenPiece);
+		try {
+			pieceLists[oppositeIndex][type].deletePiece(targetSquare);
+		} catch (...) {
+			cout << printBoard() << endl;
+			cout << move << endl;
+			cout << move.targetSquare << endl;
+			cout << Piece::pieceToSymbol(takenPiece) << endl;
+			throw std::out_of_range("");
+		}
+	}
+
+	int pawnToBeDeleted;
+
+	switch (flag) {
+	case Move::noFlag:
+		break;
+	case Move::pawnTwoSquaresFlag:
+		enPassantSquare = targetSquare + (state->whiteTurn ? 8 : -8);
+		break;
+	case Move::enPassantCaptureFlag:
+		makeEnPassantChanges(move);
+		pawnToBeDeleted = targetSquare + (state->whiteTurn ? 8 : -8);
+		pieceLists[oppositeIndex][Piece::pawn].deletePiece(pawnToBeDeleted);
+		break;
+	case Move::castleFlag:
+		makeCastlingChanges(move, castlingRights);
+		break;
+	}
+
+	//updateBitBoards(move);
+	boardStateHistory.push_back(BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, 0ULL));
+	state = &boardStateHistory.back();
 }
 
-void Board::undoCastlingChanges(Move& move) {
-	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
-	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? 1 : -1;
-	const int friendlyRook = state.whiteTurn ? Piece::whiteRook : Piece::blackRook;
+void Board::unMakeMove(Move& move) {
+	const int colorIndex = !state->whiteTurn ? whiteIndex : blackIndex;
+	const int oppositeIndex = state->whiteTurn ? whiteIndex : blackIndex;
+	const int startSquare = move.startSquare;
+	const int targetSquare = move.targetSquare;
+	int piece = Piece::type(squares[targetSquare]);
+	const int takenPiece = state->capturedPiece;
+	const int flag = move.flag;
+	const int pawn = !(state->whiteTurn) ? Piece::whitePawn : Piece::blackPawn;
+	if (flag > Move::castleFlag) {
+		pieceLists[colorIndex][piece].deletePiece(targetSquare);
+		piece = Piece::pawn;
+		pieceLists[colorIndex][piece].addPiece(startSquare);
+		squares[startSquare] = pawn;
+		squares[targetSquare] = takenPiece;
+	} else {
+		pieceLists[colorIndex][piece].movePiece(targetSquare, startSquare);
 
-	squares[move.startSquare + rookDistance] = friendlyRook;
-	squares[move.targetSquare + rookSpawnOffset] = Piece::empty;
+		squares[startSquare] = squares[targetSquare];
+		squares[targetSquare] = takenPiece;
+	}
+
+	if (takenPiece != Piece::empty) {
+		int type = Piece::type(takenPiece);
+		try {
+			pieceLists[oppositeIndex][type].addPiece(targetSquare);
+		} catch (...) {
+			cout << printBoard() << endl;
+			cout << move << endl;
+			cout << Piece::pieceToSymbol(takenPiece) << endl;
+			cout << pieceLists[oppositeIndex][type].numPieces << endl;
+			throw std::out_of_range("");
+		}
+	}
+
+	int pawnToBeDeleted;
+
+	switch (flag) {
+	case Move::noFlag:
+		break;
+	case Move::enPassantCaptureFlag:
+		undoEnPassantChanges(move);
+		pawnToBeDeleted = targetSquare + (state->whiteTurn ? -8 : 8);
+		pieceLists[oppositeIndex][Piece::pawn].addPiece(pawnToBeDeleted);
+		break;
+	case Move::castleFlag:
+		undoCastlingChanges(move);
+		break;
+	}
+
+	//undoBitBoards(move);
+	boardStateHistory.pop_back();
+	state = &boardStateHistory.back();
+}
+
+void Board::makeEnPassantChanges(Move& move) {
+	int pawnToBeDeleted = move.targetSquare + (state->whiteTurn ? 8 : -8);
+	squares[pawnToBeDeleted] = Piece::empty;
+}
+
+void Board::makeCastlingChanges(Move& move, int& castlingRights) {
+	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
+	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
+	const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
+
+	squares[move.startSquare + rookDistance] = Piece::empty;
+	squares[move.targetSquare + rookSpawnOffset] = friendlyRook;
 
 	int castleMask = 0b0001;
-	castleMask = state.whiteTurn ? castleMask : castleMask << 2;
+	castleMask = state->whiteTurn ? castleMask : castleMask << 2;
 	castleMask = move.targetSquare % 8 < 4 ? castleMask << 1 : castleMask;
-	state.castlingRights = state.castlingRights | castleMask;
+	castlingRights &= ~castleMask & 0b1111;
 }
 
-void Board::undoPromotionChanges(Move& move) {
-	const int startSquare = move.startSquare;
-	const int pawn = state.whiteTurn ? Piece::whitePawn : Piece::whitePawn;
+void Board::makePromotionChanges(Move& move, int& piece) {
+	const int targetSquare = move.targetSquare;
+	const int color = state->whiteTurn ? Piece::white : Piece::black;
+	squares[move.startSquare] = Piece::empty;
 
 	switch (move.flag) {
 	case Move::promoteToQueenFlag:
-		squares[startSquare] = pawn;
+		squares[targetSquare] = Piece::queen | color;
+		piece = Piece::queen;
 		break;
 	case Move::promoteToRookFlag:
-		squares[startSquare] = pawn;
+		squares[targetSquare] = Piece::rook | color;
+		piece = Piece::rook;
 		break;
 	case Move::promoteToKnightFlag:
-		squares[startSquare] = pawn;
+		squares[targetSquare] = Piece::knight | color;
+		piece = Piece::knight;
 		break;
 	case Move::promoteToBishopFlag:
-		squares[startSquare] = pawn;
+		squares[targetSquare] = Piece::bishop | color;
+		piece = Piece::bishop;
 		break;
 	}
 }
 
+void Board::undoEnPassantChanges(Move& move) {
+	const int enemyPawn = state->whiteTurn ? Piece::whitePawn : Piece::blackPawn;
+	int pawnToBeDeleted = move.targetSquare + (state->whiteTurn ? -8 : 8);;
+	squares[pawnToBeDeleted] = enemyPawn;
+}
+
+void Board::undoCastlingChanges(Move& move) {
+	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
+	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
+	const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
+
+	squares[move.startSquare + rookDistance] = friendlyRook;
+	squares[move.targetSquare + rookSpawnOffset] = Piece::empty;
+}
 
 string Board::printBoard() {
 	// Thanks to ernestoyaquello
@@ -281,8 +349,8 @@ string Board::printBoard() {
 void Board::updateBitBoards(Move& move, int pieceType, int takenPiece) {
 	const int startSquare = move.startSquare;
 	const int targetSquare = move.targetSquare;
-	unsigned long long int* friendlyBoard = state.whiteTurn ? &whitePieces : &blackPieces;
-	unsigned long long int* enemyBoard = !state.whiteTurn ? &whitePieces : &blackPieces;
+	unsigned long long int* friendlyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
+	unsigned long long int* enemyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 
 	switch (pieceType) {
 	case Piece::pawn:
