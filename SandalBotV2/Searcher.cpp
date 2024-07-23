@@ -12,21 +12,21 @@ void Searcher::iterativeSearch() {
 	}
 }
 
-void Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
+unsigned long long int Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 	if (depth == maxDepth) {
 		//cout << board->printBoard() << endl;
-		perftMoves++;
-		return;
+		return 1;
 	}
+	unsigned long long int movesGenerated = 0;
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves);
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i]);
-		moveSearch(!isMaximising, depth + 1, maxDepth);
+		movesGenerated += moveSearch(!isMaximising, depth + 1, maxDepth);
 		board->unMakeMove(moves[i]);
 		if (depth == 0) {
-			movesSince0[i] = perftMoves - movesSince;
-			movesSince = perftMoves;
+			movesSince0[i] = movesGenerated - movesSince;
+			movesSince = movesGenerated;
 		}
 		
 	}
@@ -35,7 +35,7 @@ void Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
 		}
 	}
-	
+	return movesGenerated;
 }
 
 int Searcher::QuiescenceSearch() {
@@ -60,9 +60,7 @@ void Searcher::endSearch() {
 	cancelSearch = true;
 }
 
-int Searcher::perft(int depth) {
-	perftMoves = 0;
+unsigned long long int Searcher::perft(int depth) {
 	movesSince = 0;
-	moveSearch(board->state->whiteTurn, 0, depth);
-	return perftMoves;
+	return moveSearch(board->state->whiteTurn, 0, depth);
 }

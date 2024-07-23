@@ -254,9 +254,8 @@ void Board::makeCastlingChanges(Move& move, int& castlingRights) {
 	squares[move.startSquare + rookDistance] = Piece::empty;
 	squares[move.startSquare + rookSpawnOffset] = friendlyRook;
 
-	int castleMask = 0b0001;
+	int castleMask = 0b0011;
 	castleMask = state->whiteTurn ? castleMask : castleMask << 2;
-	castleMask = move.targetSquare % 8 < 4 ? castleMask << 1 : castleMask;
 	castlingRights &= ~castleMask & 0b1111;
 	//cout << printBoard() << endl;
 }

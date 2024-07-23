@@ -15,11 +15,10 @@ private:
 	Board* board = nullptr;
 
 	void iterativeSearch();
-	void moveSearch(bool isMaximising, int depth, int maxDepth);
+	unsigned long long int moveSearch(bool isMaximising, int depth, int maxDepth);
 	int QuiescenceSearch();
 public:
 	MoveGen* moveGenerator = nullptr;
-	int perftMoves = 0;
 	int movesSince = 0;
 	int movesSince0[218];
 
@@ -27,7 +26,7 @@ public:
 	Searcher(Board* board);
 	void startSearch();
 	void endSearch();
-	int perft(int depth);
+	unsigned long long int perft(int depth);
 };
 
 #endif // !SEARCHER_H

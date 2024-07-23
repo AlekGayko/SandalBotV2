@@ -55,11 +55,11 @@ void Bot::stopSearching() {
 
 unsigned long long int Bot::perft(int depth) {
     searcher->moveGenerator->perftRes.reset();
-    searcher->perft(depth);
+    unsigned long long int movesgenerated = searcher->perft(depth);
     //cout << "test moves: " << board->testMoves << endl;
     cout << "Results: " << endl;
     cout << searcher->moveGenerator->perftRes << endl;
-    return searcher->perftMoves;
+    return movesgenerated;
 }
 
 std::string Bot::printBoard() {

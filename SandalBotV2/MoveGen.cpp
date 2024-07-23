@@ -87,6 +87,7 @@ void MoveGen::initVariables() {
 
 
 	pawns = friendlyPieceLists[Piece::pawn];
+	friendlyKingSquare = friendlyPieceLists[Piece::king][0];
 
 	checkBB = 0ULL;
 	checkRayBB = 0ULL;
@@ -104,15 +105,27 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 	int targetSquare;
 	int numOrthoSliders;
 	bool isPinned;
+	unsigned int pinDir = 0;
 
 	for (int type = 0; type < 2; type++) {
 		numOrthoSliders = orthogonalSliders[type].numPieces;
 		for (int it = 0; it < numOrthoSliders; it++) {
 			startSquare = orthogonalSliders[type][it];
 			isPinned = checkRayBB & (1ULL << startSquare);
+			pinDir = 0;
+			if (isPinned && abs(startSquare - friendlyKingSquare) <= 8) {
+				for (int dir = startOrthogonal; dir < endOrthogonal; dir++) {
+					if (abs(friendlyKingSquare - startSquare) == abs(slideDirections[dir])) {
+						pinDir = abs(slideDirections[dir]);
+						break;
+					}
+				}
+			}
 			for (int dirIndex = startOrthogonal; dirIndex < endOrthogonal; dirIndex++) {
 				direction = slideDirections[dirIndex];
 				distance = preComp.directionDistances[startSquare].direction[dirIndex];
+				if (pinDir && pinDir != abs(direction)) continue;
+				//if (isPinned && friendlyKingSquare - startSquare != direction) continue;
 				for (int it = 1; it < distance; it++) {
 					int targetSquare = direction * it + startSquare;
 					// If targetsquare contains friendly piece break
@@ -136,15 +149,26 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 	int targetSquare;
 	int numDiagSliders;
 	bool isPinned;
+	unsigned int pinDir = 0;
 
 	for (int type = 0; type < 2; type++) {
 		numDiagSliders = diagonalSliders[type].numPieces;
 		for (int it = 0; it < numDiagSliders; it++) {
 			const int startSquare = diagonalSliders[type][it];
 			isPinned = checkRayBB & (1ULL << startSquare);
+			pinDir = 0;
+			if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
+				for (int dir = startDiagonal; dir < endDiagonal; dir++) {
+					if (abs(friendlyKingSquare - startSquare) == abs(slideDirections[dir])) {
+						pinDir = abs(slideDirections[dir]);
+						break;
+					}
+				}
+			}
 			for (int dirIndex = startDiagonal; dirIndex < endDiagonal; dirIndex++) {
 				direction = slideDirections[dirIndex];
 				distance = preComp.directionDistances[startSquare].direction[dirIndex];
+				if (pinDir && pinDir != abs(direction)) continue;
 				for (int it = 1; it < distance; it++) {
 					targetSquare = direction * it + startSquare;
 					// If targetsquare contains friendly piece break
@@ -229,10 +253,11 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 
 		if (squares[direction + startSquare] == Piece::empty) {
 			if (!stillPinned && !blockingCheck) {
-				moves[currentMoves++] = Move(startSquare, direction + startSquare);
 				if (startSquare / 8 == promotionRow) {
 					promotionMoves(moves, direction + startSquare, startSquare);
+					continue;
 				}
+				moves[currentMoves++] = Move(startSquare, direction + startSquare);
 			}
 		} else continue;
 
@@ -248,16 +273,16 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 }
 
 void MoveGen::enPassantMoves(Move moves[], int targetSquare, int startSquare) {
-	cout << "enpassanting" << endl;
+	//cout << "enpassanting" << endl;
 	moves[currentMoves++] = Move(startSquare, targetSquare, Move::enPassantCaptureFlag);
 }
 
 void MoveGen::promotionMoves(Move moves[], int targetSquare, int startSquare) {
-	cout << "promoting" << endl;
+	//cout << "promoting" << endl;
 	for (int i = 0; i < 4; i++) {
 		moves[currentMoves++] = Move(startSquare, targetSquare, promotionFlags[i]);
-		cout << moves[currentMoves - 1] << endl;
-		cout << board->printBoard() << endl;
+		//cout << moves[currentMoves - 1] << endl;
+		//cout << board->printBoard() << endl;
 	}
 }
 
@@ -297,12 +322,10 @@ void MoveGen::generateSlideAttackData() {
 				distance = preComp.directionDistances[startSquare].direction[dirIndex];
 				for (int it = 1; it < distance; it++) {
 					int targetSquare = direction * it + startSquare;
-					// If targetsquare contains friendly piece break
-					if (Piece::isColor(squares[targetSquare], opposingColor)) break;
 					// Add move
 					opponentAttacks |= 1ULL << targetSquare;
 					// If targetsquare contains opposing piece break
-					if (Piece::isColor(squares[targetSquare], currentColor) && !Piece::isType(squares[targetSquare], Piece::king)) break;
+					if (squares[targetSquare] != Piece::empty && !Piece::isType(squares[targetSquare], Piece::king)) break;
 				}
 			}
 		}
@@ -317,12 +340,10 @@ void MoveGen::generateSlideAttackData() {
 				distance = preComp.directionDistances[startSquare].direction[dirIndex];
 				for (int it = 1; it < distance; it++) {
 					targetSquare = direction * it + startSquare;
-					// If targetsquare contains friendly piece break
-					if (Piece::isColor(squares[targetSquare], opposingColor)) break;
 					// Add move
 					opponentAttacks |= 1ULL << targetSquare;
 					// If targetsquare contains opposing piece break
-					if (Piece::isColor(squares[targetSquare], currentColor) && !Piece::isType(squares[targetSquare], Piece::king)) break;
+					if (squares[targetSquare] != Piece::empty && !Piece::isType(squares[targetSquare], Piece::king)) break;
 				}
 			}
 		}
@@ -337,7 +358,6 @@ void MoveGen::generateKnightAttackData() {
 		for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
 			if (!preComp.directionDistances[startSquare].knightSquares[dirIndex]) continue;
 			const int targetSquare = knightDirections[dirIndex] + startSquare;
-			if (Piece::isColor(squares[targetSquare], opposingColor)) continue;
 			opponentAttacks |= 1ULL << targetSquare;
 
 		}
@@ -363,7 +383,6 @@ void MoveGen::generateKingAttackData() {
 	for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
 		if (preComp.directionDistances[startSquare].direction[dirIndex] <= 1) continue;
 		const int targetSquare = slideDirections[dirIndex] + startSquare;
-		if (Piece::isColor(squares[targetSquare], opposingColor)) continue;
 		opponentAttacks |= 1ULL << targetSquare;
 	}
 }

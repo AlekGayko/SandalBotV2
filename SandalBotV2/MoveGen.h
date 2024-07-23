@@ -58,6 +58,7 @@ private:
 	int currentColor;
 	int opposingColor;
 	bool doubleCheck;
+	int friendlyKingSquare;
 	int* squares = nullptr;
 	PieceList* friendlyPieceLists;
 	PieceList* enemyPieceLists;
