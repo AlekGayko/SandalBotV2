@@ -44,14 +44,6 @@ private:
 
 	const int promotionFlags[4] = { Move::promoteToQueenFlag, Move::promoteToRookFlag, Move::promoteToKnightFlag, Move::promoteToBishopFlag };
 
-	static const int startingKingSquares[2];
-	static const int shortCastleKingSquares[2];
-	static const int longCastleKingSquares[2];
-	static const int shortCastleRookSquares[2];
-	static const int longCastleRookSquares[2];
-	static const int shortCastleRookSpawn[2];
-	static const int longCastleRookSpawn[2];
-
 	unsigned long long int currentMoves;
 	int colorIndex;
 	int enemyColorIndex;
@@ -82,6 +74,14 @@ private:
 	unsigned long long int checkRayBB;
 
 public:
+	static const int startingKingSquares[2];
+	static const int shortCastleKingSquares[2];
+	static const int longCastleKingSquares[2];
+	static const int shortCastleRookSquares[2];
+	static const int longCastleRookSquares[2];
+	static const int shortCastleRookSpawn[2];
+	static const int longCastleRookSpawn[2];
+
 	PerftResults perftRes;
 	const int maxMoves = 218;
 

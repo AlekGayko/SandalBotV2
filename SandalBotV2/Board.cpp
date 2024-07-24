@@ -153,6 +153,25 @@ void Board::makeMove(Move& move) {
 			throw std::out_of_range("");
 		}
 	}
+	int castleMask;
+
+	switch (piece) {
+	case Piece::king:
+		castleMask = 0b0011;
+		castleMask = state->whiteTurn ? castleMask : castleMask << 2;
+		castlingRights &= ~castleMask & 0b1111;
+		break;
+	case Piece::rook:
+		castleMask = 0b0001;
+		castleMask = state->whiteTurn ? castleMask : castleMask << 2;
+		if (startSquare == MoveGen::longCastleRookSquares[colorIndex]) {
+			castleMask <<= 1;
+		} else if (startSquare != MoveGen::shortCastleRookSquares[colorIndex]) {
+			break;
+		}
+		castlingRights &= ~castleMask & 0b1111;
+		break;
+	}
 
 	int pawnToBeDeleted;
 	int rookOffset;
@@ -246,18 +265,11 @@ void Board::makeEnPassantChanges(Move& move) {
 }
 
 void Board::makeCastlingChanges(Move& move, int& castlingRights) {
-	//cout << "making castle move" << endl;
-	//cout << printBoard() << endl;
 	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
 	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
 	const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
 	squares[move.startSquare + rookDistance] = Piece::empty;
 	squares[move.startSquare + rookSpawnOffset] = friendlyRook;
-
-	int castleMask = 0b0011;
-	castleMask = state->whiteTurn ? castleMask : castleMask << 2;
-	castlingRights &= ~castleMask & 0b1111;
-	//cout << printBoard() << endl;
 }
 
 void Board::makePromotionChanges(Move& move, int& piece) {

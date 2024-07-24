@@ -113,25 +113,33 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 			startSquare = orthogonalSliders[type][it];
 			isPinned = checkRayBB & (1ULL << startSquare);
 			pinDir = 0;
-			if (isPinned && abs(startSquare - friendlyKingSquare) <= 8) {
-				for (int dir = startOrthogonal; dir < endOrthogonal; dir++) {
-					if (abs(friendlyKingSquare - startSquare) == abs(slideDirections[dir])) {
-						pinDir = abs(slideDirections[dir]);
+			if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
+				int kingDir = abs(friendlyKingSquare - startSquare);
+				bool isDiag = false;
+				for (int dir = startOrthogonal; dir < endDiagonal; dir++) {
+					if (abs(slideDirections[dir]) == kingDir) {
+						pinDir = kingDir;
+						if (dir >= startDiagonal) isDiag = true;
 						break;
 					}
 				}
+				if (isDiag) continue;
 			}
 			for (int dirIndex = startOrthogonal; dirIndex < endOrthogonal; dirIndex++) {
 				direction = slideDirections[dirIndex];
 				distance = preComp.directionDistances[startSquare].direction[dirIndex];
 				if (pinDir && pinDir != abs(direction)) continue;
-				//if (isPinned && friendlyKingSquare - startSquare != direction) continue;
 				for (int it = 1; it < distance; it++) {
 					int targetSquare = direction * it + startSquare;
 					// If targetsquare contains friendly piece break
 					if (Piece::isColor(squares[targetSquare], currentColor)) break;
 					if (isPinned && !(checkRayBB & (1ULL << targetSquare))) break;
-					if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
+					if (isCheck && !(checkBB & 1ULL << targetSquare)) {
+						if (squares[targetSquare] != Piece::empty) {
+							break;
+						}
+						continue;
+					}
 					// Add move
 					moves[currentMoves++] = Move(startSquare, targetSquare);
 					// If targetsquare contains opposing piece break
@@ -158,12 +166,14 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 			isPinned = checkRayBB & (1ULL << startSquare);
 			pinDir = 0;
 			if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
+				int kingDir = abs(friendlyKingSquare - startSquare);
 				for (int dir = startDiagonal; dir < endDiagonal; dir++) {
-					if (abs(friendlyKingSquare - startSquare) == abs(slideDirections[dir])) {
-						pinDir = abs(slideDirections[dir]);
+					if (abs(slideDirections[dir]) == kingDir) {
+						pinDir = kingDir;
 						break;
 					}
 				}
+				if (!pinDir) continue;
 			}
 			for (int dirIndex = startDiagonal; dirIndex < endDiagonal; dirIndex++) {
 				direction = slideDirections[dirIndex];
@@ -174,7 +184,12 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 					// If targetsquare contains friendly piece break
 					if (Piece::isColor(squares[targetSquare], currentColor)) break;
 					if (isPinned && !(checkRayBB & (1ULL << targetSquare))) break;
-					if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
+					if (isCheck && !(checkBB & 1ULL << targetSquare)) {
+						if (squares[targetSquare] != Piece::empty) {
+							break;
+						}
+						continue;
+					}
 					// Add move
 					moves[currentMoves++] = Move(startSquare, targetSquare);
 					// If targetsquare contains opposing piece break
@@ -224,12 +239,32 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 	const int startRow = whiteTurn ? 6 : 1;
 	const int promotionRow = whiteTurn ? 1 : 6;
 	bool isPinned;
+	int pinDir = 0;
 
 	for (int it = 0; it < numPawns; it++) {
 		const int startSquare = pawns[it];
+		bool skipDiag = false;
+		bool skipOrth = false;
 		isPinned = checkRayBB & (1ULL << startSquare);
+		pinDir = 0;
+		if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
+			int kingDir = abs(friendlyKingSquare - startSquare);
+			for (int dir = startOrthogonal; dir < endDiagonal; dir++) {
+				if (abs(slideDirections[dir]) == kingDir) {
+					pinDir = kingDir;
+					if (dir < endOrthogonal) {
+						skipDiag = true;
+					} else {
+						skipOrth = true;
+					}
+					break;
+				}
+			}
+		}
 		//if (startSquare / 8 == 7) throw std::out_of_range("Pawn cannot exist on last rank.");
 		for (int i = 0; i < 2; i++) {
+			if (skipDiag) break;
+			if (pinDir && pinDir != abs(attackDirection[i])) continue;
 			if (preComp.directionDistances[startSquare].direction[3 - i * 2] <= 1) continue;
 			int targetSquare = attackDirection[i] + startSquare;
 			if (isPinned && !(checkRayBB & (1ULL << targetSquare))) continue;
@@ -246,7 +281,7 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 			}
 			moves[currentMoves++] = Move(startSquare, targetSquare);
 		}
-
+		if (skipOrth) continue;
 		bool stillPinned, blockingCheck;
 		stillPinned = isPinned && !(checkRayBB & (1ULL << (direction + startSquare)));
 		blockingCheck = isCheck && !(checkBB & 1ULL << direction + startSquare);
@@ -260,7 +295,7 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 				moves[currentMoves++] = Move(startSquare, direction + startSquare);
 			}
 		} else continue;
-
+		if (isPinned && stillPinned) continue;
 		stillPinned = isPinned && !(checkRayBB & (1ULL << (direction * 2 + startSquare)));
 		blockingCheck = isCheck && !(checkBB & 1ULL << direction * 2 + startSquare);
 
@@ -325,7 +360,7 @@ void MoveGen::generateSlideAttackData() {
 					// Add move
 					opponentAttacks |= 1ULL << targetSquare;
 					// If targetsquare contains opposing piece break
-					if (squares[targetSquare] != Piece::empty && !Piece::isType(squares[targetSquare], Piece::king)) break;
+					if (squares[targetSquare] != Piece::empty && squares[targetSquare] != (Piece::king | currentColor)) break;
 				}
 			}
 		}
@@ -343,7 +378,7 @@ void MoveGen::generateSlideAttackData() {
 					// Add move
 					opponentAttacks |= 1ULL << targetSquare;
 					// If targetsquare contains opposing piece break
-					if (squares[targetSquare] != Piece::empty && !Piece::isType(squares[targetSquare], Piece::king)) break;
+					if (squares[targetSquare] != Piece::empty && squares[targetSquare] != (Piece::king | currentColor)) break;
 				}
 			}
 		}

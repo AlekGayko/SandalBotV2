@@ -32,7 +32,22 @@ unsigned long long int Searcher::moveSearch(bool isMaximising, int depth, int ma
 	}
 	if (depth == 0) { 
 		for (int i = 0; i < numMoves; i++) {
-			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << ": " << movesSince0[i] << endl;
+			string promotionpiece = "";
+			switch (moves[i].flag) {
+			case Move::promoteToQueenFlag:
+				promotionpiece = "q";
+				break;
+			case Move::promoteToRookFlag:
+				promotionpiece = "r";
+				break;
+			case Move::promoteToBishopFlag:
+				promotionpiece = "b";
+				break;
+			case Move::promoteToKnightFlag:
+				promotionpiece = "n";
+				break;
+			}
+			cout << CoordHelper::indexToString(moves[i].startSquare) << CoordHelper::indexToString(moves[i].targetSquare) << promotionpiece << ": " << movesSince0[i] << endl;
 		}
 	}
 	return movesGenerated;
