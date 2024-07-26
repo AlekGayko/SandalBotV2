@@ -143,15 +143,9 @@ void Board::makeMove(Move& move) {
 
 	if (takenPiece != Piece::empty) {
 		int type = Piece::type(takenPiece);
-		try {
+
 			pieceLists[oppositeIndex][type].deletePiece(targetSquare);
-		} catch (...) {
-			cout << printBoard() << endl;
-			cout << move << endl;
-			cout << move.targetSquare << endl;
-			cout << Piece::pieceToSymbol(takenPiece) << endl;
-			throw std::out_of_range("");
-		}
+
 	}
 	int castleMask;
 
@@ -224,15 +218,9 @@ void Board::unMakeMove(Move& move) {
 
 	if (takenPiece != Piece::empty) {
 		int type = Piece::type(takenPiece);
-		try {
+
 			pieceLists[oppositeIndex][type].addPiece(targetSquare);
-		} catch (...) {
-			cout << printBoard() << endl;
-			cout << move << endl;
-			cout << Piece::pieceToSymbol(takenPiece) << endl;
-			cout << pieceLists[oppositeIndex][type].numPieces << endl;
-			throw std::out_of_range("");
-		}
+
 	}
 
 	int pawnToBeDeleted;

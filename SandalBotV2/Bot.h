@@ -19,7 +19,7 @@ public:
 
 	void setPosition(std::string FEN);
 	void makeMove(std::string movestr);
-	void generateMove();
+	void generateMove(int moveTimeMs);
 	void stopSearching();
 	unsigned long long int perft(int depth);
 	std::string printBoard();

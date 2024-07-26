@@ -39,8 +39,8 @@ int MoveGen::generateMoves(Move moves[]) {
 	generateDiagonalMoves(moves);
 	//cout << "moves after diag: " << currentMoves << endl;
 
-	updateResults(moves);
-
+	//updateResults(moves);
+	/*
 	for (int i = 0; i < currentMoves; i++) {
 		if (Piece::isType(squares[moves[i].targetSquare], Piece::king)) {
 			BitBoardUtility::printBB(opponentAttacks);
@@ -48,7 +48,7 @@ int MoveGen::generateMoves(Move moves[]) {
 			BitBoardUtility::printBB(checkRayBB);
 		}
 	}
-
+	*/
 	//BitBoardUtility::printBB(opponentAttacks);
 	//BitBoardUtility::printBB(checkBB);
 	//BitBoardUtility::printBB(checkRayBB);
@@ -113,6 +113,7 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 			startSquare = orthogonalSliders[type][it];
 			isPinned = checkRayBB & (1ULL << startSquare);
 			pinDir = 0;
+			if (isPinned && friendlyKingSquare / 8 != startSquare / 8 && (friendlyKingSquare - startSquare) % 8 != 0) continue;
 			if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
 				int kingDir = abs(friendlyKingSquare - startSquare);
 				bool isDiag = false;
@@ -165,6 +166,8 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 			const int startSquare = diagonalSliders[type][it];
 			isPinned = checkRayBB & (1ULL << startSquare);
 			pinDir = 0;
+			if (isPinned && friendlyKingSquare / 8 == startSquare / 8) continue;
+			if (isPinned && (friendlyKingSquare - startSquare) % 8 == 0) continue;
 			if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
 				int kingDir = abs(friendlyKingSquare - startSquare);
 				for (int dir = startDiagonal; dir < endDiagonal; dir++) {
@@ -243,20 +246,20 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 
 	for (int it = 0; it < numPawns; it++) {
 		const int startSquare = pawns[it];
+		int kingDir = abs(friendlyKingSquare - startSquare);
 		bool skipDiag = false;
 		bool skipOrth = false;
 		isPinned = checkRayBB & (1ULL << startSquare);
 		pinDir = 0;
+
+		if (isPinned && kingDir % 8 == 0) skipDiag = true;
+		if (isPinned && friendlyKingSquare / 8 == startSquare / 8) continue;
+
 		if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
-			int kingDir = abs(friendlyKingSquare - startSquare);
-			for (int dir = startOrthogonal; dir < endDiagonal; dir++) {
+			for (int dir = startDiagonal; dir < endDiagonal; dir++) {
 				if (abs(slideDirections[dir]) == kingDir) {
 					pinDir = kingDir;
-					if (dir < endOrthogonal) {
-						skipDiag = true;
-					} else {
-						skipOrth = true;
-					}
+					skipOrth = true;
 					break;
 				}
 			}
@@ -268,11 +271,12 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 			if (preComp.directionDistances[startSquare].direction[3 - i * 2] <= 1) continue;
 			int targetSquare = attackDirection[i] + startSquare;
 			if (isPinned && !(checkRayBB & (1ULL << targetSquare))) continue;
+			if (targetSquare == enPassantSquare && squares[targetSquare] == Piece::empty) {
+				enPassantMoves(moves, targetSquare, startSquare);
+			}
+
 			if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
 			if (!Piece::isColor(squares[targetSquare], opposingColor)) {
-				if (targetSquare == enPassantSquare && squares[targetSquare] == Piece::empty) {
-					enPassantMoves(moves, targetSquare, startSquare);
-				}
 				continue;
 			}
 			if (startSquare / 8 == promotionRow) {
@@ -308,8 +312,35 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 }
 
 void MoveGen::enPassantMoves(Move moves[], int targetSquare, int startSquare) {
+	const int enemyPawnOffset = whiteTurn ? 8 : -8;
+	const int enemyPawnSquare = targetSquare + enemyPawnOffset;
+
+	if (isCheck && !(checkBB & 1ULL << targetSquare) && !(checkBB & 1ULL << enemyPawnSquare)) return;
+
+	if (enPassantPin(startSquare, enemyPawnSquare)) return;
 	//cout << "enpassanting" << endl;
 	moves[currentMoves++] = Move(startSquare, targetSquare, Move::enPassantCaptureFlag);
+}
+
+bool MoveGen::enPassantPin(int friendlyPawnSquare, int enemyPawnSquare) {
+	if (friendlyKingSquare / 8 != friendlyPawnSquare / 8) return false;
+	const int directionIndex = friendlyKingSquare > enemyPawnSquare ? 3 : 1;
+
+	const int direction = slideDirections[directionIndex];
+	int distance = preComp.directionDistances[friendlyKingSquare].direction[directionIndex];
+	for (int it = 1; it < distance; it++) {
+		int targetSquare = direction * it + friendlyKingSquare;
+		if (targetSquare == friendlyPawnSquare || targetSquare == enemyPawnSquare) continue;
+		// If targetsquare contains friendly piece break
+		if (Piece::isColor(squares[targetSquare], currentColor)) break;
+		
+		if (Piece::isOrthogonal(squares[targetSquare])) return true;
+
+		// If targetsquare contains opposing piece break
+		if (squares[targetSquare] != Piece::empty)	break;
+	}
+
+	return false;
 }
 
 void MoveGen::promotionMoves(Move moves[], int targetSquare, int startSquare) {
@@ -452,7 +483,8 @@ void MoveGen::generateCheckData() {
 			}
 			bool dangerPiece = isOrth ? Piece::isOrthogonal(squares[targetSquare]) : Piece::isDiagonal(squares[targetSquare]);
 			// If targetsquare contains opposing sliding piece break
-			if (Piece::isColor(squares[targetSquare], opposingColor) && dangerPiece) {
+			if (Piece::isColor(squares[targetSquare], opposingColor)) {
+				if (!dangerPiece) break;
 				dirBB |= 1ULL << targetSquare;
 				if (foundFriendly) checkRayBB |= dirBB;
 				else {

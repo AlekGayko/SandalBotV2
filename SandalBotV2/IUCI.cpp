@@ -82,6 +82,7 @@ void IUCI::processGoCommand(string command) {
 	if (StringUtil::contains(command, "movetime")) {
 		int moveTimeMs = getLabelledValueInt(command, "movetime", goLabels, 0);
 		// player.ThinkTimed(moveTimeMs);
+		bot->generateMove(moveTimeMs);
 	} else if (StringUtil::contains(command, "perft")) {
 		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
 		auto start = high_resolution_clock::now();

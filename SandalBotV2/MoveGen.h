@@ -62,7 +62,6 @@ private:
 
 	PieceList pawns;
 
-	bool isCheck;
 	bool whiteTurn;
 	int enPassantSquare;
 	int castlingRights;
@@ -84,6 +83,7 @@ public:
 
 	PerftResults perftRes;
 	const int maxMoves = 218;
+	bool isCheck;
 
 	MoveGen();
 	MoveGen(Board* board);
@@ -105,6 +105,8 @@ public:
 	void generateSlideAttackData();
 	void generateAttackData();
 	void generateCheckData();
+
+	bool enPassantPin(int friendlyPawnSquare, int enemyPawnSquare);
 
 	void updateResults(Move moves[]);
 };

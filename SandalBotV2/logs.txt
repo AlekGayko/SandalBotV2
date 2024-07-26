@@ -1,13 +1,3 @@
-Command received: position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - moves f3h5
-Make moves after setting position: 1
-Command received: go perft 5
-Response: Time taken: 7.734822s, nodes per second: 25577712.856940
-Response: Nodes searched: 197839051
-Command received: position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -
-Command received: go perft 6
-Response: Time taken: 314.025854s, nodes per second: 25576389.905916
-Response: Nodes searched: 8031647685
-Command received: position startpos
-Command received: go perft 7
-Response: Time taken: 134.940551s, nodes per second: 23683776.551584
-Response: Nodes searched: 3195901860
+Command received: go movetime 1000
+Command received: go movetime 100000
+Command received: go movetime 1000000

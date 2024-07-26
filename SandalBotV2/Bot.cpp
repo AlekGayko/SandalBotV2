@@ -64,7 +64,8 @@ void Bot::makeMove(std::string movestr) {
     board->makeMove(positionMoves[moveIndex]);
 }
 
-void Bot::generateMove() {
+void Bot::generateMove(int moveTimeMs) {
+    searcher->startSearch(moveTimeMs);
 }
 
 void Bot::stopSearching() {
