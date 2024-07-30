@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include "IUCI.h"
-#include "PieceList.h"
 
 using namespace std;
 

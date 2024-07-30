@@ -24,6 +24,7 @@ struct PerftResults {
 };
 
 class MoveGen {
+	friend class MoveOrderer;
 private:
 	Board* board = nullptr;
 	MovePrecomputation preComp;

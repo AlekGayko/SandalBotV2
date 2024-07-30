@@ -1,3 +1,0 @@
-Command received: go movetime 1000
-Command received: go movetime 100000
-Command received: go movetime 1000000
