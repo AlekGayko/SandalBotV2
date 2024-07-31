@@ -28,7 +28,7 @@ void Searcher::iterativeSearch() {
 int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 	moves++;
 	if (cancelSearch) {
-		return 0;
+		return Evaluator::drawScore;
 	}
 
 	if (depth == maxDepth) {
@@ -50,11 +50,11 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 			}
 		}
 		if (alpha >= beta) return alpha;
-		if (cancelSearch) return 0;
+		if (cancelSearch) return Evaluator::drawScore;
 
 	}
 
-	if (!numMoves) return moveGenerator->isCheck ? Evaluator::checkMateScore * (maxDepth - depth) : 0;
+	if (!numMoves) return moveGenerator->isCheck ? Evaluator::checkMateScore * (maxDepth - depth) : Evaluator::drawScore;
 
 	return alpha;
 }

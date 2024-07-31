@@ -1,1 +1,0 @@
-Command received: go movetime 10

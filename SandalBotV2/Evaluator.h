@@ -12,6 +12,7 @@ private:
 	int colorDirection[2] = { -1, 1 };
 public:
 	static const int checkMateScore = -100000;
+	static const int drawScore = 0;
 
 	Evaluator();
 	int Evaluate(Board* board);
