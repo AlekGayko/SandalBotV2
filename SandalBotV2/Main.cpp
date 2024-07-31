@@ -6,6 +6,7 @@ using namespace std;
 
 int main() {
 	IUCI engine;
+	//engine.logInfo("hi");
 	string command = "";
 	while (command != "quit") {
 		getline(cin, command);

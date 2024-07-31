@@ -66,6 +66,26 @@ void Bot::makeMove(std::string movestr) {
 
 void Bot::generateMove(int moveTimeMs) {
     searcher->startSearch(moveTimeMs);
+    string startSquare = CoordHelper::indexToString(searcher->bestMove.startSquare);
+    string targetSquare = CoordHelper::indexToString(searcher->bestMove.targetSquare);
+    string flag = "";
+
+    switch (searcher->bestMove.flag) {
+    case Move::promoteToQueenFlag:
+        flag = "q";
+        break;
+    case Move::promoteToBishopFlag:
+        flag = "b";
+        break;
+    case Move::promoteToKnightFlag:
+        flag = "n";
+        break;
+    case Move::promoteToRookFlag:
+        flag = "r";
+        break;
+    }
+
+    cout << "bestmove " << startSquare << targetSquare << flag << endl;
 }
 
 void Bot::stopSearching() {
@@ -82,4 +102,17 @@ unsigned long long int Bot::perft(int depth) {
 
 std::string Bot::printBoard() {
     return board->printBoard();
+}
+
+int Bot::chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs, int blackIncMs) {
+    int timeRemaining = board->state->whiteTurn ? whiteTimeMs : blackTimeMs;
+    int incMs = board->state->whiteTurn ? whiteIncMs : blackIncMs;
+
+    double moveTimeMs = float(timeRemaining) / 40.0f;
+
+    if (timeRemaining > incMs * 2) moveTimeMs += timeRemaining * 0.8;
+
+    double minTimeMs = min(50, int(timeRemaining * 0.25));
+
+    return int(ceil(max(minTimeMs, moveTimeMs)));
 }

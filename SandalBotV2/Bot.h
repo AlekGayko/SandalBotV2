@@ -23,6 +23,7 @@ public:
 	void stopSearching();
 	unsigned long long int perft(int depth);
 	std::string printBoard();
+	int chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs=0, int blackIncMs=0);
 };
 
 #endif // !BOT_H

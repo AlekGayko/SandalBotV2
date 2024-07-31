@@ -112,13 +112,14 @@ void Searcher::startSearch(int moveTimeMs) {
 	this_thread::sleep_for(runDuration);
 	cancelSearch.store(true);
 	workerThread.join();
-	cout << "finished" << endl;
-	cout << "bestmove: " << bestMove << endl;
-	//iterativeSearch();
 }
 
 void Searcher::endSearch() {
 	cancelSearch = true;
+}
+
+Searcher::~Searcher() {
+	delete moveGenerator;
 }
 
 unsigned long long int Searcher::perft(int depth) {

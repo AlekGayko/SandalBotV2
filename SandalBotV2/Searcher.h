@@ -35,6 +35,7 @@ public:
 
 	Searcher();
 	Searcher(Board* board);
+	~Searcher();
 	void startSearch(int moveTimeMs);
 	void endSearch();
 	unsigned long long int perft(int depth);

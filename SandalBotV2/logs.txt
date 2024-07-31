@@ -1,0 +1,6 @@
+Command received: uci
+Response: uciok
+Command received: ready
+Unknown Command: ready
+Command received: isready
+Response: readyok

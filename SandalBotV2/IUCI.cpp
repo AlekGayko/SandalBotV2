@@ -60,7 +60,7 @@ void IUCI::processCommand(string command) {
 					player.StopThinking();
 				}*/
 	} else if (commandType == "quit") {
-		//player.Quit();
+		exit(0);
 	} else if (commandType == "d") {
 		cout << (bot->printBoard()) << endl;;
 	} else {
@@ -81,7 +81,6 @@ void IUCI::OnMoveChosen(string move) {
 void IUCI::processGoCommand(string command) {
 	if (StringUtil::contains(command, "movetime")) {
 		int moveTimeMs = getLabelledValueInt(command, "movetime", goLabels, 0);
-		// player.ThinkTimed(moveTimeMs);
 		bot->generateMove(moveTimeMs);
 	} else if (StringUtil::contains(command, "perft")) {
 		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
@@ -96,10 +95,10 @@ void IUCI::processGoCommand(string command) {
 		int timeRemainingBlackMs = getLabelledValueInt(command, "btime", goLabels, 0);
 		int incrementWhiteMs = getLabelledValueInt(command, "winc", goLabels, 0);
 		int incrementBlackMs = getLabelledValueInt(command, "binc", goLabels, 0);
-		int thinkTime = 0;// = player.ChooseThinkTime(timeRemainingWhiteMs, timeRemainingBlackMs, incrementWhiteMs, incrementBlackMs);
+		int thinkTime = bot->chooseMoveTime(timeRemainingWhiteMs, timeRemainingBlackMs, incrementWhiteMs, incrementBlackMs);
 		string str = "Thinking for: " + to_string(thinkTime);
 		logInfo(str + " ms.");
-		//player.ThinkTimed(thinkTime);
+		bot->generateMove(thinkTime);
 	}
 	
 }
@@ -129,6 +128,7 @@ void IUCI::processPositionCommand(string command) {
 void IUCI::respond(string response) {
 	cout << response << endl;
 	logInfo("Response: " + response);
+	cout.flush();
 }
 
 int IUCI::getLabelledValueInt(string text, string label, const vector<string> allLabels, int defaultValue) {
