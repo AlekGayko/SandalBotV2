@@ -4,18 +4,21 @@
 #define MOVEORDERER_H
 
 #include "Board.h"
-#include "MoveGen.h"
 #include "PieceEvaluations.h"
+#include "MoveGen.h"
+
+class Searcher;
 
 class MoveOrderer {
 private:
 	Board* board = nullptr;
 	MoveGen* generator = nullptr;
-	void quickSort(Move moves[]);
+	Searcher* searcher = nullptr;
 public:
 	MoveOrderer();
-	MoveOrderer(Board* board, MoveGen* gen);
-	void order(Move moves[], int numMoves);
+	MoveOrderer(Board* board, MoveGen* gen, Searcher* searcher);
+	~MoveOrderer();
+	void order(Move moves[], int numMoves, bool firstMove = false);
 	static void quickSort(Move moves[], int moveVals[], int start, int end);
 };
 

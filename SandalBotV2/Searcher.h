@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "Evaluator.h"
 #include "MoveGen.h"
+#include "MoveOrderer.h"
 #include "TranspositionTable.h"
 
 #include <atomic>
@@ -28,6 +29,7 @@ private:
 	int QuiescenceSearch();
 public:
 	MoveGen* moveGenerator = nullptr;
+	MoveOrderer* orderer = nullptr;
 	Move bestMove;
 	int movesSince = 0;
 	int movesSince0[218];

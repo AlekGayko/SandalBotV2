@@ -1,4 +1,5 @@
 #include "MoveOrderer.h"
+#include "Searcher.h"
 
 #include <iostream>
 
@@ -7,15 +8,25 @@ using namespace std;
 MoveOrderer::MoveOrderer() {
 }
 
-MoveOrderer::MoveOrderer(Board* board, MoveGen* gen) {
+MoveOrderer::MoveOrderer(Board* board, MoveGen* gen, Searcher* searcher) {
 	this->board = board;
 	this->generator = gen;
+	this->searcher = searcher;
 }
 
-void MoveOrderer::order(Move moves[], int numMoves) {
+MoveOrderer::~MoveOrderer() {
+
+}
+
+void MoveOrderer::order(Move moves[], int numMoves, bool firstMove) {
 	if (numMoves <= 1) return;
 	int moveVals[218];
 	for (int it = 0; it < numMoves; it++) {
+		if (firstMove && moves[it] == searcher->bestMove) {
+			moveVals[it] = 1000000;
+			continue;
+		}
+
 		int moveValue = 0;
 		const int startSquare = moves[it].startSquare;
 		const int targetSquare = moves[it].targetSquare;
@@ -25,6 +36,7 @@ void MoveOrderer::order(Move moves[], int numMoves) {
 		int enemyValue = PieceEvaluations::pieceVals[enemyPiece];
 		int ownValue = PieceEvaluations::pieceVals[ownPiece];
 		int diffVal = enemyValue - ownValue;
+
 		if (enemyValue) {
 			moveValue += 100;
 		}
@@ -61,12 +73,14 @@ void MoveOrderer::order(Move moves[], int numMoves) {
 		}
 		moveVals[it] = moveValue;
 	}
+	quickSort(moves, moveVals, 0, numMoves);
 }
 
 void MoveOrderer::quickSort(Move moves[], int moveVals[], int start, int end) {
 	if (start >= end) return;
 	int pivotSpot = end - 1;
 	int pivot = moveVals[pivotSpot];
+	Move movePivot = moves[pivotSpot];
 	int pivotIndex = start;
 
 	for (int i = start; i < end; i++) {
@@ -75,11 +89,18 @@ void MoveOrderer::quickSort(Move moves[], int moveVals[], int start, int end) {
 			moveVals[i] = moveVals[pivotIndex];
 			moveVals[pivotIndex] = temp;
 
+			Move tempMove = moves[i];
+			moves[i] = moves[pivotIndex];
+			moves[pivotIndex] = tempMove;
+
 			pivotIndex++;
 		}
 	}
 	moveVals[pivotSpot] = moveVals[pivotIndex];
 	moveVals[pivotIndex] = pivot;
+
+	moves[pivotSpot] = moves[pivotIndex];
+	moves[pivotIndex] = movePivot;
 
 	quickSort(moves, moveVals, start, pivotIndex);
 	quickSort(moves, moveVals, pivotIndex + 1, end);

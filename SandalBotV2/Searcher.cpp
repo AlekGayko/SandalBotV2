@@ -10,6 +10,7 @@
 using namespace std;
 
 void Searcher::iterativeSearch() {
+	bestMove = Move();
 	for (int i = 1; !cancelSearch.load(); i++) {
 		moves = 0;
 		auto start = chrono::high_resolution_clock::now();
@@ -20,6 +21,7 @@ void Searcher::iterativeSearch() {
 		moves = 0;
 		if (!cancelSearch) bestMove = currentMove;
 		cout << "Depth " << i << " completed. Evaluation: " << eval << ",  Bestmove: " << bestMove << endl;
+		cout << endl;
 	}
 }
 
@@ -35,6 +37,8 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 	int score = 0;
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves);
+	orderer->order(moves, numMoves, depth == 0);
+
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i]);
 		score = -negaMax(-beta, -alpha, depth + 1, maxDepth);
@@ -103,6 +107,7 @@ Searcher::Searcher()
 Searcher::Searcher(Board* board) {
 	this->board = board;
 	moveGenerator = new MoveGen(board);
+	orderer = new MoveOrderer(board, moveGenerator, this);
 }
 
 void Searcher::startSearch(int moveTimeMs) {
@@ -120,6 +125,7 @@ void Searcher::endSearch() {
 
 Searcher::~Searcher() {
 	delete moveGenerator;
+	delete orderer;
 }
 
 unsigned long long int Searcher::perft(int depth) {

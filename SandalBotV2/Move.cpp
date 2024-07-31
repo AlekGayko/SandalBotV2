@@ -61,6 +61,24 @@ constexpr int Move::promotionPieceType() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const Move& move) {
-	os << "startSquare: " << CoordHelper::indexToString(move.startSquare) << ", targetsquare: " << CoordHelper::indexToString(move.targetSquare) << ", flag: " << move.flag << std::endl;
+	os << CoordHelper::indexToString(move.startSquare) << CoordHelper::indexToString(move.targetSquare);
+	if (move.flag > Move::castleFlag) {
+		std::string flag;
+		switch (move.flag) {
+		case Move::promoteToQueenFlag:
+			flag = "q";
+			break;
+		case Move::promoteToRookFlag:
+			flag = "r";
+			break;
+		case Move::promoteToBishopFlag:
+			flag = "b";
+			break;
+		case Move::promoteToKnightFlag:
+			flag = "n";
+			break;
+		}
+		std::cout << flag;
+	}
 	return os;
 }
