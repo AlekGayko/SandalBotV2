@@ -59,12 +59,12 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 	return alpha;
 }
 
-unsigned long long int Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
+uint64_t Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 	if (depth == maxDepth) {
 		//cout << board->printBoard() << endl;
 		return 1;
 	}
-	unsigned long long int movesGenerated = 0;
+	uint64_t movesGenerated = 0;
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves);
 	for (int i = 0; i < numMoves; i++) {
@@ -128,7 +128,7 @@ Searcher::~Searcher() {
 	delete orderer;
 }
 
-unsigned long long int Searcher::perft(int depth) {
+uint64_t Searcher::perft(int depth) {
 	movesSince = 0;
 	return moveSearch(board->state->whiteTurn, 0, depth);
 }

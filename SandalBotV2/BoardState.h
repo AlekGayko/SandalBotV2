@@ -16,7 +16,7 @@ struct BoardState {
 	int fiftyMoveCounter;
 	int moveCounter;
 
-	unsigned long long int zobristHash;
+	uint64_t zobristHash;
 
 	static constexpr int whiteShortCastleMask = 0b0001;
 	static constexpr int whiteLongCastleMask = 0b0010;
@@ -27,7 +27,7 @@ struct BoardState {
 	static constexpr int blackCastleMask = 0b1100;
 
 	BoardState();
-	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, int moves, unsigned long long int zobristHash);
+	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, int moves, uint64_t zobristHash);
 	constexpr bool canShortCastle(bool isWhite) const;
 	constexpr bool canLongCastle(bool isWhite) const;
 };

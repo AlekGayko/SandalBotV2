@@ -470,8 +470,8 @@ void MoveGen::generateCheckData() {
 	for (int dirIndex = startOrthogonal; dirIndex < endDiagonal; dirIndex++) {
 		bool isOrth = dirIndex < 4;
 		bool foundFriendly = false;
-		unsigned long long int dirBB = 0ULL;
-		unsigned long long int dirRayBB = 0ULL;
+		uint64_t dirBB = 0ULL;
+		uint64_t dirRayBB = 0ULL;
 		// bool dirCheck = false;
 		direction = slideDirections[dirIndex];
 		distance = preComp.directionDistances[kingSquare].direction[dirIndex];

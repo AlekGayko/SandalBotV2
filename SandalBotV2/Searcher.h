@@ -25,7 +25,7 @@ private:
 
 	void iterativeSearch();
 	int negaMax(int alpha, int beta, int depth, int maxDepth);
-	unsigned long long int moveSearch(bool isMaximising, int depth, int maxDepth);
+	uint64_t moveSearch(bool isMaximising, int depth, int maxDepth);
 	int QuiescenceSearch();
 public:
 	MoveGen* moveGenerator = nullptr;
@@ -40,7 +40,7 @@ public:
 	~Searcher();
 	void startSearch(int moveTimeMs);
 	void endSearch();
-	unsigned long long int perft(int depth);
+	uint64_t perft(int depth);
 };
 
 #endif // !SEARCHER_H

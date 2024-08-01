@@ -361,8 +361,8 @@ string Board::printBoard() {
 void Board::updateBitBoards(Move& move, int pieceType, int takenPiece) {
 	const int startSquare = move.startSquare;
 	const int targetSquare = move.targetSquare;
-	unsigned long long int* friendlyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
-	unsigned long long int* enemyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
+	uint64_t* friendlyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
+	uint64_t* enemyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 
 	switch (pieceType) {
 	case Piece::pawn:

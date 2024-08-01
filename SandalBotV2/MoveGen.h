@@ -45,7 +45,7 @@ private:
 
 	const int promotionFlags[4] = { Move::promoteToQueenFlag, Move::promoteToRookFlag, Move::promoteToKnightFlag, Move::promoteToBishopFlag };
 
-	unsigned long long int currentMoves;
+	uint64_t currentMoves;
 	int colorIndex;
 	int enemyColorIndex;
 	int currentColor;
@@ -69,9 +69,9 @@ private:
 	int fiftyMoveCounter;
 	int moveCounter;
 
-	unsigned long long int opponentAttacks;
-	unsigned long long int checkBB;
-	unsigned long long int checkRayBB;
+	uint64_t opponentAttacks;
+	uint64_t checkBB;
+	uint64_t checkRayBB;
 
 public:
 	static const int startingKingSquares[2];

@@ -8,13 +8,13 @@
 
 class BoardHistory {
 private:
-	std::vector<unsigned long long int> history;
-	std::unordered_map<unsigned long long int, size_t> mapHistory;
+	std::vector<uint64_t> history;
+	std::unordered_map<uint64_t, size_t> mapHistory;
 public:
-	void push(unsigned long long int value);
+	void push(uint64_t value);
 	void pop();
-	unsigned long long int operator[](const int& index);
-	bool operator[](const unsigned long long int& key);
+	uint64_t operator[](const int& index);
+	bool operator[](const uint64_t& key);
 };
 
 #endif // !BOARDHISTORY_H

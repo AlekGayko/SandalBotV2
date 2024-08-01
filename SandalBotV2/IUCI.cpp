@@ -85,7 +85,7 @@ void IUCI::processGoCommand(string command) {
 	} else if (StringUtil::contains(command, "perft")) {
 		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
 		auto start = high_resolution_clock::now();
-		unsigned long long int nodesSearched = bot->perft(searchDepth);
+		uint64_t nodesSearched = bot->perft(searchDepth);
 		auto end = high_resolution_clock::now();
 		duration<double> duration = end - start;
 		respond("Time taken: " + to_string(duration.count()) + "s, nodes per second: " + to_string(nodesSearched / duration.count()));

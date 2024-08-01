@@ -91,9 +91,9 @@ void Bot::generateMove(int moveTimeMs) {
 void Bot::stopSearching() {
 }
 
-unsigned long long int Bot::perft(int depth) {
+uint64_t Bot::perft(int depth) {
     searcher->moveGenerator->perftRes.reset();
-    unsigned long long int movesgenerated = searcher->perft(depth);
+    uint64_t movesgenerated = searcher->perft(depth);
     //cout << "test moves: " << board->testMoves << endl;
     cout << "Results: " << endl;
     cout << searcher->moveGenerator->perftRes << endl;

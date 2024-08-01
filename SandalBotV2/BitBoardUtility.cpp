@@ -4,7 +4,7 @@
 
 using namespace std;
 
-void BitBoardUtility::printBB(ulong bitboard) {
+void BitBoardUtility::printBB(u64 bitboard) {
 	for (int i = 0; i < 8; i++) {
 		for (int j = 0; j < 8; j++) {
 			int square = i * 8 + j;
@@ -16,10 +16,10 @@ void BitBoardUtility::printBB(ulong bitboard) {
 	cout << endl;
 }
 
-ulong BitBoardUtility::getBit(ulong bitboard, int index) {
+u64 BitBoardUtility::getBit(u64 bitboard, int index) {
 	return bitboard & (1ULL << index);
 }
 
-void BitBoardUtility::setBit(ulong bitboard, int index) {
+void BitBoardUtility::setBit(u64 bitboard, int index) {
 	bitboard |= (1ULL << index);
 }

@@ -29,15 +29,15 @@ public:
 	BoardState* state = nullptr;
 
 	// Bitboards
-	unsigned long long int bitBoards[7];
+	uint64_t bitBoards[7];
 
-	unsigned long long int allPieces;
-	unsigned long long int whitePieces;
-	unsigned long long int blackPieces;
-	unsigned long long int orthogonalPieces;
-	unsigned long long int diagonalPieces;
-	unsigned long long int pawns;
-	unsigned long long int knights;
+	uint64_t allPieces;
+	uint64_t whitePieces;
+	uint64_t blackPieces;
+	uint64_t orthogonalPieces;
+	uint64_t diagonalPieces;
+	uint64_t pawns;
+	uint64_t knights;
 
 	static const int blackIndex = 0;
 	static const int whiteIndex = 1;
