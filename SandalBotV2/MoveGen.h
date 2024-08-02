@@ -51,6 +51,7 @@ private:
 	int currentColor;
 	int opposingColor;
 	bool doubleCheck;
+	bool generateCaptures;
 	int friendlyKingSquare;
 	int* squares = nullptr;
 	PieceList* friendlyPieceLists;
@@ -88,8 +89,8 @@ public:
 
 	MoveGen();
 	MoveGen(Board* board);
-	int generateMoves(Move moves[]);
-	void initVariables();
+	int generateMoves(Move moves[], bool capturesOnly = false);
+	void initVariables(bool capturesOnly);
 	void generateSlideMoves(Move moves[]);
 	void generateOrthogonalMoves(Move moves[]);
 	void generateDiagonalMoves(Move moves[]);

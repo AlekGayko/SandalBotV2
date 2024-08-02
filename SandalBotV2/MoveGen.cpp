@@ -22,8 +22,8 @@ MoveGen::MoveGen(Board* board) {
 	this->board = board;
 }
 
-int MoveGen::generateMoves(Move moves[]) {
-	initVariables();
+int MoveGen::generateMoves(Move moves[], bool capturesOnly) {
+	initVariables(capturesOnly);
 	//cout << "ischeck: " << isCheck << ", doublecheck: " << doubleCheck << ", checkbb: " << checkBB << ", raybb: " << checkRayBB << endl;
 	generateCheckData();
 	//cout << "ischeck: " << isCheck << ", doublecheck: " << doubleCheck << ", checkbb: " << checkBB << ", raybb: " << checkRayBB << endl;
@@ -55,7 +55,7 @@ int MoveGen::generateMoves(Move moves[]) {
 	return currentMoves;
 }
 
-void MoveGen::initVariables() {
+void MoveGen::initVariables(bool capturesOnly) {
 	squares = board->squares;
 	isCheck = false;// board->state->check;
 	doubleCheck = false;
@@ -92,6 +92,8 @@ void MoveGen::initVariables() {
 	checkBB = 0ULL;
 	checkRayBB = 0ULL;
 	opponentAttacks = 0ULL;
+
+	generateCaptures = capturesOnly;
 }
 
 void MoveGen::generateSlideMoves(Move moves[]) {
@@ -141,6 +143,7 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 						}
 						continue;
 					}
+					if (generateCaptures && squares[targetSquare] == Piece::empty) continue;
 					// Add move
 					moves[currentMoves++] = Move(startSquare, targetSquare);
 					// If targetsquare contains opposing piece break
@@ -193,6 +196,7 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 						}
 						continue;
 					}
+					if (generateCaptures && squares[targetSquare] == Piece::empty) continue;
 					// Add move
 					moves[currentMoves++] = Move(startSquare, targetSquare);
 					// If targetsquare contains opposing piece break
@@ -215,6 +219,7 @@ void MoveGen::generateKnightMoves(Move moves[]) {
 			const int targetSquare = knightDirections[dirIndex] + startSquare;
 			if (Piece::isColor(squares[targetSquare], currentColor)) continue;
 			if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
+			if (generateCaptures && squares[targetSquare] == Piece::empty) continue;
 			moves[currentMoves++] = Move(startSquare, targetSquare);
 		}
 	}
@@ -231,6 +236,7 @@ void MoveGen::generateKingMoves(Move moves[]) {
 		const int targetSquare = slideDirections[dirIndex] + startSquare;
 		if (Piece::isColor(squares[targetSquare], currentColor)) continue;
 		if (opponentAttacks & (1ULL << targetSquare)) continue;
+		if (generateCaptures && squares[targetSquare] == Piece::empty) continue;
 		moves[currentMoves++] = Move(startSquare, targetSquare);
 	}
 }
@@ -285,6 +291,7 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 			}
 			moves[currentMoves++] = Move(startSquare, targetSquare);
 		}
+		if (generateCaptures) continue;
 		if (skipOrth) continue;
 		bool stillPinned, blockingCheck;
 		stillPinned = isPinned && !(checkRayBB & (1ULL << (direction + startSquare)));

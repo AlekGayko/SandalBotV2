@@ -53,6 +53,6 @@ short int PieceEvaluations::kingEval[64] = {
     -20, -30, -30, -40, -40, -30, -30, -20,
     -10, -20, -20, -20, -20, -20, -20, -10,
     20, 20, 0, 0, 0, 0, 20, 20,
-    20, 30, 29, 0, 0, 0, 20, 20 };
+    20, 30, 25, 0, 0, 0, 20, 20 };
 
 short int* PieceEvaluations::pieceEvals[7] = { nullptr, pawnEval, knightEval, bishopEval, rookEval, queenEval, kingEval };

@@ -26,7 +26,7 @@ private:
 	void iterativeSearch();
 	int negaMax(int alpha, int beta, int depth, int maxDepth);
 	uint64_t moveSearch(bool isMaximising, int depth, int maxDepth);
-	int QuiescenceSearch();
+	int QuiescenceSearch(int alpha, int beta, int depth);
 public:
 	MoveGen* moveGenerator = nullptr;
 	MoveOrderer* orderer = nullptr;

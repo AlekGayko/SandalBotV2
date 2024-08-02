@@ -25,6 +25,56 @@ void Searcher::iterativeSearch() {
 	}
 }
 
+int Searcher::QuiescenceSearch(int alpha, int beta, int depth) {
+	//moves++;
+	if (cancelSearch) {
+		return Evaluator::drawScore;
+	}
+
+	int score = 0;
+
+	score = evaluator.Evaluate(board);
+	if (depth > 2) //cout << "alpha: " << alpha << ", beta: " << beta << endl;
+	if (score >= beta) {
+		if (depth > 2) {
+			//cout << "qcut: " << score << endl;
+			//cout << board->printBoard() << endl;
+		}
+		return beta;
+	}
+
+	if (score > alpha) {
+		if (depth > 2) {
+			//cout << "qbetter: " << score << endl;
+			//cout << board->printBoard() << endl;
+		}
+		alpha = score;
+	}
+
+	Move moves[218];
+	int numMoves = moveGenerator->generateMoves(moves, true);
+
+	if (numMoves == 0) {
+		return score;
+	}
+
+	orderer->order(moves, numMoves, false);
+
+	for (int i = 0; i < numMoves; i++) {
+		board->makeMove(moves[i]);
+		score = -QuiescenceSearch(-beta, -alpha, depth);
+		board->unMakeMove(moves[i]);
+		if (score >= beta) return beta;
+		if (score > alpha) {
+			alpha = score;
+		}
+		if (cancelSearch) return Evaluator::drawScore;
+
+	}
+
+	return alpha;
+}
+
 int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 	moves++;
 	if (cancelSearch) {
@@ -32,7 +82,8 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 	}
 
 	if (depth == maxDepth) {
-		return -evaluator.Evaluate(board);
+		return -QuiescenceSearch(alpha, beta, depth + 1);
+		//return -evaluator.Evaluate(board);
 	}
 	int score = 0;
 	Move moves[218];
@@ -43,13 +94,13 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 		board->makeMove(moves[i]);
 		score = -negaMax(-beta, -alpha, depth + 1, maxDepth);
 		board->unMakeMove(moves[i]);
+		if (score >= beta) return beta;
 		if (score > alpha) {
 			alpha = score;
 			if (depth == 0 && !cancelSearch) {
 				currentMove = moves[i];
 			}
 		}
-		if (alpha >= beta) return alpha;
 		if (cancelSearch) return Evaluator::drawScore;
 
 	}
@@ -93,10 +144,6 @@ uint64_t Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 		
 	}
 	return movesGenerated;
-}
-
-int Searcher::QuiescenceSearch() {
-	return 0;
 }
 
 Searcher::Searcher()

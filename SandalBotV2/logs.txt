@@ -1,6 +1,2 @@
-Command received: position fen k7/8/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
-Command received: d
 Command received: go movetime 3000
-Command received: position fen k7/8/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1 moves a1b2
-Make moves after setting position: 1
-Command received: go movetime 3000
+Command received: quit
