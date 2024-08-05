@@ -1,2 +1,2 @@
-Command received: go movetime 3000
+Command received: go movetime 100000
 Command received: quit

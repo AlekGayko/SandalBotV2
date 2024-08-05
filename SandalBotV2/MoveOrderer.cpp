@@ -18,11 +18,14 @@ MoveOrderer::~MoveOrderer() {
 
 }
 
-void MoveOrderer::order(Move moves[], int numMoves, bool firstMove) {
+void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, bool firstMove) {
 	if (numMoves <= 1) return;
 	int moveVals[218];
+	int colorIndex = board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
+	int dir = board->state->whiteTurn ? 1 : -1;
+	int evalStart = Evaluator::colorStart[colorIndex];
 	for (int it = 0; it < numMoves; it++) {
-		if (firstMove && moves[it] == searcher->bestMove) {
+		if (firstMove && moves[it] == bestMove) {
 			moveVals[it] = 1000000;
 			continue;
 		}
@@ -36,6 +39,9 @@ void MoveOrderer::order(Move moves[], int numMoves, bool firstMove) {
 		int enemyValue = PieceEvaluations::pieceVals[enemyPiece];
 		int ownValue = PieceEvaluations::pieceVals[ownPiece];
 		int diffVal = enemyValue - ownValue;
+
+		moveValue += PieceEvaluations::pieceEvals[ownPiece][evalStart + dir * targetSquare];
+		moveValue -= PieceEvaluations::pieceEvals[ownPiece][evalStart + dir * startSquare];
 
 		if (enemyValue) {
 			moveValue += 100;

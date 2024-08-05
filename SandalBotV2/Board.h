@@ -49,7 +49,7 @@ public:
 	void loadPieceLists();
 	void loadBitBoards();
 	void loadPosition(std::string fen);
-	void makeMove(Move& move);
+	void makeMove(Move& move, bool hashBoard = true);
 	void makeEnPassantChanges(Move& move);
 	void makeCastlingChanges(Move& move, int& castlingRights);
 	void makePromotionChanges(Move& move, int& piece);

@@ -2,6 +2,7 @@
 #include "Piece.h"
 #include "ZobristHash.h"
 
+#include <iostream>
 #include <functional>
 #include <unordered_map>
 
@@ -23,6 +24,7 @@ ZobristHash::ZobristHash() {
 
 ZobristHash::ZobristHash(Board* board) : board(board) {
 	if (!initialised) initHashes();
+	initialised = true;
 }
 
 
@@ -40,7 +42,7 @@ void ZobristHash::initHashes() {
 		enPassantHash[square] = hash(square);
 	}
 
-	for (int right = 0; right < 17; right) {
+	for (int right = 0; right < 17; right++) {
 		castlingRightsHash[right] = hash(right);
 	}
 
@@ -48,6 +50,31 @@ void ZobristHash::initHashes() {
 }
 
 u64 ZobristHash::hashBoard() {
+	int numPieces;
+	u64 boardHash = 0ULL;
+	for (int colorIndex = 0; colorIndex < 2; colorIndex++) {
+		for (int piece = Piece::pawn; piece <= Piece::king; piece++) {
+			numPieces = board->pieceLists[colorIndex][piece].numPieces;
+			for (int it = 0; it < numPieces; it++) {
+				boardHash ^= pieceHashes[colorIndex][piece][board->pieceLists[colorIndex][piece][it]];
+			}
+		}
+	}
+
+	if (board->state->enPassantSquare != -1) boardHash ^= enPassantHash[board->state->enPassantSquare];
+
+	boardHash ^= castlingRightsHash[board->state->castlingRights];
+
+	if (board->state->whiteTurn) boardHash ^= whiteMoveHash;
+
+	return boardHash;
+}
+
+u64 ZobristHash::hashBoard(Board* board) {
+	if (!initialised) {
+		initHashes();
+		initialised = true;
+	}
 	int numPieces;
 	u64 boardHash = 0ULL;
 	for (int colorIndex = 0; colorIndex < 2; colorIndex++) {

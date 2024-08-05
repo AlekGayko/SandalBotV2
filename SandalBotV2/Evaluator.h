@@ -8,14 +8,18 @@
 
 class Evaluator {
 private:
-	int colorStart[2] = { 63, 0 };
-	int colorDirection[2] = { -1, 1 };
+	int endGameWeight;
 public:
+	static int colorStart[2];
 	static const int checkMateScore = -100000;
 	static const int drawScore = 0;
+	int maximisingSide;
+	int blackEvalSquare[64];
 
 	Evaluator();
 	int Evaluate(Board* board);
+	int kingDist(Board* board);
+	void initBlackSquares();
 };
 
 #endif

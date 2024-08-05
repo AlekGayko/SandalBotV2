@@ -1,4 +1,9 @@
+#include "Board.h"
 #include "TranspositionTable.h"
+
+#include <iostream>
+
+using namespace std;
 
 TranspositionTable::TranspositionTable() {
 	this->size = 0;
@@ -6,30 +11,43 @@ TranspositionTable::TranspositionTable() {
 
 TranspositionTable::TranspositionTable(Board* board, int sizeMB) : ZobristHash(board) {
 	this->board = board;
-	this->size = (sizeMB / sizeof(Entry)) * 1000000;
-	//table = new Entry[size];
+	this->size = (float(sizeMB) / float(sizeof(Entry))) * 1024 * 1024;
+	table = new Entry[size];
+	cout << size << endl;
 }
 
 TranspositionTable::~TranspositionTable() {
-	if (table != nullptr) delete[] table;
+	delete[] table;
 }
 
-void TranspositionTable::store(int eval, char depth) {
-	u64 hashKey = hashBoard();
-	int index = hashKey % size;
-
-	if (table[index].hash == hashKey && table[index].depth > depth) return;
-
-	table[index] = Entry(hashKey, eval, depth);
+Move TranspositionTable::getBestMove() {
+	return table[(board->state->zobristHash) % size].move;
 }
 
-int TranspositionTable::lookup(int depth) {
-	u64 hashKey = hashBoard();
-	int index = hashKey % size;
+void TranspositionTable::store(int eval, int depth, int nodeType, Move move, u64 hashKey) {
+	//if (hashKey == 0ULL) hashKey = hashBoard();
+	size_t index = hashKey % size;
 
-	if (table[index].hash != hashKey || table[index].depth > depth) return notFound;
+	table[index] = Entry(hashKey, eval, depth, nodeType, move);
+}
 
-	return table[index].eval;
+int TranspositionTable::lookup(int depth, int alpha, int beta, u64 hashKey) {
+	//if (hashKey == 0ULL) hashKey = hashBoard();
+	size_t index = hashKey % size;
+	Entry entry = table[index];
+	if (entry.hash == hashKey && entry.depth >= depth) {
+		if (entry.nodeType == exact) {
+			return entry.eval;
+		}
+		if (entry.nodeType == upperBound && entry.eval <= alpha) {
+			return entry.eval;
+		}
+		if (entry.nodeType == lowerBound && entry.eval >= beta) {
+			return entry.eval;
+		}
+	}
+
+	return notFound;
 }
 
 void TranspositionTable::clear() {

@@ -97,7 +97,7 @@ void IUCI::processGoCommand(string command) {
 		int incrementBlackMs = getLabelledValueInt(command, "binc", goLabels, 0);
 		int thinkTime = bot->chooseMoveTime(timeRemainingWhiteMs, timeRemainingBlackMs, incrementWhiteMs, incrementBlackMs);
 		string str = "Thinking for: " + to_string(thinkTime);
-		logInfo(str + " ms.");
+		respond(str + " ms.");
 		bot->generateMove(thinkTime);
 	}
 	

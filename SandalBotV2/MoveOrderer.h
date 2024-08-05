@@ -18,7 +18,7 @@ public:
 	MoveOrderer();
 	MoveOrderer(Board* board, MoveGen* gen, Searcher* searcher);
 	~MoveOrderer();
-	void order(Move moves[], int numMoves, bool firstMove = false);
+	void order(Move moves[], Move bestMove, int numMoves, bool firstMove = false);
 	static void quickSort(Move moves[], int moveVals[], int start, int end);
 };
 

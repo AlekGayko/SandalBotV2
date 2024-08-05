@@ -1,6 +1,7 @@
 #include "Board.h"
 #include "FEN.h"
 #include "MoveGen.h"
+#include "ZobristHash.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -21,8 +22,9 @@ Board::Board() {
 		};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
 	boardStateHistory.reserve(150);
-	boardStateHistory.push_back(BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0));
+	boardStateHistory.push_back(BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0ULL));
 	state = &boardStateHistory.back();
+	state->zobristHash = ZobristHash::hashBoard(this);
 	loadPieceLists();
 	//loadBitBoards();
 }
@@ -65,7 +67,7 @@ void Board::loadPosition(std::string fen) {
 
 	boardStateHistory.push_back(BoardState(whiteTurn, Piece::empty, enPassantSquare, castlingRights, fiftyMoveCounter, moveCounter, 0ULL));
 	state = &boardStateHistory.back();
-
+	state->zobristHash = ZobristHash::hashBoard(this);
 	loadPieceLists();
 	//loadBitBoards();
 }
@@ -113,7 +115,7 @@ void Board::loadBitBoards() {
 	allPieces = whitePieces | blackPieces;
 }
 
-void Board::makeMove(Move& move) {
+void Board::makeMove(Move& move, bool hashBoard) {
 	int startSquare = move.startSquare;
 	int targetSquare = move.targetSquare;
 	int piece = Piece::type(squares[startSquare]);
@@ -124,12 +126,7 @@ void Board::makeMove(Move& move) {
 	int enPassantSquare = -1;
 	int fiftyMoveCounter = piece == Piece::pawn || takenPiece != Piece::empty ? 0 : state->fiftyMoveCounter + 1;
 	int castlingRights = state->castlingRights;
-
-	if (Piece::isType(takenPiece, Piece::king)) {
-		cout << printBoard() << endl;
-		cout << move << endl;
-		throw std::out_of_range("");
-	}
+	uint64_t newZobristHash = state->zobristHash;
 
 	if (flag > Move::castleFlag) {
 		pieceLists[colorIndex][piece].deletePiece(startSquare);
@@ -144,8 +141,8 @@ void Board::makeMove(Move& move) {
 	if (takenPiece != Piece::empty) {
 		int type = Piece::type(takenPiece);
 
-			pieceLists[oppositeIndex][type].deletePiece(targetSquare);
-
+		pieceLists[oppositeIndex][type].deletePiece(targetSquare);
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::type(takenPiece)][targetSquare];
 	}
 	int castleMask;
 
@@ -175,6 +172,7 @@ void Board::makeMove(Move& move) {
 		break;
 	case Move::pawnTwoSquaresFlag:
 		enPassantSquare = targetSquare + (state->whiteTurn ? 8 : -8);
+		newZobristHash ^= ZobristHash::enPassantHash[enPassantSquare];
 		break;
 	case Move::enPassantCaptureFlag:
 		makeEnPassantChanges(move);
@@ -186,12 +184,30 @@ void Board::makeMove(Move& move) {
 		rookOffset = targetSquare % 8 > 4 ? 1 : -1;
 		rookSquareOffset = rookOffset == 1 ? 3 : -4;
 		pieceLists[colorIndex][Piece::rook].movePiece(startSquare + rookSquareOffset, startSquare + rookOffset);
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][startSquare + rookSquareOffset];
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][startSquare + rookOffset];
 		break;
 	}
 
+	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare];
+	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare]; // bro uses squares[targetsquare]???
+	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][targetSquare];
+	newZobristHash ^= ZobristHash::enPassantHash[state->enPassantSquare];
+
+	if (castlingRights != state->castlingRights) {
+		newZobristHash ^= ZobristHash::castlingRightsHash[state->castlingRights];
+		newZobristHash ^= ZobristHash::castlingRightsHash[castlingRights];
+	}
+
 	//updateBitBoards(move);
-	boardStateHistory.push_back(BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, 0ULL));
+	boardStateHistory.push_back(BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash));
 	state = &boardStateHistory.back();
+	/*
+	if (hashBoard) {
+		state->zobristHash = ZobristHash::hashBoard(this);
+	}
+	*/
+	history.push(state->zobristHash);
 }
 
 void Board::unMakeMove(Move& move) {
@@ -243,6 +259,7 @@ void Board::unMakeMove(Move& move) {
 	}
 
 	//undoBitBoards(move);
+	history.pop(state->zobristHash);
 	boardStateHistory.pop_back();
 	state = &boardStateHistory.back();
 }
@@ -292,36 +309,25 @@ void Board::undoEnPassantChanges(Move& move) {
 }
 
 void Board::undoCastlingChanges(Move& move) {
-	//cout << printBoard() << endl;
 	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
 	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
 	const int friendlyRook = state->whiteTurn ? Piece::blackRook : Piece::whiteRook;
 
 	squares[move.startSquare + rookDistance] = friendlyRook;
 	squares[move.startSquare + rookSpawnOffset] = Piece::empty;
-	//cout << printBoard() << endl;
 }
 
 string Board::printBoard() {
-	// Thanks to ernestoyaquello
 	string result = "";
-	//int lastMoveSquare = board.AllGameMoves.Count > 0 ? board.AllGameMoves[^ 1].TargetSquare : -1;
 
 	for (int y = 0; y < 8; y++) {
-		//int rankIndex = blackAtTop ? 7 - y : y;
 		result += "+---+---+---+---+---+---+---+---+\n";
 
 		for (int x = 0; x < 8; x++) {
 			int squareIndex = CoordHelper::coordToIndex(y, x);
-			//bool highlight = squareIndex == lastMoveSquare;
+
 			int piece = squares[squareIndex];
-			/*
-			if (highlight) {
-				result.Append($"|({Piece.GetSymbol(piece)})");
-			} else {
-				result.Append($"| {Piece.GetSymbol(piece)} ");
-			}
-			*/
+
 			result += "| ";
 			result += Piece::pieceToSymbol(piece);
 			result += " ";
@@ -340,15 +346,6 @@ string Board::printBoard() {
 			const string fileNamesRev = "  h   g   f   e   d   c   b   a  \n";
 			result += fileNames;
 			result += '\n';
-
-			/*
-			if (includeFen) {
-				result.AppendLine($"Fen         : {FenUtility.CurrentFen(board)}");
-			}
-			if (includeZobristKey) {
-				result.AppendLine($"Zobrist Key : {board.ZobristKey}");
-			}
-			*/
 		}
 	}
 

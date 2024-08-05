@@ -27,6 +27,7 @@ Bot::Bot() {
 
 Bot::~Bot() {
     delete board;
+    delete searcher;
 }
 
 void Bot::setPosition(std::string FEN) {
@@ -95,8 +96,8 @@ uint64_t Bot::perft(int depth) {
     searcher->moveGenerator->perftRes.reset();
     uint64_t movesgenerated = searcher->perft(depth);
     //cout << "test moves: " << board->testMoves << endl;
-    cout << "Results: " << endl;
-    cout << searcher->moveGenerator->perftRes << endl;
+    //cout << "Results: " << endl;
+    //cout << searcher->moveGenerator->perftRes << endl;
     return movesgenerated;
 }
 
@@ -107,12 +108,16 @@ std::string Bot::printBoard() {
 int Bot::chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs, int blackIncMs) {
     int timeRemaining = board->state->whiteTurn ? whiteTimeMs : blackTimeMs;
     int incMs = board->state->whiteTurn ? whiteIncMs : blackIncMs;
-
+    double minTimeMs = min(50, int(timeRemaining * 0.25));
     double moveTimeMs = float(timeRemaining) / 40.0f;
 
-    if (timeRemaining > incMs * 2) moveTimeMs += timeRemaining * 0.8;
+    if (timeRemaining > incMs * 2 && moveTimeMs > 50) moveTimeMs += timeRemaining * 0.1;
 
-    double minTimeMs = min(50, int(timeRemaining * 0.25));
+    if (timeRemaining > 45000) return maxMoveTime + 0.5 * incMs;
 
-    return int(ceil(max(minTimeMs, moveTimeMs)));
+
+
+    int a = max(minTimeMs, moveTimeMs);
+
+    return int(ceil(min(a, maxMoveTime)));
 }

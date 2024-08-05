@@ -20,8 +20,9 @@ public:
 	static u64 whiteMoveHash;
 	ZobristHash();
 	ZobristHash(Board* board);
-	void initHashes();
+	static void initHashes();
 	u64 hashBoard();
+	static u64 hashBoard(Board* board);
 };
 
 #endif // !ZOBRISTHASH_H

@@ -13,6 +13,8 @@ private:
 	OpeningBook* openingBook = nullptr;
 	Searcher* searcher = nullptr;
 	int validateUserMove(Move moves[218], int startSquare, int targetSquare, int flag);
+
+	const int maxMoveTime = 3000;
 public:
 	Bot();
 	~Bot();

@@ -13,11 +13,40 @@
 
 class Searcher {
 private:
+	struct searchStatistics {
+		u64 qNodes;
+		u64 nNodes;
+		u64 cutoffs;
+		u64 transpositions;
+		u64 checkmates;
+		u64 stalemates;
+		u64 repetitions;
+		u64 fiftyMoveDraws;
+		int maxDepth;
+		int eval;
+		float duration;
+		searchStatistics() {
+			qNodes = 0ULL;
+			nNodes = 0ULL;
+			cutoffs = 0ULL;
+			transpositions = 0ULL;
+			checkmates = 0ULL;
+			stalemates = 0ULL;
+			repetitions = 0ULL;
+			fiftyMoveDraws = 0ULL;
+			maxDepth = 0;
+			eval = 0;
+			duration = 0.0f;
+		}
+	};
+	searchStatistics stats;
+
 	std::atomic<bool> cancelSearch;
 	const int maxDeepening = 5;
 
 	Board* board = nullptr;
 	Evaluator evaluator;
+	TranspositionTable* tTable = nullptr;
 
 	Move currentMove;
 	int defaultAlpha = -2000000;
@@ -26,7 +55,7 @@ private:
 	void iterativeSearch();
 	int negaMax(int alpha, int beta, int depth, int maxDepth);
 	uint64_t moveSearch(bool isMaximising, int depth, int maxDepth);
-	int QuiescenceSearch(int alpha, int beta, int depth);
+	int QuiescenceSearch(int alpha, int beta);
 public:
 	MoveGen* moveGenerator = nullptr;
 	MoveOrderer* orderer = nullptr;

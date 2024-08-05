@@ -11,22 +11,35 @@ using namespace std;
 
 void Searcher::iterativeSearch() {
 	bestMove = Move();
-	for (int i = 1; !cancelSearch.load(); i++) {
-		moves = 0;
+	currentMove = Move();
+	searchStatistics temp;
+	for (int i = 1; !cancelSearch.load(); i++) {	
 		auto start = chrono::high_resolution_clock::now();
+		stats = searchStatistics();
 		int eval = negaMax(defaultAlpha, defaultBeta, 0, i);
 		auto end = chrono::high_resolution_clock::now();
 		chrono::duration<double> duration = end - start;
-		cout << "time: " << duration.count() << ", moves: " << moves << ", moves per second: " << moves / duration.count() << endl;
-		moves = 0;
-		if (!cancelSearch) bestMove = currentMove;
-		cout << "Depth " << i << " completed. Evaluation: " << eval << ",  Bestmove: " << bestMove << endl;
-		cout << endl;
+		if (!cancelSearch) {
+			temp = stats;
+			bestMove = currentMove;
+			temp.maxDepth = i;
+			temp.eval = eval;
+			temp.duration = duration.count();
+		}
+		cout << "Time: " << stats.duration << ", Moves: " << stats.nNodes << ", Moves per second: " << (stats.nNodes) / stats.duration << endl;
+		cout << "Depth " << i << ", Evaluation: " << eval << endl;
 	}
+	stats = temp;
+	/**/
+	cout << "Transpositions: " << stats.transpositions << ", Cutoffs: " << stats.cutoffs << ", nNodes: " << stats.nNodes << ", qNodes: " << stats.qNodes << endl;
+	cout << "Checkmates: " << stats.checkmates << ", Stalemates: " << stats.stalemates << ", Repetitions: " << stats.repetitions << ", FiftyMoveDraws: " << stats.fiftyMoveDraws << endl;
+	cout << "Time: " << stats.duration << ", Moves: " << stats.nNodes << ", Moves per second: " << (stats.nNodes) / stats.duration << endl;
+	cout << "Depth " << stats.maxDepth << ", Evaluation: " << stats.eval << endl;
+	cout << endl;
 }
 
-int Searcher::QuiescenceSearch(int alpha, int beta, int depth) {
-	//moves++;
+int Searcher::QuiescenceSearch(int alpha, int beta) {
+	stats.qNodes++;
 	if (cancelSearch) {
 		return Evaluator::drawScore;
 	}
@@ -34,37 +47,29 @@ int Searcher::QuiescenceSearch(int alpha, int beta, int depth) {
 	int score = 0;
 
 	score = evaluator.Evaluate(board);
-	if (depth > 2) //cout << "alpha: " << alpha << ", beta: " << beta << endl;
+
 	if (score >= beta) {
-		if (depth > 2) {
-			//cout << "qcut: " << score << endl;
-			//cout << board->printBoard() << endl;
-		}
+		stats.cutoffs++;
 		return beta;
 	}
 
 	if (score > alpha) {
-		if (depth > 2) {
-			//cout << "qbetter: " << score << endl;
-			//cout << board->printBoard() << endl;
-		}
 		alpha = score;
 	}
 
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves, true);
 
-	if (numMoves == 0) {
-		return score;
-	}
-
-	orderer->order(moves, numMoves, false);
+	if (numMoves > 1) orderer->order(moves, numMoves, false);
 
 	for (int i = 0; i < numMoves; i++) {
-		board->makeMove(moves[i]);
-		score = -QuiescenceSearch(-beta, -alpha, depth);
+		board->makeMove(moves[i], false);
+		score = -QuiescenceSearch(-beta, -alpha);
 		board->unMakeMove(moves[i]);
-		if (score >= beta) return beta;
+		if (score >= beta) {
+			stats.cutoffs++;
+			return beta;
+		}
 		if (score > alpha) {
 			alpha = score;
 		}
@@ -76,36 +81,67 @@ int Searcher::QuiescenceSearch(int alpha, int beta, int depth) {
 }
 
 int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
-	moves++;
+	stats.nNodes++;
 	if (cancelSearch) {
 		return Evaluator::drawScore;
 	}
 
 	if (depth == maxDepth) {
-		return -QuiescenceSearch(alpha, beta, depth + 1);
-		//return -evaluator.Evaluate(board);
+		return QuiescenceSearch(alpha, beta);
+		//return evaluator.Evaluate(board);
 	}
 	int score = 0;
+	int evalBound = TranspositionTable::upperBound;
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves);
-	orderer->order(moves, numMoves, depth == 0);
-
+	Move bestMove = depth == 0 ? this->bestMove : tTable->getBestMove();
+	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, depth == 0);
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i]);
-		score = -negaMax(-beta, -alpha, depth + 1, maxDepth);
+		u64 hash = board->state->zobristHash;
+		int storedEval = tTable->lookup(maxDepth - depth, alpha, beta, hash);
+		if (storedEval != TranspositionTable::notFound) {
+			score = -storedEval;
+			stats.transpositions++;
+		} else {
+			if (board->history[hash]) {
+				score = 0;
+				stats.repetitions++;
+			} else if (board->state->fiftyMoveCounter >= 50) {
+				score = 0;
+				stats.fiftyMoveDraws++;
+			} else {
+				score = -negaMax(-beta, -alpha, depth + 1, maxDepth);
+			}
+		}
 		board->unMakeMove(moves[i]);
-		if (score >= beta) return beta;
+		//if (storedEval == TranspositionTable::notFound) tTable->store(score, maxDepth - depth, hash);
+		if (score >= beta) {
+			stats.cutoffs++;
+			tTable->store(score, maxDepth - depth, TranspositionTable::lowerBound, moves[i], hash);
+			return beta;
+		}
 		if (score > alpha) {
 			alpha = score;
+			evalBound = TranspositionTable::exact;
+			bestMove = moves[i];
 			if (depth == 0 && !cancelSearch) {
 				currentMove = moves[i];
 			}
 		}
 		if (cancelSearch) return Evaluator::drawScore;
-
 	}
 
-	if (!numMoves) return moveGenerator->isCheck ? Evaluator::checkMateScore * (maxDepth - depth) : Evaluator::drawScore;
+	if (!numMoves) {
+		if (moveGenerator->isCheck) {
+			stats.checkmates++;
+			return Evaluator::checkMateScore * (maxDepth - depth);
+		}
+		stats.stalemates++;
+		return Evaluator::drawScore;
+	}
+
+	tTable->store(alpha, maxDepth - depth, evalBound, bestMove, board->state->zobristHash);
 
 	return alpha;
 }
@@ -155,6 +191,7 @@ Searcher::Searcher(Board* board) {
 	this->board = board;
 	moveGenerator = new MoveGen(board);
 	orderer = new MoveOrderer(board, moveGenerator, this);
+	this->tTable = new TranspositionTable(board, 1000);
 }
 
 void Searcher::startSearch(int moveTimeMs) {
@@ -173,6 +210,7 @@ void Searcher::endSearch() {
 Searcher::~Searcher() {
 	delete moveGenerator;
 	delete orderer;
+	delete tTable;
 }
 
 uint64_t Searcher::perft(int depth) {
