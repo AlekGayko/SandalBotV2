@@ -3,18 +3,22 @@
 #ifndef BOARDHISTORY_H
 #define BOARDHISTORY_H
 
+#define u64 uint64_t
+
 #include <vector>
-#include <unordered_map>
 
 class BoardHistory {
 private:
-	std::unordered_map<uint64_t, size_t> mapHistory;
+	const int historySize = 256;
+	u64* hashHistory = nullptr;
+	int* startSearchIndicies = nullptr;
+	int numBoards = 0;
 public:
 	BoardHistory();
 	~BoardHistory();
-	void push(uint64_t value);
-	void pop(uint64_t value);
-	bool operator[](const uint64_t& key);
+	void push(u64 value, bool reset);
+	void pop();
+	bool contains(const u64& key);
 };
 
 #endif // !BOARDHISTORY_H

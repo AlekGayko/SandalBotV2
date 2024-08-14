@@ -14,7 +14,7 @@ public:
 	static const int checkMateScore = -100000;
 	static const int drawScore = 0;
 	int maximisingSide;
-	int blackEvalSquare[64];
+	static int blackEvalSquare[64];
 
 	Evaluator();
 	int Evaluate(Board* board);

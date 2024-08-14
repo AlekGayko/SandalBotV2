@@ -24,31 +24,14 @@ MoveGen::MoveGen(Board* board) {
 
 int MoveGen::generateMoves(Move moves[], bool capturesOnly) {
 	initVariables(capturesOnly);
-	//cout << "ischeck: " << isCheck << ", doublecheck: " << doubleCheck << ", checkbb: " << checkBB << ", raybb: " << checkRayBB << endl;
 	generateCheckData();
-	//cout << "ischeck: " << isCheck << ", doublecheck: " << doubleCheck << ", checkbb: " << checkBB << ", raybb: " << checkRayBB << endl;
 	generateKingMoves(moves);
-	//cout << "moves after king: " << currentMoves << endl;
 	if (doubleCheck) return currentMoves;
 	generatePawnMoves(moves);
-	//cout << "moves after pawns: " << currentMoves << endl;
 	generateKnightMoves(moves);
-	//cout << "moves after knight: " << currentMoves << endl;
 	generateOrthogonalMoves(moves);
-	//cout << "moves after orthog: " << currentMoves << endl;
 	generateDiagonalMoves(moves);
-	//cout << "moves after diag: " << currentMoves << endl;
 
-	//updateResults(moves);
-	/*
-	for (int i = 0; i < currentMoves; i++) {
-		if (Piece::isType(squares[moves[i].targetSquare], Piece::king)) {
-			BitBoardUtility::printBB(opponentAttacks);
-			BitBoardUtility::printBB(checkBB);
-			BitBoardUtility::printBB(checkRayBB);
-		}
-	}
-	*/
 	//BitBoardUtility::printBB(opponentAttacks);
 	//BitBoardUtility::printBB(checkBB);
 	//BitBoardUtility::printBB(checkRayBB);
@@ -57,7 +40,7 @@ int MoveGen::generateMoves(Move moves[], bool capturesOnly) {
 
 void MoveGen::initVariables(bool capturesOnly) {
 	squares = board->squares;
-	isCheck = false;// board->state->check;
+	isCheck = false;
 	doubleCheck = false;
 	whiteTurn = board->state->whiteTurn;
 	enPassantSquare = board->state->enPassantSquare;
@@ -286,7 +269,9 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 				continue;
 			}
 			if (startSquare / 8 == promotionRow) {
-				promotionMoves(moves, targetSquare, startSquare);
+				for (int i = 0; i < 4; i++) {
+					moves[currentMoves++] = Move(startSquare, targetSquare, promotionFlags[i]);
+				}
 				continue;
 			}
 			moves[currentMoves++] = Move(startSquare, targetSquare);
@@ -300,7 +285,9 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 		if (squares[direction + startSquare] == Piece::empty) {
 			if (!stillPinned && !blockingCheck) {
 				if (startSquare / 8 == promotionRow) {
-					promotionMoves(moves, direction + startSquare, startSquare);
+					for (int i = 0; i < 4; i++) {
+						moves[currentMoves++] = Move(startSquare, startSquare + direction, promotionFlags[i]);
+					}
 					continue;
 				}
 				moves[currentMoves++] = Move(startSquare, direction + startSquare);
@@ -348,15 +335,6 @@ bool MoveGen::enPassantPin(int friendlyPawnSquare, int enemyPawnSquare) {
 	}
 
 	return false;
-}
-
-void MoveGen::promotionMoves(Move moves[], int targetSquare, int startSquare) {
-	//cout << "promoting" << endl;
-	for (int i = 0; i < 4; i++) {
-		moves[currentMoves++] = Move(startSquare, targetSquare, promotionFlags[i]);
-		//cout << moves[currentMoves - 1] << endl;
-		//cout << board->printBoard() << endl;
-	}
 }
 
 void MoveGen::castlingMoves(Move moves[], int startSquare) {
@@ -498,7 +476,6 @@ void MoveGen::generateCheckData() {
 					checkBB |= dirBB;
 					doubleCheck = isCheck;
 					isCheck = true;
-					//cout << "kingsquare: " << kingSquare << ", targetsquare: " << targetSquare << ", piece: " << squares[targetSquare] << endl;
 				}
 				break;
 			} // If isnt sliding opposite piece

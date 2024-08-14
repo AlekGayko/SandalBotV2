@@ -18,14 +18,14 @@ MoveOrderer::~MoveOrderer() {
 
 }
 
-void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, bool firstMove) {
+void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, bool firstMove, bool qSearch) {
 	if (numMoves <= 1) return;
 	int moveVals[218];
 	int colorIndex = board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
 	int dir = board->state->whiteTurn ? 1 : -1;
 	int evalStart = Evaluator::colorStart[colorIndex];
 	for (int it = 0; it < numMoves; it++) {
-		if (firstMove && moves[it] == bestMove) {
+		if (!qSearch && moves[it] == bestMove) {
 			moveVals[it] = 1000000;
 			continue;
 		}
@@ -40,8 +40,13 @@ void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, bool firstMov
 		int ownValue = PieceEvaluations::pieceVals[ownPiece];
 		int diffVal = enemyValue - ownValue;
 
-		moveValue += PieceEvaluations::pieceEvals[ownPiece][evalStart + dir * targetSquare];
-		moveValue -= PieceEvaluations::pieceEvals[ownPiece][evalStart + dir * startSquare];
+		if (colorIndex == Board::blackIndex) {
+			moveValue += PieceEvaluations::pieceEvals[ownPiece][Evaluator::blackEvalSquare[evalStart - targetSquare]];
+			moveValue -= PieceEvaluations::pieceEvals[ownPiece][Evaluator::blackEvalSquare[evalStart - startSquare]];
+		} else {
+			moveValue += PieceEvaluations::pieceEvals[ownPiece][evalStart + targetSquare];
+			moveValue -= PieceEvaluations::pieceEvals[ownPiece][evalStart + startSquare];
+		}
 
 		if (enemyValue) {
 			moveValue += 100;

@@ -5,26 +5,33 @@
 using namespace std;
 
 BoardHistory::BoardHistory() {
-	mapHistory.reserve(1000);
+	hashHistory = new u64[historySize];
+	startSearchIndicies = new int[historySize + 1];
+
+	startSearchIndicies[0] = 0;
 }
 
 BoardHistory::~BoardHistory() {
-	mapHistory.clear();
+	delete[] hashHistory;
+	delete[] startSearchIndicies;
 }
 
-void BoardHistory::push(uint64_t value) {
-	mapHistory[value]++;
+void BoardHistory::push(u64 value, bool reset) {
+	if (numBoards >= historySize) return;
+	hashHistory[numBoards] = value;
+	startSearchIndicies[numBoards + 1] = reset ? numBoards : startSearchIndicies[numBoards];
+	numBoards++;
 }
 
-void BoardHistory::pop(uint64_t value) {
-	mapHistory.erase(value);
+void BoardHistory::pop() {
+	numBoards -= numBoards > 0 ? 1 : 0;
 }
 
-bool BoardHistory::operator[](const uint64_t& key) {
-	if (mapHistory[key] > 1) {
-		//cout << "key: " << key << endl;
-		//cout << "history: " << mapHistory[key] << endl;
-		return true;
+bool BoardHistory::contains(const u64& key) {
+	int start = numBoards >= 2 ? numBoards - 2 : 0;
+	int end = startSearchIndicies[numBoards];
+	for (int i = start; i >= end; i--) {
+		if (hashHistory[i] == key) return true;
 	}
 	return false;
 }

@@ -5,6 +5,7 @@
 using namespace std;
 
 int Evaluator::colorStart[2] = { 63, 0 };
+int Evaluator::blackEvalSquare[64];
 
 Evaluator::Evaluator() {
 	initBlackSquares();
@@ -39,7 +40,7 @@ int Evaluator::Evaluate(Board* board) {
 	}
 
 	evaluation = maximisingSide * (whiteEval - blackEval);
-	//evaluation += kingDist(board);
+	evaluation += kingDist(board);
 
 	return evaluation;
 }

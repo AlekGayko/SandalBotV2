@@ -21,11 +21,13 @@ Board::Board() {
 			Piece::whiteRook, Piece::whiteKnight, Piece::whiteBishop, Piece::whiteQueen, Piece::whiteKing, Piece::whiteBishop, Piece::whiteKnight, Piece::whiteRook 
 		};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
+	loadPieceLists();
+
 	boardStateHistory.reserve(150);
 	boardStateHistory.push_back(BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0ULL));
 	state = &boardStateHistory.back();
 	state->zobristHash = ZobristHash::hashBoard(this);
-	loadPieceLists();
+	history.push(state->zobristHash, false);
 	//loadBitBoards();
 }
 
@@ -65,10 +67,12 @@ void Board::loadPosition(std::string fen) {
 	if (newPos.blackShortCastle) castlingRights |= BoardState::blackShortCastleMask;
 	if (newPos.blackLongCastle) castlingRights |= BoardState::blackLongCastleMask;
 
+	loadPieceLists();
+
 	boardStateHistory.push_back(BoardState(whiteTurn, Piece::empty, enPassantSquare, castlingRights, fiftyMoveCounter, moveCounter, 0ULL));
 	state = &boardStateHistory.back();
 	state->zobristHash = ZobristHash::hashBoard(this);
-	loadPieceLists();
+	history.push(state->zobristHash, false);
 	//loadBitBoards();
 }
 
@@ -123,15 +127,37 @@ void Board::makeMove(Move& move, bool hashBoard) {
 	int oppositeIndex = !(state->whiteTurn) ? whiteIndex : blackIndex;
 	int takenPiece = squares[targetSquare];
 	int flag = move.flag;
+	int promotedPiece = 0;
 	int enPassantSquare = -1;
 	int fiftyMoveCounter = piece == Piece::pawn || takenPiece != Piece::empty ? 0 : state->fiftyMoveCounter + 1;
 	int castlingRights = state->castlingRights;
 	uint64_t newZobristHash = state->zobristHash;
 
 	if (flag > Move::castleFlag) {
+		const int ownColor = state->whiteTurn ? Piece::white : Piece::black;
+		squares[startSquare] = Piece::empty;
+
+		switch (flag) {
+		case Move::promoteToQueenFlag:
+			squares[targetSquare] = Piece::queen | ownColor;
+			promotedPiece = Piece::queen;
+			break;
+		case Move::promoteToRookFlag:
+			squares[targetSquare] = Piece::rook | ownColor;
+			promotedPiece = Piece::rook;
+			break;
+		case Move::promoteToKnightFlag:
+			squares[targetSquare] = Piece::knight | ownColor;
+			promotedPiece = Piece::knight;
+			break;
+		case Move::promoteToBishopFlag:
+			squares[targetSquare] = Piece::bishop | ownColor;
+			promotedPiece = Piece::bishop;
+			break;
+		}
+
 		pieceLists[colorIndex][piece].deletePiece(startSquare);
-		makePromotionChanges(move, piece);
-		pieceLists[colorIndex][piece].addPiece(targetSquare);
+		pieceLists[colorIndex][promotedPiece].addPiece(targetSquare);
 	} else {
 		pieceLists[colorIndex][piece].movePiece(startSquare, targetSquare);
 		squares[targetSquare] = squares[startSquare];
@@ -164,6 +190,17 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		break;
 	}
 
+	newZobristHash ^= ZobristHash::whiteMoveHash;
+	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare];
+	if (flag <= Move::castleFlag) {
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][targetSquare];
+	} else {
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][promotedPiece][targetSquare];
+	}
+	if (state->enPassantSquare != -1) newZobristHash ^= ZobristHash::enPassantHash[state->enPassantSquare];
+	newZobristHash ^= ZobristHash::castlingRightsHash[state->castlingRights];
+	newZobristHash ^= ZobristHash::castlingRightsHash[castlingRights];
+
 	int pawnToBeDeleted;
 	int rookOffset;
 	int rookSquareOffset;
@@ -178,6 +215,7 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		makeEnPassantChanges(move);
 		pawnToBeDeleted = targetSquare + (state->whiteTurn ? 8 : -8);
 		pieceLists[oppositeIndex][Piece::pawn].deletePiece(pawnToBeDeleted);
+		newZobristHash ^= ZobristHash::pieceHashes[oppositeIndex][Piece::pawn][pawnToBeDeleted];
 		break;
 	case Move::castleFlag:
 		makeCastlingChanges(move, castlingRights);
@@ -189,25 +227,13 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		break;
 	}
 
-	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare];
-	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare]; // bro uses squares[targetsquare]???
-	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][targetSquare];
-	newZobristHash ^= ZobristHash::enPassantHash[state->enPassantSquare];
-
-	if (castlingRights != state->castlingRights) {
-		newZobristHash ^= ZobristHash::castlingRightsHash[state->castlingRights];
-		newZobristHash ^= ZobristHash::castlingRightsHash[castlingRights];
-	}
-
 	//updateBitBoards(move);
 	boardStateHistory.push_back(BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash));
 	state = &boardStateHistory.back();
-	/*
-	if (hashBoard) {
-		state->zobristHash = ZobristHash::hashBoard(this);
-	}
-	*/
-	history.push(state->zobristHash);
+
+	bool reset = takenPiece != Piece::empty || piece == Piece::pawn;
+
+	history.push(state->zobristHash, reset);
 }
 
 void Board::unMakeMove(Move& move) {
@@ -259,7 +285,7 @@ void Board::unMakeMove(Move& move) {
 	}
 
 	//undoBitBoards(move);
-	history.pop(state->zobristHash);
+	history.pop();
 	boardStateHistory.pop_back();
 	state = &boardStateHistory.back();
 }
@@ -278,28 +304,7 @@ void Board::makeCastlingChanges(Move& move, int& castlingRights) {
 }
 
 void Board::makePromotionChanges(Move& move, int& piece) {
-	const int targetSquare = move.targetSquare;
-	const int color = state->whiteTurn ? Piece::white : Piece::black;
-	squares[move.startSquare] = Piece::empty;
-
-	switch (move.flag) {
-	case Move::promoteToQueenFlag:
-		squares[targetSquare] = Piece::queen | color;
-		piece = Piece::queen;
-		break;
-	case Move::promoteToRookFlag:
-		squares[targetSquare] = Piece::rook | color;
-		piece = Piece::rook;
-		break;
-	case Move::promoteToKnightFlag:
-		squares[targetSquare] = Piece::knight | color;
-		piece = Piece::knight;
-		break;
-	case Move::promoteToBishopFlag:
-		squares[targetSquare] = Piece::bishop | color;
-		piece = Piece::bishop;
-		break;
-	}
+	
 }
 
 void Board::undoEnPassantChanges(Move& move) {
@@ -349,7 +354,12 @@ string Board::printBoard() {
 		}
 	}
 
+	result += "Fen: ";
 	result += FEN::generateFEN(this);
+	result += '\n';
+
+	result += "Key: ";
+	result += to_string(state->zobristHash);
 	result += '\n';
 
 	return result;

@@ -27,7 +27,7 @@ void Searcher::iterativeSearch() {
 			temp.duration = duration.count();
 		}
 		cout << "Time: " << stats.duration << ", Moves: " << stats.nNodes << ", Moves per second: " << (stats.nNodes) / stats.duration << endl;
-		cout << "Depth " << i << ", Evaluation: " << eval << endl;
+		cout << "Depth " << i << ", Evaluation: " << eval << ", bestmove: " << currentMove << endl;
 	}
 	stats = temp;
 	/**/
@@ -58,13 +58,19 @@ int Searcher::QuiescenceSearch(int alpha, int beta) {
 	}
 
 	Move moves[218];
+	//Move bestMove = tTable->getBestMove();
 	int numMoves = moveGenerator->generateMoves(moves, true);
 
-	if (numMoves > 1) orderer->order(moves, numMoves, false);
+	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, false, true);
 
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i], false);
-		score = -QuiescenceSearch(-beta, -alpha);
+		int storedEval = tTable->lookup(0, -beta, -alpha, board->state->zobristHash);
+		if (storedEval != TranspositionTable::notFound) {
+			score = -storedEval;
+		} else {
+			score = -QuiescenceSearch(-beta, -alpha);
+		}
 		board->unMakeMove(moves[i]);
 		if (score >= beta) {
 			stats.cutoffs++;
@@ -95,19 +101,19 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves);
 	Move bestMove = depth == 0 ? this->bestMove : tTable->getBestMove();
-	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, depth == 0);
+	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, depth == 0, false);
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i]);
 		u64 hash = board->state->zobristHash;
-		int storedEval = tTable->lookup(maxDepth - depth, alpha, beta, hash);
-		if (storedEval != TranspositionTable::notFound) {
+		int storedEval = tTable->lookup(maxDepth - depth - 1, -beta, -alpha, hash);
+		if (board->history.contains(hash)) {
+			score = 0;
+			stats.repetitions++;
+		} else if (storedEval != TranspositionTable::notFound) {
 			score = -storedEval;
 			stats.transpositions++;
 		} else {
-			if (board->history[hash]) {
-				score = 0;
-				stats.repetitions++;
-			} else if (board->state->fiftyMoveCounter >= 50) {
+			if (board->state->fiftyMoveCounter >= 50) {
 				score = 0;
 				stats.fiftyMoveDraws++;
 			} else {
@@ -115,7 +121,7 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 			}
 		}
 		board->unMakeMove(moves[i]);
-		//if (storedEval == TranspositionTable::notFound) tTable->store(score, maxDepth - depth, hash);
+		//if (storedEval == TranspositionTable::notFound) tTable->store(score, maxDepth - depth, TranspositionTable::exact, moves[i], hash);
 		if (score >= beta) {
 			stats.cutoffs++;
 			tTable->store(score, maxDepth - depth, TranspositionTable::lowerBound, moves[i], hash);

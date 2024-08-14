@@ -25,14 +25,12 @@ Move TranspositionTable::getBestMove() {
 }
 
 void TranspositionTable::store(int eval, int depth, int nodeType, Move move, u64 hashKey) {
-	//if (hashKey == 0ULL) hashKey = hashBoard();
 	size_t index = hashKey % size;
 
 	table[index] = Entry(hashKey, eval, depth, nodeType, move);
 }
 
 int TranspositionTable::lookup(int depth, int alpha, int beta, u64 hashKey) {
-	//if (hashKey == 0ULL) hashKey = hashBoard();
 	size_t index = hashKey % size;
 	Entry entry = table[index];
 	if (entry.hash == hashKey && entry.depth >= depth) {

@@ -35,8 +35,8 @@ public:
 	TranspositionTable(Board* board, int sizeMB);
 	~TranspositionTable();
 	Move getBestMove();
-	void store(int eval, int depth, int nodeType, Move move, u64 hashKey = 0ULL);
-	int lookup(int depth, int alpha, int beta, u64 hashKey = 0ULL);
+	void store(int eval, int depth, int nodeType, Move move, u64 hashKey);
+	int lookup(int depth, int alpha, int beta, u64 hashKey);
 	void clear();
 };
 
