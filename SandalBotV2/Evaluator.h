@@ -11,8 +11,9 @@ private:
 	int endGameWeight;
 public:
 	static int colorStart[2];
-	static const int checkMateScore = -100000;
+	static const int checkMateScore = 100000;
 	static const int drawScore = 0;
+	static const int cancelledScore = 0;
 	int maximisingSide;
 	static int blackEvalSquare[64];
 

@@ -27,7 +27,7 @@ private:
 	size_t sizeMB = 0;
 	size_t size;
 public:
-	static const int notFound = -999;
+	static const int notFound = -9999999;
 	static const int exact = 0;
 	static const int lowerBound = 1;
 	static const int upperBound = 2;
@@ -35,9 +35,11 @@ public:
 	TranspositionTable(Board* board, int sizeMB);
 	~TranspositionTable();
 	Move getBestMove();
-	void store(int eval, int depth, int nodeType, Move move, u64 hashKey);
-	int lookup(int depth, int alpha, int beta, u64 hashKey);
+	void store(int eval, int remainingDepth, int currentDepth, int nodeType, Move move, u64 hashKey);
+	int lookup(int remainingDepth, int currentDepth, int alpha, int beta, u64 hashKey);
 	void clear();
+	int adjustStoredMateScore(int eval, int currentDepth);
+	int adjustMateScore(int eval, int currentDepth);
 };
 
 #endif // !TRANSPOSITIONTABLE_H

@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "Evaluator.h"
 #include "TranspositionTable.h"
 
 #include <iostream>
@@ -24,24 +25,29 @@ Move TranspositionTable::getBestMove() {
 	return table[(board->state->zobristHash) % size].move;
 }
 
-void TranspositionTable::store(int eval, int depth, int nodeType, Move move, u64 hashKey) {
+void TranspositionTable::store(int eval, int remainingDepth, int currentDepth, int nodeType, Move move, u64 hashKey) {
 	size_t index = hashKey % size;
-
-	table[index] = Entry(hashKey, eval, depth, nodeType, move);
+	/*
+	if (abs(eval) >= abs(Evaluator::checkMateScore)) {
+		depth = 999;
+	}
+	*/
+	table[index] = Entry(hashKey, adjustMateScore(eval, currentDepth), remainingDepth, nodeType, move);
 }
 
-int TranspositionTable::lookup(int depth, int alpha, int beta, u64 hashKey) {
+int TranspositionTable::lookup(int remainingDepth, int currentDepth, int alpha, int beta, u64 hashKey) {
 	size_t index = hashKey % size;
 	Entry entry = table[index];
-	if (entry.hash == hashKey && entry.depth >= depth) {
+	if (entry.hash == hashKey && entry.depth >= remainingDepth) {
+		int eval = adjustStoredMateScore(entry.eval, currentDepth);
 		if (entry.nodeType == exact) {
-			return entry.eval;
+			return eval;
 		}
-		if (entry.nodeType == upperBound && entry.eval <= alpha) {
-			return entry.eval;
+		if (entry.nodeType == upperBound && eval <= alpha) {
+			return eval;
 		}
-		if (entry.nodeType == lowerBound && entry.eval >= beta) {
-			return entry.eval;
+		if (entry.nodeType == lowerBound && eval >= beta) {
+			return eval;
 		}
 	}
 
@@ -51,3 +57,20 @@ int TranspositionTable::lookup(int depth, int alpha, int beta, u64 hashKey) {
 void TranspositionTable::clear() {
 	if (table == nullptr) return;
 }
+
+int TranspositionTable::adjustStoredMateScore(int eval, int currentDepth) {
+	if (abs(eval) >= Evaluator::checkMateScore) {
+		int sign = eval >= 0 ? 1 : -1;
+		return (eval * sign - currentDepth) * sign;
+	}
+	return eval;
+}
+
+int TranspositionTable::adjustMateScore(int eval, int currentDepth) {
+	if (abs(eval) >= Evaluator::checkMateScore) {
+		int sign = eval >= 0 ? 1 : -1;
+		return (eval * sign + currentDepth) * sign;
+	}
+	return eval;
+}
+ 

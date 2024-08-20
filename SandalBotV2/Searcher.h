@@ -42,20 +42,20 @@ private:
 	searchStatistics stats;
 
 	std::atomic<bool> cancelSearch;
-	const int maxDeepening = 5;
+	const int maxDeepening = 256;
 
 	Board* board = nullptr;
 	Evaluator evaluator;
 	TranspositionTable* tTable = nullptr;
 
 	Move currentMove;
-	int defaultAlpha = -2000000;
-	int defaultBeta = 2000000;
+	int defaultAlpha = -200000000;
+	int defaultBeta = 200000000;
 
 	void iterativeSearch();
 	int negaMax(int alpha, int beta, int depth, int maxDepth);
 	uint64_t moveSearch(bool isMaximising, int depth, int maxDepth);
-	int QuiescenceSearch(int alpha, int beta);
+	int QuiescenceSearch(int alpha, int beta, int maxDepth);
 public:
 	MoveGen* moveGenerator = nullptr;
 	MoveOrderer* orderer = nullptr;

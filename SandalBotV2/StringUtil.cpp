@@ -67,4 +67,15 @@ bool StringUtil::isDigitString(const std::string& str) {
 	return true;
 }
 
+string StringUtil::commaSeparator(int integer) {
+	string stringInt = to_string(integer);
+	size_t size = stringInt.size();
+	for (int i = 0; i < size; i++) {
+		if (i != 0 && i != size - 1 && (i + 1) % 3 == 0 && stringInt[size - 1 - i] != '-') {
+			stringInt.insert(size - 1 - i, 1, ',');
+		}
+	}
+	return stringInt;
+}
+
 

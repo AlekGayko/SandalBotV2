@@ -15,6 +15,7 @@ public:
 	static bool contains(const std::string& str1, const std::string& str2);
 	static int indexOf(const std::string& str1, const std::string& str2);
 	static bool isDigitString(const std::string& str);
+	static std::string commaSeparator(int integer);
 };
 
 #endif // !STRINGUTIL_H

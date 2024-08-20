@@ -28,7 +28,9 @@ void BoardHistory::pop() {
 }
 
 bool BoardHistory::contains(const u64& key) {
-	int start = numBoards >= 2 ? numBoards - 2 : 0;
+	if (numBoards <= 2) return false;
+
+	int start = numBoards - 2;
 	int end = startSearchIndicies[numBoards];
 	for (int i = start; i >= end; i--) {
 		if (hashHistory[i] == key) return true;
