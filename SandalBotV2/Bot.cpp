@@ -65,7 +65,7 @@ void Bot::makeMove(std::string movestr) {
     board->makeMove(positionMoves[moveIndex]);
 }
 
-void Bot::generateMove(int moveTimeMs) {
+string Bot::generateMove(int moveTimeMs) {
     searcher->startSearch(moveTimeMs);
     string startSquare = CoordHelper::indexToString(searcher->bestMove.startSquare);
     string targetSquare = CoordHelper::indexToString(searcher->bestMove.targetSquare);
@@ -87,6 +87,7 @@ void Bot::generateMove(int moveTimeMs) {
     }
 
     cout << "bestmove " << startSquare << targetSquare << flag << endl;
+    return startSquare + targetSquare;
 }
 
 void Bot::stopSearching() {

@@ -14,7 +14,6 @@ TranspositionTable::TranspositionTable(Board* board, int sizeMB) : ZobristHash(b
 	this->board = board;
 	this->size = (float(sizeMB) / float(sizeof(Entry))) * 1024 * 1024;
 	table = new Entry[size];
-	cout << size << endl;
 }
 
 TranspositionTable::~TranspositionTable() {
@@ -27,11 +26,7 @@ Move TranspositionTable::getBestMove() {
 
 void TranspositionTable::store(int eval, int remainingDepth, int currentDepth, int nodeType, Move move, u64 hashKey) {
 	size_t index = hashKey % size;
-	/*
-	if (abs(eval) >= abs(Evaluator::checkMateScore)) {
-		depth = 999;
-	}
-	*/
+
 	table[index] = Entry(hashKey, adjustMateScore(eval, currentDepth), remainingDepth, nodeType, move);
 }
 

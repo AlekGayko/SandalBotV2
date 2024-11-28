@@ -53,7 +53,7 @@ private:
 	int defaultBeta = 200000000;
 
 	void iterativeSearch();
-	int negaMax(int alpha, int beta, int depth, int maxDepth);
+	int negaMax(int alpha, int beta, int depth, int maxDepth, int numExtensions);
 	uint64_t moveSearch(bool isMaximising, int depth, int maxDepth);
 	int QuiescenceSearch(int alpha, int beta, int maxDepth);
 public:

@@ -36,27 +36,50 @@ void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, bool firstMov
 		const int flag = moves[it].flag;
 		int ownPiece = Piece::type(board->squares[startSquare]);
 		int enemyPiece = Piece::type(board->squares[targetSquare]);
-		int enemyValue = PieceEvaluations::pieceVals[enemyPiece];
-		int ownValue = PieceEvaluations::pieceVals[ownPiece];
-		int diffVal = enemyValue - ownValue;
+		bool targetSquareDefended = generator->opponentAttacks & (1ULL << targetSquare);
 
+		// If taking an opponent's piece
+		if (enemyPiece != Piece::empty) {
+			int enemyValue = PieceEvaluations::pieceVals[enemyPiece];
+			int ownValue = PieceEvaluations::pieceVals[ownPiece];
+			int diffVal = enemyValue - ownValue;
+			// If taking a piece worth less than our piece's value
+			if (enemyValue < ownValue) {
+				// If piece is defended
+				if (targetSquareDefended) {
+					moveValue += diffVal;
+				} 
+				// If piece is undefended
+				else {
+					moveValue += enemyValue;
+				}
+			} 
+			// If we're taking a piece with greater value
+			else {
+				if (targetSquareDefended) {
+					moveValue += diffVal;
+				} else {
+					moveValue += enemyValue;
+				}
+			}
+		}
+		// If we're not taking a piece
+		else {
+			if (targetSquareDefended) {
+				moveValue += -200;
+			}
+		}
+
+		// Add difference in piece positioning
 		if (colorIndex == Board::blackIndex) {
 			moveValue += PieceEvaluations::pieceEvals[ownPiece][Evaluator::blackEvalSquare[evalStart - targetSquare]];
 			moveValue -= PieceEvaluations::pieceEvals[ownPiece][Evaluator::blackEvalSquare[evalStart - startSquare]];
 		} else {
-			moveValue += PieceEvaluations::pieceEvals[ownPiece][evalStart + targetSquare];
-			moveValue -= PieceEvaluations::pieceEvals[ownPiece][evalStart + startSquare];
+			moveValue += PieceEvaluations::pieceEvals[ownPiece][targetSquare];
+			moveValue -= PieceEvaluations::pieceEvals[ownPiece][startSquare];
 		}
 
-		if (enemyValue) {
-			moveValue += 100;
-		}
-		if (diffVal > 0) {
-			moveValue += diffVal;
-		}
-		if (generator->opponentAttacks & (1ULL << targetSquare)) {
-			moveValue -= 200;
-		}
+		// Moves with flags are most likely special (good)
 		switch (flag) {
 		case Move::noFlag:
 			break;

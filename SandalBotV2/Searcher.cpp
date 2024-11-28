@@ -16,7 +16,7 @@ void Searcher::iterativeSearch() {
 	for (int depth = 1; depth < maxDeepening; depth++) {	
 		auto start = chrono::high_resolution_clock::now();
 		stats = searchStatistics();
-		int eval = negaMax(defaultAlpha, defaultBeta, 0, depth);
+		int eval = negaMax(defaultAlpha, defaultBeta, 0, depth, 0);
 		auto end = chrono::high_resolution_clock::now();
 		chrono::duration<double> duration = end - start;
 
@@ -90,7 +90,7 @@ int Searcher::QuiescenceSearch(int alpha, int beta, int maxDepth) {
 	return alpha;
 }
 
-int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
+int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExtensions) {
 	stats.nNodes++;
 	if (cancelSearch) {
 		return Evaluator::cancelledScore;
@@ -120,15 +120,23 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth) {
 	bool greaterAlpha = false;
 	int score = 0;
 	int evalBound = TranspositionTable::upperBound;
+
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves);
+	int reduceExtensionCutoff = 10;
+	int reducedMaxDepth = maxDepth - 1;
+	if (reducedMaxDepth - depth <= 0) reducedMaxDepth++;
+	//cout << maxDepth << ", " << reducedMaxDepth << endl;
 	Move bestMove = depth == 0 ? this->bestMove : tTable->getBestMove();
-	u64 prevHash = board->state->zobristHash;
+	if (moveGenerator->isCheck && numExtensions < 16) {
+		numExtensions++;
+		maxDepth++;
+	}
 	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, depth == 0, false);
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i]);
 
-		score = -negaMax(-beta, -alpha, depth + 1, maxDepth);
+		score = -negaMax(-beta, -alpha, depth + 1, i > reduceExtensionCutoff ? reducedMaxDepth : maxDepth, numExtensions);
 
 		board->unMakeMove(moves[i]);
 
@@ -202,8 +210,7 @@ uint64_t Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
 	return movesGenerated;
 }
 
-Searcher::Searcher()
-{
+Searcher::Searcher() {
 
 }
 

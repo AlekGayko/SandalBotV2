@@ -21,7 +21,7 @@ public:
 
 	void setPosition(std::string FEN);
 	void makeMove(std::string movestr);
-	void generateMove(int moveTimeMs);
+	std::string generateMove(int moveTimeMs);
 	void stopSearching();
 	uint64_t perft(int depth);
 	std::string printBoard();
