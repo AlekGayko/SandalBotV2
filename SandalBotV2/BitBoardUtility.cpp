@@ -20,6 +20,33 @@ u64 BitBoardUtility::getBit(u64 bitboard, int index) {
 	return bitboard & (1ULL << index);
 }
 
-void BitBoardUtility::setBit(u64 bitboard, int index) {
+void BitBoardUtility::setBit(u64& bitboard, int index) {
 	bitboard |= (1ULL << index);
+}
+
+void BitBoardUtility::setBit(u64& bitboard, u64& sideBoard, int index) {
+	bitboard |= (1ULL << index);
+	sideBoard |= (1ULL << index);
+}
+
+void BitBoardUtility::moveBit(u64& bitboard, int startBit, int targetBit) {
+	bitboard &= ~(1ULL << startBit);
+	bitboard |= 1ULL << targetBit;
+}
+
+void BitBoardUtility::moveBit(u64& bitboard, u64& sideBoard, int startBit, int targetBit) {
+	bitboard &= ~(1ULL << startBit);
+	bitboard |= 1ULL << targetBit;
+
+	sideBoard &= ~(1ULL << startBit);
+	sideBoard |= 1ULL << targetBit;
+}
+
+void BitBoardUtility::deleteBit(u64& bitboard, int index) {
+	bitboard &= ~(1ULL << index);
+}
+
+void BitBoardUtility::deleteBit(u64& bitboard, u64& sideBoard, int index) {
+	bitboard &= ~(1ULL << index);
+	sideBoard &= ~(1ULL << index);
 }

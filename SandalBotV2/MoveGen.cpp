@@ -14,12 +14,13 @@ const int MoveGen::shortCastleRookSpawn[2] = { 5, 61 };
 const int MoveGen::longCastleRookSpawn[2] = { 3, 59 };
 
 MoveGen::MoveGen() {
-
+	MovePrecomputation::precomputeMoves();
 }
 
 MoveGen::MoveGen(Board* board) {
 	if (board == nullptr) throw std::invalid_argument("board cannot be nullptr");
 	this->board = board;
+	MovePrecomputation::precomputeMoves();
 }
 
 int MoveGen::generateMoves(Move moves[], bool capturesOnly) {

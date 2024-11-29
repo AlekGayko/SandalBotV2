@@ -102,8 +102,8 @@ uint64_t Bot::perft(int depth) {
     return movesgenerated;
 }
 
-std::string Bot::printBoard() {
-    return board->printBoard();
+void Bot::printBoard() {
+    board->printBoard();
 }
 
 int Bot::chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs, int blackIncMs) {

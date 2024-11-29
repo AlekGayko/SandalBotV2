@@ -1,4 +1,12 @@
-Command received: go movetime 2000
-Command received: position fen 2k3r1/2p1q1r1/p3b2p/1p3B2/8/2N5/PP1BQPPP/2R2RK1 b - - 0 1
-Command received: go movetime 2000
+Command received: go movetime 1000
+Command received: ucinewgame
+Command received: go movetime 1000
+Command received: ucinewgame
+Command received: go movetime 1000
+Command received: ucinewgame
+Command received: go movetime 1000
+Command received: ucinewgame
+Command received: go movetime 1000
+Command received: ucinewgame
+Command received: go movetime 1000
 Command received: quit

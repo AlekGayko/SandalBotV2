@@ -19,7 +19,7 @@ Board::Board() {
 			Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty,
 			Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, 
 			Piece::whiteRook, Piece::whiteKnight, Piece::whiteBishop, Piece::whiteQueen, Piece::whiteKing, Piece::whiteBishop, Piece::whiteKnight, Piece::whiteRook 
-		};
+	};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
 	loadPieceLists();
 
@@ -28,7 +28,7 @@ Board::Board() {
 	state = &boardStateHistory.back();
 	state->zobristHash = ZobristHash::hashBoard(this);
 	history.push(state->zobristHash, false);
-	//loadBitBoards();
+	loadBitBoards();
 }
 
 Board::~Board() {
@@ -73,7 +73,7 @@ void Board::loadPosition(std::string fen) {
 	state = &boardStateHistory.back();
 	state->zobristHash = ZobristHash::hashBoard(this);
 	history.push(state->zobristHash, false);
-	//loadBitBoards();
+	loadBitBoards();
 }
 
 void Board::loadBitBoards() {
@@ -84,39 +84,49 @@ void Board::loadBitBoards() {
 	knights = 0ULL;
 	pawns = 0ULL;
 
-	for (int square = 0; square < 64; square++) {
-		int type = Piece::type(squares[square]);
-		int color = Piece::color(squares[square]);
-		switch (type) {
-		case Piece::pawn:
-			pawns |= 0b1 << square;
-			break;
-		case Piece::knight:
-			knights |= 0b1 << square;
-			break;
-		case Piece::king:
-			//kings |= 0b1 << square;
-			break;
-		case Piece::bishop:
-			diagonalPieces |= 0b1 << square;
-			break;
-		case Piece::rook:
-			orthogonalPieces |= 0b1 << square;
-			break;
-		case Piece::queen:
-			orthogonalPieces |= 0b1 << square;
-			diagonalPieces |= 0b1 << square;
-			break;
-		}
+	for (int color = blackIndex; color <= whiteIndex; color++) {
+		for (int type = Piece::pawn; type <= Piece::king; type++) {
+			for (int i = 0; i < pieceLists[color][type].numPieces; i++) {
+				int square = pieceLists[color][type][i];
+				cout << square << endl;
+				switch (type) {
+				case Piece::pawn:
+					pawns |= 1ULL << square;
+					break;
+				case Piece::knight:
+					knights |= 1ULL << square;
+					break;
+				case Piece::king:
+					// kings |= 1ULL << square;
+					break;
+				case Piece::bishop:
+					diagonalPieces |= 1ULL << square;
+					break;
+				case Piece::rook:
+					orthogonalPieces |= 1ULL << square;
+					break;
+				case Piece::queen:
+					orthogonalPieces |= 1ULL << square;
+					diagonalPieces |= 1ULL << square;
+					break;
+				}
 
-		switch (color) {
-		case Piece::white:
-			whitePieces |= 0b1 << square;
-		case Piece::black:
-			blackPieces |= 0b1 << square;
+				switch (color) {
+				case whiteIndex:
+					whitePieces |= 1ULL << square;
+				case blackIndex:
+					blackPieces |= 1ULL << square;
+				}
+			}
 		}
 	}
+
 	allPieces = whitePieces | blackPieces;
+
+	BitBoardUtility::printBB(allPieces);
+	BitBoardUtility::printBB(pawns);
+	BitBoardUtility::printBB(diagonalPieces);
+	printBoard();
 }
 
 void Board::makeMove(Move& move, bool hashBoard) {
@@ -219,7 +229,7 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		break;
 	case Move::castleFlag:
 		makeCastlingChanges(move, castlingRights);
-		rookOffset = targetSquare % 8 > 4 ? 1 : -1;
+		rookOffset = targetSquare > startSquare ? 1 : -1;
 		rookSquareOffset = rookOffset == 1 ? 3 : -4;
 		pieceLists[colorIndex][Piece::rook].movePiece(startSquare + rookSquareOffset, startSquare + rookOffset);
 		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][startSquare + rookSquareOffset];
@@ -227,7 +237,7 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		break;
 	}
 
-	//updateBitBoards(move);
+	updateBitBoards(move, piece, Piece::type(takenPiece));
 	boardStateHistory.push_back(BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash));
 	state = &boardStateHistory.back();
 
@@ -284,7 +294,7 @@ void Board::unMakeMove(Move& move) {
 		break;
 	}
 
-	//undoBitBoards(move);
+	undoBitBoards(move, piece, Piece::type(takenPiece));
 	history.pop();
 	boardStateHistory.pop_back();
 	state = &boardStateHistory.back();
@@ -296,8 +306,8 @@ void Board::makeEnPassantChanges(Move& move) {
 }
 
 void Board::makeCastlingChanges(Move& move, int& castlingRights) {
-	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
-	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
+	const int rookDistance = move.targetSquare < move.startSquare ? -4 : 3;
+	const int rookSpawnOffset = move.targetSquare < move.startSquare ? -1 : 1;
 	const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
 	squares[move.startSquare + rookDistance] = Piece::empty;
 	squares[move.startSquare + rookSpawnOffset] = friendlyRook;
@@ -314,15 +324,15 @@ void Board::undoEnPassantChanges(Move& move) {
 }
 
 void Board::undoCastlingChanges(Move& move) {
-	const int rookDistance = move.targetSquare % 8 < 4 ? -4 : 3;
-	const int rookSpawnOffset = move.targetSquare % 8 < 4 ? -1 : 1;
+	const int rookDistance = move.targetSquare < move.startSquare ? -4 : 3;
+	const int rookSpawnOffset = move.targetSquare < move.startSquare ? -1 : 1;
 	const int friendlyRook = state->whiteTurn ? Piece::blackRook : Piece::whiteRook;
 
 	squares[move.startSquare + rookDistance] = friendlyRook;
 	squares[move.startSquare + rookSpawnOffset] = Piece::empty;
 }
 
-string Board::printBoard() {
+void Board::printBoard() {
 	string result = "";
 
 	for (int y = 0; y < 8; y++) {
@@ -362,61 +372,221 @@ string Board::printBoard() {
 	result += to_string(state->zobristHash);
 	result += '\n';
 
-	return result;
+	cout << result << endl;
 }
 
-void Board::updateBitBoards(Move& move, int pieceType, int takenPiece) {
+// Get function for all bitboards
+std::vector<uint64_t> Board::getBitBoards() {
+	vector<uint64_t> bitboards;
+	bitboards.reserve(7);
+
+	bitboards.push_back(allPieces);
+	bitboards.push_back(whitePieces);
+	bitboards.push_back(blackPieces);
+	bitboards.push_back(pawns);
+	bitboards.push_back(knights);
+	bitboards.push_back(orthogonalPieces);
+	bitboards.push_back(diagonalPieces);
+
+	return bitboards;
+}
+
+// Update piece bitboards based on move
+void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
+	// Initialise commonly used variables
 	const int startSquare = move.startSquare;
 	const int targetSquare = move.targetSquare;
 	uint64_t* friendlyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
 	uint64_t* enemyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 
+	// Move the moved piece along its bitboard
 	switch (pieceType) {
 	case Piece::pawn:
-		pawns &= ~(0b1 << startSquare);
-		pawns |= (0b1 << targetSquare);
+		BitBoardUtility::moveBit(pawns, startSquare, targetSquare);
 		break;
 	case Piece::knight:
-		knights &= ~(0b1 << startSquare);
-		knights |= (0b1 << targetSquare);
+		BitBoardUtility::moveBit(knights, startSquare, targetSquare);
 		break;
 	case Piece::rook:
-		orthogonalPieces &= ~(0b1 << startSquare);
-		orthogonalPieces |= (0b1 << targetSquare);
+		BitBoardUtility::moveBit(orthogonalPieces, startSquare, targetSquare);
 		break;
 	case Piece::queen:
-		orthogonalPieces &= ~(0b1 << startSquare);
-		diagonalPieces &= ~(0b1 << startSquare);
-		
-		orthogonalPieces |= 0b1 << targetSquare;
-		diagonalPieces |= 0b1 << targetSquare;
+		BitBoardUtility::moveBit(orthogonalPieces, startSquare, targetSquare);
+		BitBoardUtility::moveBit(diagonalPieces, startSquare, targetSquare);
 		break;
 	case Piece::bishop:
-		diagonalPieces &= ~(0b1 << startSquare);
-		diagonalPieces |= (0b1 << targetSquare);
+		BitBoardUtility::moveBit(diagonalPieces, startSquare, targetSquare);
 		break;
 	}
 
-	switch (takenPiece) {
-	case Piece::pawn:
-		pawns &= ~(0b1 << targetSquare);
+	BitBoardUtility::moveBit(*friendlyBoard, startSquare, targetSquare);
+
+	// If taken piece is not empty and not the same type, delete bit from respective bitboard
+	if (takenPieceType != Piece::empty && pieceType != takenPieceType) {
+		switch (takenPieceType) {
+		case Piece::pawn:
+			BitBoardUtility::deleteBit(pawns, targetSquare);
+			break;
+		case Piece::knight:
+			BitBoardUtility::deleteBit(knights, targetSquare);
+			break;
+		case Piece::rook:
+			if (pieceType == Piece::queen)
+				break;
+			BitBoardUtility::deleteBit(orthogonalPieces, targetSquare);
+			break;
+		case Piece::bishop:
+			if (pieceType == Piece::queen)
+				break;
+			BitBoardUtility::deleteBit(diagonalPieces, targetSquare);
+			break;
+		case Piece::queen:
+			if (pieceType != Piece::rook)
+				BitBoardUtility::deleteBit(orthogonalPieces, targetSquare);
+
+			if (pieceType != Piece::bishop)
+				BitBoardUtility::deleteBit(diagonalPieces, targetSquare);
+			break;
+		}
+	}
+
+	
+	// If taken piece not empty, remove from enemy bitboard
+	if (takenPieceType != Piece::empty) {
+		BitBoardUtility::deleteBit(*enemyBoard, targetSquare);
+	}
+
+	// If move is special and has unconsidered consequences from previous sections, cover edge cases
+	switch (move.flag) {
+		// Remove pawn that is removed during en passant
+	case Move::enPassantCaptureFlag:
+		BitBoardUtility::deleteBit(pawns, *enemyBoard, startSquare + (targetSquare - startSquare) % 8);
 		break;
-	case Piece::knight:
-		knights &= ~(0b1 << targetSquare);
+		// Move rook during castling
+	case Move::castleFlag:
+		BitBoardUtility::moveBit(orthogonalPieces, *friendlyBoard, targetSquare < startSquare ? startSquare - 4 : startSquare + 3,
+			targetSquare < startSquare ? targetSquare + 1 : targetSquare - 1);
 		break;
-	case Piece::rook:
-		orthogonalPieces &= ~(0b1 << targetSquare);
+		// Delete pawn from bitboard and replace with respective promotions
+	case Move::promoteToQueenFlag:
+		BitBoardUtility::deleteBit(pawns, targetSquare);
+		BitBoardUtility::setBit(orthogonalPieces, targetSquare);
+		BitBoardUtility::setBit(diagonalPieces, targetSquare);
 		break;
-	case Piece::queen:
-		orthogonalPieces &= ~(0b1 << targetSquare);
-		diagonalPieces &= ~(0b1 << targetSquare);
+	case Move::promoteToRookFlag:
+		BitBoardUtility::deleteBit(pawns, targetSquare);
+		BitBoardUtility::setBit(orthogonalPieces, targetSquare);
 		break;
-	case Piece::bishop:
-		diagonalPieces &= ~(0b1 << targetSquare);
+	case Move::promoteToBishopFlag:
+		BitBoardUtility::deleteBit(pawns, targetSquare);
+		BitBoardUtility::setBit(diagonalPieces, targetSquare);
+		break;
+	case Move::promoteToKnightFlag:
+		BitBoardUtility::deleteBit(pawns, targetSquare);
+		BitBoardUtility::setBit(knights, targetSquare);
 		break;
 	}
 
+	// Update all Pieces with union of whitePieces and blackPieces
+	allPieces = whitePieces | blackPieces;
 }
 
-void Board::undoBitBoards(Move& move, int pieceType, int takenPiece) {
+void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
+	// Initialise commonly used variables
+	const int startSquare = move.startSquare;
+	const int targetSquare = move.targetSquare;
+	uint64_t* friendlyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
+	uint64_t* enemyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
+
+
+	// If move is special and has unconsidered consequences from previous sections, cover edge cases
+	switch (move.flag) {
+		// Remove pawn that is removed during en passant
+	case Move::enPassantCaptureFlag:
+		BitBoardUtility::deleteBit(pawns, *enemyBoard, startSquare + (targetSquare - startSquare) % 8);
+		break;
+		// Move rook during castling
+	case Move::castleFlag:
+		BitBoardUtility::moveBit(orthogonalPieces, *friendlyBoard, targetSquare < startSquare ? targetSquare + 1 : targetSquare - 1,
+			targetSquare < startSquare ? startSquare - 4 : startSquare + 3);
+		break;
+		// Delete pawn from bitboard and replace with respective promotions
+	case Move::promoteToQueenFlag:
+		BitBoardUtility::setBit(pawns, targetSquare);
+		BitBoardUtility::deleteBit(orthogonalPieces, targetSquare);
+		BitBoardUtility::deleteBit(diagonalPieces, targetSquare);
+		break;
+	case Move::promoteToRookFlag:
+		BitBoardUtility::setBit(pawns, targetSquare);
+		BitBoardUtility::deleteBit(orthogonalPieces, targetSquare);
+		break;
+	case Move::promoteToBishopFlag:
+		BitBoardUtility::setBit(pawns, targetSquare);
+		BitBoardUtility::deleteBit(diagonalPieces, targetSquare);
+		break;
+	case Move::promoteToKnightFlag:
+		BitBoardUtility::setBit(pawns, targetSquare);
+		BitBoardUtility::deleteBit(knights, targetSquare);
+		break;
+	}
+
+	// Move the moved piece along its bitboard
+	switch (pieceType) {
+	case Piece::pawn:
+		BitBoardUtility::moveBit(pawns, targetSquare, startSquare);
+		break;
+	case Piece::knight:
+		BitBoardUtility::moveBit(knights, targetSquare, startSquare);
+		break;
+	case Piece::rook:
+		BitBoardUtility::moveBit(orthogonalPieces, targetSquare, startSquare);
+		break;
+	case Piece::queen:
+		BitBoardUtility::moveBit(orthogonalPieces, targetSquare, startSquare);
+		BitBoardUtility::moveBit(diagonalPieces, targetSquare, startSquare);
+		break;
+	case Piece::bishop:
+		BitBoardUtility::moveBit(diagonalPieces, targetSquare, startSquare);
+		break;
+	}
+
+	BitBoardUtility::moveBit(*friendlyBoard, targetSquare, startSquare);
+
+	// If taken piece is not empty and not the same type, delete bit from respective bitboard
+	if (takenPieceType != Piece::empty && pieceType != takenPieceType) {
+		switch (takenPieceType) {
+		case Piece::pawn:
+			BitBoardUtility::setBit(pawns, targetSquare);
+			break;
+		case Piece::knight:
+			BitBoardUtility::setBit(knights, targetSquare);
+			break;
+		case Piece::rook:
+			if (pieceType == Piece::queen)
+				break;
+			BitBoardUtility::setBit(orthogonalPieces, targetSquare);
+			break;
+		case Piece::bishop:
+			if (pieceType == Piece::queen)
+				break;
+			BitBoardUtility::setBit(diagonalPieces, targetSquare);
+			break;
+		case Piece::queen:
+			if (pieceType != Piece::rook)
+				BitBoardUtility::setBit(orthogonalPieces, targetSquare);
+
+			if (pieceType != Piece::bishop)
+				BitBoardUtility::setBit(diagonalPieces, targetSquare);
+			break;
+		}
+	}
+
+
+	// If taken piece not empty, remove from enemy bitboard
+	if (takenPieceType != Piece::empty) {
+		BitBoardUtility::setBit(*enemyBoard, targetSquare);
+	}
+
+	// Update all Pieces with union of whitePieces and blackPieces
+	allPieces = whitePieces | blackPieces;
 }

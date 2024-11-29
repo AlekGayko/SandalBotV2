@@ -24,7 +24,7 @@ public:
 	std::string generateMove(int moveTimeMs);
 	void stopSearching();
 	uint64_t perft(int depth);
-	std::string printBoard();
+	void printBoard();
 	int chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs=0, int blackIncMs=0);
 };
 
