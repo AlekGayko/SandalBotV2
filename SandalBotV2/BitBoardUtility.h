@@ -17,6 +17,7 @@ public:
 	static void moveBit(u64& bitboard, u64& sideBoard, int startBit, int targetBit);
 	static void deleteBit(u64& bitboard, int index);
 	static void deleteBit(u64& bitboard, u64& sideBoard, int index);
+	static int popLSB(u64& bitBoard);
 };
 
 #endif // !BITBOARDUTILITY_H

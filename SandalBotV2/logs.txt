@@ -1,12 +1,6 @@
-Command received: go movetime 1000
-Command received: ucinewgame
-Command received: go movetime 1000
-Command received: ucinewgame
-Command received: go movetime 1000
-Command received: ucinewgame
-Command received: go movetime 1000
-Command received: ucinewgame
-Command received: go movetime 1000
-Command received: ucinewgame
-Command received: go movetime 1000
-Command received: quit
+Command received: go perft 3
+Response: Time taken: 0.003522s, nodes per second: 2527397.649197
+Response: Nodes searched: 8902
+Command received: go perft 6
+Response: Time taken: 5.566479s, nodes per second: 21388970.553323
+Response: Nodes searched: 119061249

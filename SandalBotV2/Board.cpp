@@ -88,7 +88,6 @@ void Board::loadBitBoards() {
 		for (int type = Piece::pawn; type <= Piece::king; type++) {
 			for (int i = 0; i < pieceLists[color][type].numPieces; i++) {
 				int square = pieceLists[color][type][i];
-				cout << square << endl;
 				switch (type) {
 				case Piece::pawn:
 					pawns |= 1ULL << square;
@@ -114,19 +113,15 @@ void Board::loadBitBoards() {
 				switch (color) {
 				case whiteIndex:
 					whitePieces |= 1ULL << square;
+					break;
 				case blackIndex:
 					blackPieces |= 1ULL << square;
+					break;
 				}
 			}
 		}
 	}
-
 	allPieces = whitePieces | blackPieces;
-
-	BitBoardUtility::printBB(allPieces);
-	BitBoardUtility::printBB(pawns);
-	BitBoardUtility::printBB(diagonalPieces);
-	printBoard();
 }
 
 void Board::makeMove(Move& move, bool hashBoard) {
@@ -460,7 +455,7 @@ void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
 	switch (move.flag) {
 		// Remove pawn that is removed during en passant
 	case Move::enPassantCaptureFlag:
-		BitBoardUtility::deleteBit(pawns, *enemyBoard, startSquare + (targetSquare - startSquare) % 8);
+		BitBoardUtility::deleteBit(pawns, *enemyBoard, targetSquare + (state->whiteTurn ? 8 : -8));
 		break;
 		// Move rook during castling
 	case Move::castleFlag:
@@ -489,6 +484,17 @@ void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
 
 	// Update all Pieces with union of whitePieces and blackPieces
 	allPieces = whitePieces | blackPieces;
+	/*
+	cout << "ALL PIECES: " << endl;
+	BitBoardUtility::printBB(allPieces);
+	cout << "-----------" << endl;
+	cout << "WHITE PIECES: " << endl;
+	BitBoardUtility::printBB(whitePieces);
+	cout << "-----------" << endl;
+	cout << "BLACK PIECES: " << endl;
+	BitBoardUtility::printBB(blackPieces);
+	cout << "-----------" << endl;
+	*/
 }
 
 void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
@@ -498,12 +504,11 @@ void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
 	uint64_t* friendlyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 	uint64_t* enemyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
 
-
 	// If move is special and has unconsidered consequences from previous sections, cover edge cases
 	switch (move.flag) {
 		// Remove pawn that is removed during en passant
 	case Move::enPassantCaptureFlag:
-		BitBoardUtility::deleteBit(pawns, *enemyBoard, startSquare + (targetSquare - startSquare) % 8);
+		BitBoardUtility::setBit(pawns, *enemyBoard, targetSquare + (!state->whiteTurn ? 8 : -8));
 		break;
 		// Move rook during castling
 	case Move::castleFlag:
@@ -552,6 +557,11 @@ void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
 
 	BitBoardUtility::moveBit(*friendlyBoard, targetSquare, startSquare);
 
+	// If taken piece not empty, remove from enemy bitboard
+	if (takenPieceType != Piece::empty) {
+		BitBoardUtility::setBit(*enemyBoard, targetSquare);
+	}
+
 	// If taken piece is not empty and not the same type, delete bit from respective bitboard
 	if (takenPieceType != Piece::empty && pieceType != takenPieceType) {
 		switch (takenPieceType) {
@@ -579,12 +589,6 @@ void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
 				BitBoardUtility::setBit(diagonalPieces, targetSquare);
 			break;
 		}
-	}
-
-
-	// If taken piece not empty, remove from enemy bitboard
-	if (takenPieceType != Piece::empty) {
-		BitBoardUtility::setBit(*enemyBoard, targetSquare);
 	}
 
 	// Update all Pieces with union of whitePieces and blackPieces

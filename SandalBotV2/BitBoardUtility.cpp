@@ -50,3 +50,16 @@ void BitBoardUtility::deleteBit(u64& bitboard, u64& sideBoard, int index) {
 	bitboard &= ~(1ULL << index);
 	sideBoard &= ~(1ULL << index);
 }
+
+int BitBoardUtility::popLSB(u64& bitBoard) {
+	int index = 64;
+	for (int i = 0; i < 64; i++) {
+		if (bitBoard >> i == 1) {
+			index = i;
+			bitBoard &= ~(1ULL << index);
+			break;
+		}
+	}
+
+	return index;
+}

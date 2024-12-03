@@ -25,6 +25,7 @@ struct PerftResults {
 
 class MoveGen {
 	friend class MoveOrderer;
+	friend class MovePrecomputation;
 private:
 	Board* board = nullptr;
 	MovePrecomputation preComp;
@@ -73,6 +74,8 @@ private:
 	uint64_t opponentAttacks;
 	uint64_t checkBB;
 	uint64_t checkRayBB;
+	uint64_t* friendlyBoard;
+	uint64_t* enemyBoard;
 
 public:
 	static const int startingKingSquares[2];
