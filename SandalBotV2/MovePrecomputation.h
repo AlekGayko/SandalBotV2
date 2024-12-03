@@ -16,7 +16,9 @@ class MovePrecomputation {
 
 	static constexpr uint64_t blockerRowMask = 0b01111110ULL;
 	static constexpr uint64_t blockerColumnMask = 0x0001010101010100ULL;
+
 	const int slideDirections[8] = { -8, 1, 8, -1, -9, -7, 9, 7 };
+	const int knightDirections[8] = { -17, -15, -6, 10, 17, 15, 6, -10 };
 
 	const int startOrthogonal = 0;
 	const int endOrthogonal = 4;
@@ -24,6 +26,14 @@ class MovePrecomputation {
 	const int endDiagonal = 8;
 	
 	PrecomputedMagics* magics = nullptr;
+
+	uint64_t knightMoves[64];
+	uint64_t kingMoves[64];
+
+	uint64_t whitePawnMoves[64];
+	uint64_t whitePawnAttackMoves[64];
+	uint64_t blackPawnMoves[64];
+	uint64_t blackPawnAttackMoves[64];
 
 	uint64_t blockerOrthogonalMasks[64];
 	uint64_t blockerDiagonalMasks[64];
@@ -39,6 +49,9 @@ class MovePrecomputation {
 	void precomputeMoves();
 	void precomputeOrthogonalMoves();
 	void precomputeDiagonalMoves();
+	void precomputeKnightMoves();
+	void precomputeKingMoves();
+	void precomputePawnMoves();
 	std::vector<uint64_t> precomputeOrthogonalMove(int square);
 	std::vector<uint64_t> precomputeDiagonalMove(int square);
 	std::vector<uint64_t> makeConfigs(std::vector<int>& moveSquares);
@@ -47,8 +60,6 @@ class MovePrecomputation {
 	uint64_t createOrthogonalMovement(int square, uint64_t blockerBoard);
 	uint64_t createDiagonalMovement(int square, uint64_t blockerBoard);
 	uint64_t createMovement(int square, uint64_t blockerBoard, int start, int end);
-
-	void generateMagicNumbers(std::vector<uint64_t>& blockerConfigs, bool isOrth=true);
 public:
 	
 	struct dirDist {
@@ -79,6 +90,10 @@ public:
 	uint64_t getBlockerDiagonalMask(const int& square);
 	uint64_t getOrthMovementBoard(const int& square, const uint64_t& blockerBoard);
 	uint64_t getDiagMovementBoard(const int& square, const uint64_t& blockerBoard);
+	uint64_t getKnightBoard(const int& square);
+	uint64_t getKingMoves(const int& square);
+	uint64_t getPawnMoves(const int& square, const uint64_t& blockerBoard, const int& color);
+	uint64_t getPawnAttackMoves(const int& square, const int& color);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

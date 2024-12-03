@@ -1,0 +1,49 @@
+#include "StateHistory.h"
+#include "BoardState.h"
+
+#include <algorithm>
+
+using namespace std;
+
+StateHistory::StateHistory() {
+	history = new BoardState[defaultSize];
+	allocatedSize = defaultSize;
+	for (int i = 0; i < allocatedSize; i++) {
+		history[i] = BoardState();
+	}
+}
+
+StateHistory::~StateHistory() {
+	delete[] history;
+}
+
+void StateHistory::push(BoardState& state) {
+	if (size >= allocatedSize - 1) {
+		BoardState* newHistory = new BoardState[2 * allocatedSize];
+		allocatedSize *= 2;
+
+		for (int i = 0; i < size; i++) {
+			newHistory[i] = history[i];
+		}
+		delete[] history;
+		history = newHistory;
+	}
+
+	history[size++] = std::move(state);
+
+}
+
+void StateHistory::pop() {
+	if (size <= 1)
+		size = 0;
+	else
+		size--;
+}
+
+void StateHistory::clear() {
+	size = 0;
+}
+
+BoardState& StateHistory::back() {
+	return history[size - 1];
+}

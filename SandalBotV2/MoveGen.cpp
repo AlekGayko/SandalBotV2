@@ -54,30 +54,34 @@ void MoveGen::initVariables(bool capturesOnly) {
 	currentColor = whiteTurn ? Piece::white : Piece::black;
 	opposingColor = !whiteTurn ? Piece::white : Piece::black;
 	currentMoves = 0ULL;
+	/*
 	friendlyPieceLists = board->pieceLists[colorIndex];
 	enemyPieceLists = board->pieceLists[!colorIndex];
 
-	orthogonalSliders[0] = friendlyPieceLists[Piece::rook];
-	orthogonalSliders[1] = friendlyPieceLists[Piece::queen];
+	orthogonalSliders[0] = &friendlyPieceLists[Piece::rook];
+	orthogonalSliders[1] = &friendlyPieceLists[Piece::queen];
 
-	diagonalSliders[0] = friendlyPieceLists[Piece::bishop];
-	diagonalSliders[1] = friendlyPieceLists[Piece::queen];
+	diagonalSliders[0] = &friendlyPieceLists[Piece::bishop];
+	diagonalSliders[1] = &friendlyPieceLists[Piece::queen];
 
-	enemyOrthogonalSliders[0] = enemyPieceLists[Piece::rook];
-	enemyOrthogonalSliders[1] = enemyPieceLists[Piece::queen];
+	enemyOrthogonalSliders[0] = &enemyPieceLists[Piece::rook];
+	enemyOrthogonalSliders[1] = &enemyPieceLists[Piece::queen];
 
-	enemyDiagonalSliders[0] = enemyPieceLists[Piece::bishop];
-	enemyDiagonalSliders[1] = enemyPieceLists[Piece::queen];
+	enemyDiagonalSliders[0] = &enemyPieceLists[Piece::bishop];
+	enemyDiagonalSliders[1] = &enemyPieceLists[Piece::queen];
 
 
-	pawns = friendlyPieceLists[Piece::pawn];
-	friendlyKingSquare = friendlyPieceLists[Piece::king][0];
+	pawns = &friendlyPieceLists[Piece::pawn];
+	*/
+	friendlyKingSquare = board->pieceLists[colorIndex][Piece::king][0];
+	enemyKingSquare = board->pieceLists[enemyColorIndex][Piece::king][0];
 
 	checkBB = 0ULL;
 	checkRayBB = 0ULL;
 	opponentAttacks = 0ULL;
-	friendlyBoard = whiteTurn ? &board->whitePieces : &board->blackPieces;
-	enemyBoard = !whiteTurn ? &board->whitePieces : &board->blackPieces;
+
+	friendlyBoard = whiteTurn ? board->whitePieces : board->blackPieces;
+	enemyBoard = !whiteTurn ? board->whitePieces : board->blackPieces;
 
 	generateCaptures = capturesOnly;
 }
@@ -88,17 +92,11 @@ void MoveGen::generateSlideMoves(Move moves[]) {
 
 void MoveGen::generateOrthogonalMoves(Move moves[]) {
 	int startSquare;
-	int direction;
-	int distance;
 	int targetSquare;
-	int numOrthoSliders;
 	bool isPinned;
-	unsigned int pinDir = 0;
-
-	for (int type = 0; type < 2; type++) {
-		numOrthoSliders = orthogonalSliders[type].numPieces;
-		for (int it = 0; it < numOrthoSliders; it++) {
-			startSquare = orthogonalSliders[type][it];
+	uint64_t orthSliders = board->orthogonalPieces & friendlyBoard;
+	while (orthSliders != 0ULL) {
+		startSquare = BitBoardUtility::popLSB(orthSliders);
 			isPinned = checkRayBB & (1ULL << startSquare);
 
 			
@@ -107,10 +105,11 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 			} else if (isPinned && abs(friendlyKingSquare - startSquare) % 9 == 0) {
 				continue;
 			}
+
 			uint64_t blockers = board->allPieces & preComp.getBlockerOrthogonalMask(startSquare);
 			uint64_t moveBitboard = preComp.getOrthMovementBoard(startSquare, blockers);
 			
-			moveBitboard &= ~(*friendlyBoard);
+			moveBitboard &= ~(friendlyBoard);
 			if (isCheck) {
 				moveBitboard &= checkBB;
 			}
@@ -118,7 +117,7 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 				moveBitboard &= checkRayBB;
 			}
 			if (generateCaptures) {
-				moveBitboard &= *enemyBoard;
+				moveBitboard &= enemyBoard;
 			}
 
 
@@ -128,55 +127,24 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 			if (isPinned && abs(friendlyKingSquare - startSquare) % 8 == 0) {
 				moveBitboard &= preComp.getColMask(startSquare);
 			}
-			/*
-			if (startSquare == 27 && board->state->zobristHash == 3242593356947369533ULL) {
-				BitBoardUtility::printBB(board->allPieces);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(*friendlyBoard);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(board->pawns);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(board->orthogonalPieces);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(board->diagonalPieces);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(moveBitboard);
-				cout << moveBitboard << endl;
-				cout << blockers << endl;
-				cout << "--------------\n";
-				BitBoardUtility::printBB(blockers);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(checkBB);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(checkRayBB);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(preComp.getColMask(startSquare));
-				cout << "square: " << CoordHelper::indexToString(startSquare) << "\n------------\n";
 
-			}
-			*/
 			while (moveBitboard != 0ULL) {
-				int targetSquare = BitBoardUtility::popLSB(moveBitboard);
+				targetSquare = BitBoardUtility::popLSB(moveBitboard);
 
 				moves[currentMoves++] = Move(startSquare, targetSquare);
 			}
-		}
+
 	}
 }
 
 void MoveGen::generateDiagonalMoves(Move moves[]) {
 	int startSquare;
-	int direction;
-	int distance;
 	int targetSquare;
-	int numDiagSliders;
 	bool isPinned;
-	unsigned int pinDir = 0;
+	uint64_t diagSliders = board->diagonalPieces & friendlyBoard;
+	while (diagSliders != 0ULL) {
+		startSquare = BitBoardUtility::popLSB(diagSliders);
 
-	for (int type = 0; type < 2; type++) {
-		numDiagSliders = diagonalSliders[type].numPieces;
-		for (int it = 0; it < numDiagSliders; it++) {
-			const int startSquare = diagonalSliders[type][it];
 			isPinned = checkRayBB & (1ULL << startSquare);
 
 			if (isPinned && friendlyKingSquare / 8 == startSquare / 8) {
@@ -187,9 +155,8 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 
 			uint64_t blockers = board->allPieces & preComp.getBlockerDiagonalMask(startSquare);
 			uint64_t moveBitboard = preComp.getDiagMovementBoard(startSquare, blockers);
+			moveBitboard &= ~(friendlyBoard);
 
-
-			moveBitboard &= ~(*friendlyBoard);
 			if (isCheck) {
 				moveBitboard &= checkBB;
 			}
@@ -197,7 +164,7 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 				moveBitboard &= checkRayBB;
 			}
 			if (generateCaptures) {
-				moveBitboard &= *enemyBoard;
+				moveBitboard &= enemyBoard;
 			}
 
 			if (isPinned && abs(friendlyKingSquare - startSquare) % 7 == 0) {
@@ -205,110 +172,82 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 			} else if (isPinned && abs(friendlyKingSquare - startSquare) % 9 == 0) {
 				moveBitboard &= preComp.getBackwardMask(startSquare);
 			}
-			/*
-			if (startSquare == CoordHelper::stringToIndex("d7") && board->state->zobristHash == 6155810857914056884ULL) {
-				cout << "bitboards: " << endl;
-				BitBoardUtility::printBB(board->allPieces);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(*friendlyBoard);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(board->pawns);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(board->orthogonalPieces);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(board->diagonalPieces);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(moveBitboard);
-				cout << moveBitboard << endl;
-				cout << blockers << endl;
-				cout << "--------------\n";
-				BitBoardUtility::printBB(blockers);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(checkBB);
-				cout << "--------------\n";
-				BitBoardUtility::printBB(checkRayBB);
-				cout << "square: " << CoordHelper::indexToString(startSquare) << "\n------------\n";
 
-			}
-			*/
 			while (moveBitboard != 0ULL) {
-				int targetSquare = BitBoardUtility::popLSB(moveBitboard);
+				targetSquare = BitBoardUtility::popLSB(moveBitboard);
 
 				moves[currentMoves++] = Move(startSquare, targetSquare);
 			}
-		}
+
 	}
 }
 
 void MoveGen::generateKnightMoves(Move moves[]) {
-	int numKnights = friendlyPieceLists[Piece::knight].numPieces;
+	int startSquare;
+	int targetSquare;
 	bool isPinned;
-	for (int it = 0; it < numKnights; it++) {
-		const int startSquare = friendlyPieceLists[Piece::knight][it];
+	uint64_t knights = board->knights & friendlyBoard;
+	while (knights != 0ULL) {
+		startSquare = BitBoardUtility::popLSB(knights);
 		isPinned = checkRayBB & (1ULL << startSquare);
 		if (isPinned) continue;
-		for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
-			if (!preComp.directionDistances[startSquare].knightSquares[dirIndex]) continue;
-			const int targetSquare = knightDirections[dirIndex] + startSquare;
-			if (Piece::isColor(squares[targetSquare], currentColor)) continue;
-			if (isCheck && !(checkBB & 1ULL << targetSquare)) continue;
-			if (generateCaptures && squares[targetSquare] == Piece::empty) continue;
+
+		uint64_t moveBitboard = preComp.getKnightBoard(startSquare);
+		moveBitboard &= ~(friendlyBoard);
+		if (isCheck)
+			moveBitboard &= checkBB;
+		if (generateCaptures)
+			moveBitboard &= enemyBoard;
+
+		while (moveBitboard != 0) {
+			targetSquare = BitBoardUtility::popLSB(moveBitboard);
+
 			moves[currentMoves++] = Move(startSquare, targetSquare);
 		}
 	}
 }
 
 void MoveGen::generateKingMoves(Move moves[]) {
-	const int startSquare = friendlyPieceLists[Piece::king][0];
+	int targetSquare;
 	const int castleMask = whiteTurn ? BoardState::whiteCastleMask : BoardState::blackCastleMask;
 	const int colorIndex = whiteTurn ? board->whiteIndex : board->blackIndex;
-	if (startSquare == startingKingSquares[colorIndex] && castlingRights & castleMask && !isCheck) castlingMoves(moves, startSquare);
+	if (friendlyKingSquare == startingKingSquares[colorIndex] && castlingRights & castleMask && !isCheck) 
+		castlingMoves(moves, friendlyKingSquare);
 
-	for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
-		if (preComp.directionDistances[startSquare].direction[dirIndex] <= 1) continue;
-		const int targetSquare = slideDirections[dirIndex] + startSquare;
-		if (Piece::isColor(squares[targetSquare], currentColor)) continue;
-		if (opponentAttacks & (1ULL << targetSquare)) continue;
-		if (generateCaptures && squares[targetSquare] == Piece::empty) continue;
-		moves[currentMoves++] = Move(startSquare, targetSquare);
+	uint64_t moveBitboard = preComp.getKingMoves(friendlyKingSquare);
+	moveBitboard &= ~(opponentAttacks);
+	moveBitboard &= ~(friendlyBoard);
+
+	while (moveBitboard != 0ULL) {
+		targetSquare = BitBoardUtility::popLSB(moveBitboard);
+
+		moves[currentMoves++] = Move(friendlyKingSquare, targetSquare);
 	}
 }
 
 void MoveGen::generatePawnMoves(Move moves[]) {
-	int numPawns = pawns.numPieces;
 	int direction = whiteTurn ? whitePawnDirection : blackPawnDirection;
 	const int* attackDirection = whiteTurn ? whitePawnAttackDirections : blackPawnAttackDirections;
 	const int startRow = whiteTurn ? 6 : 1;
 	const int promotionRow = whiteTurn ? 1 : 6;
 	bool isPinned;
-	int pinDir = 0;
+	int startSquare;
+	int targetSquare;
+	int kingDir;
+	uint64_t pawns = board->pawns & friendlyBoard;
 
-	for (int it = 0; it < numPawns; it++) {
-		const int startSquare = pawns[it];
-		int kingDir = abs(friendlyKingSquare - startSquare);
-		bool skipDiag = false;
-		bool skipOrth = false;
+	while (pawns != 0ULL) {
+		startSquare = BitBoardUtility::popLSB(pawns);
+		kingDir = abs(friendlyKingSquare - startSquare);
 		isPinned = checkRayBB & (1ULL << startSquare);
-		pinDir = 0;
 
-		if (isPinned && kingDir % 8 == 0) skipDiag = true;
 		if (isPinned && friendlyKingSquare / 8 == startSquare / 8) continue;
 
-		if (isPinned && abs(startSquare - friendlyKingSquare) <= 9) {
-			for (int dir = startDiagonal; dir < endDiagonal; dir++) {
-				if (abs(slideDirections[dir]) == kingDir) {
-					pinDir = kingDir;
-					skipOrth = true;
-					break;
-				}
-			}
-		}
-		//if (startSquare / 8 == 7) throw std::out_of_range("Pawn cannot exist on last rank.");
-		for (int i = 0; i < 2; i++) {
-			if (skipDiag) break;
-			if (pinDir && pinDir != abs(attackDirection[i])) continue;
-			if (preComp.directionDistances[startSquare].direction[3 - i * 2] <= 1) continue;
-			int targetSquare = attackDirection[i] + startSquare;
+		for (int dir = 0; dir < 2; dir++) {
+			if (isPinned && kingDir % abs(attackDirection[dir]) != 0) continue;
+			//if (pinDir && pinDir != abs(attackDirection[i])) continue;
+			if (preComp.directionDistances[startSquare].direction[3 - dir * 2] <= 1) continue;
+			targetSquare = attackDirection[dir] + startSquare;
 			if (isPinned && !(checkRayBB & (1ULL << targetSquare))) continue;
 			if (targetSquare == enPassantSquare && squares[targetSquare] == Piece::empty) {
 				enPassantMoves(moves, targetSquare, startSquare);
@@ -326,31 +265,33 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 			}
 			moves[currentMoves++] = Move(startSquare, targetSquare);
 		}
-		if (generateCaptures) continue;
-		if (skipOrth) continue;
-		bool stillPinned, blockingCheck;
-		stillPinned = isPinned && !(checkRayBB & (1ULL << (direction + startSquare)));
-		blockingCheck = isCheck && !(checkBB & 1ULL << direction + startSquare);
 
-		if (squares[direction + startSquare] == Piece::empty) {
-			if (!stillPinned && !blockingCheck) {
-				if (startSquare / 8 == promotionRow) {
-					for (int i = 0; i < 4; i++) {
-						moves[currentMoves++] = Move(startSquare, startSquare + direction, promotionFlags[i]);
-					}
-					continue;
+		// If generating captures, moving forward does not capture
+		if (generateCaptures) continue;
+		// If pinned, and not on king's file, pinned diagonally or horizontally
+		if (isPinned && kingDir % 8 != 0)
+			continue;
+
+		if (squares[startSquare + direction] != Piece::empty)
+			continue;
+
+		// If in check, and square not in check ray
+		if (!isCheck || (isCheck && checkBB & 1ULL << (startSquare + direction))) {
+			if (startSquare / 8 == promotionRow) {
+				for (int i = 0; i < 4; i++) {
+					moves[currentMoves++] = Move(startSquare, startSquare + direction, promotionFlags[i]);
 				}
+
+			} else {
 				moves[currentMoves++] = Move(startSquare, direction + startSquare);
 			}
-		} else continue;
-		if (isPinned && stillPinned) continue;
-		stillPinned = isPinned && !(checkRayBB & (1ULL << (direction * 2 + startSquare)));
-		blockingCheck = isCheck && !(checkBB & 1ULL << direction * 2 + startSquare);
-
-		if (startSquare / 8 == startRow && squares[direction * 2 + startSquare] == Piece::empty) {
-			if (!stillPinned && !blockingCheck) {
-				moves[currentMoves++] = Move(startSquare, direction * 2 + startSquare, Move::pawnTwoSquaresFlag);
-			}
+		}
+		if (!(startSquare / 8 == startRow && squares[direction * 2 + startSquare] == Piece::empty)) {
+			continue;
+		}
+		// If in check, and square not in check ray
+		if (!isCheck || (isCheck && checkBB & 1ULL << (startSquare + 2 * direction))) {
+			moves[currentMoves++] = Move(startSquare, direction * 2 + startSquare, Move::pawnTwoSquaresFlag);
 		}
 	}
 }
@@ -362,29 +303,28 @@ void MoveGen::enPassantMoves(Move moves[], int targetSquare, int startSquare) {
 	if (isCheck && !(checkBB & 1ULL << targetSquare) && !(checkBB & 1ULL << enemyPawnSquare)) return;
 
 	if (enPassantPin(startSquare, enemyPawnSquare)) return;
-	//cout << "enpassanting" << endl;
+
 	moves[currentMoves++] = Move(startSquare, targetSquare, Move::enPassantCaptureFlag);
 }
 
 bool MoveGen::enPassantPin(int friendlyPawnSquare, int enemyPawnSquare) {
+	// If king and pawn on different rows, no pin possible
 	if (friendlyKingSquare / 8 != friendlyPawnSquare / 8) return false;
-	const int directionIndex = friendlyKingSquare > enemyPawnSquare ? 3 : 1;
 
-	const int direction = slideDirections[directionIndex];
-	int distance = preComp.directionDistances[friendlyKingSquare].direction[directionIndex];
-	for (int it = 1; it < distance; it++) {
-		int targetSquare = direction * it + friendlyKingSquare;
-		if (targetSquare == friendlyPawnSquare || targetSquare == enemyPawnSquare) continue;
-		// If targetsquare contains friendly piece break
-		if (Piece::isColor(squares[targetSquare], currentColor)) break;
-		
-		if (Piece::isOrthogonal(squares[targetSquare])) return true;
-
-		// If targetsquare contains opposing piece break
-		if (squares[targetSquare] != Piece::empty)	break;
-	}
-
-	return false;
+	// Create blocker board
+	uint64_t blockers = preComp.getBlockerOrthogonalMask(friendlyKingSquare) & board->allPieces;
+	// After en passant pawns will be gone
+	blockers &= ~(1ULL << friendlyPawnSquare) & ~(1ULL << enemyPawnSquare);
+	// Block column
+	blockers |= preComp.getColMask(friendlyKingSquare) & ~(1ULL << friendlyKingSquare);
+	blockers &= ~preComp.getRowMask(0);
+	blockers &= ~preComp.getRowMask(63);
+	// Get movement board
+	uint64_t movementBitboard = preComp.getOrthMovementBoard(friendlyKingSquare, blockers);
+	// Restrict movement to row and enemy orthogonal pieces
+	movementBitboard &= board->orthogonalPieces & enemyBoard & preComp.getRowMask(friendlyKingSquare);
+	// If movement board != 0ULL, there is a pin
+	return movementBitboard != 0ULL;
 }
 
 void MoveGen::castlingMoves(Move moves[], int startSquare) {
@@ -397,102 +337,63 @@ void MoveGen::castlingMoves(Move moves[], int startSquare) {
 	const bool longAttacked = opponentAttacks & (1ULL << travellingLongSquare);
 
 	if (!(opponentAttacks & (1ULL << shortCastleKingSquares[colorIndex])) && !shortAttacked && castlingRights & shortMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare + 1] == Piece::empty && squares[startSquare + 2] == Piece::empty) {
-		//cout << "castling short" << endl;
 		moves[currentMoves++] = Move(startingKingSquares[colorIndex], shortCastleKingSquares[colorIndex], Move::castleFlag);
 	}
 	if (!(opponentAttacks & (1ULL << longCastleKingSquares[colorIndex])) && !longAttacked && castlingRights & longMask && squares[longCastleRookSquares[colorIndex]] == friendlyRook && squares[startSquare - 1] == Piece::empty && squares[startSquare - 2] == Piece::empty && squares[startSquare - 3] == Piece::empty) {
-		//cout << "castling long" << endl;
 		moves[currentMoves++] = Move(startingKingSquares[colorIndex], longCastleKingSquares[colorIndex], Move::castleFlag);
 	}
 }
 
 void MoveGen::generateSlideAttackData() {
 	int startSquare;
-	int direction;
-	int distance;
-	int targetSquare;
-	int numOrthoSliders;
-	int numDiagSliders;
+	uint64_t orthSliders = board->orthogonalPieces & enemyBoard;
+	uint64_t diagSliders = board->diagonalPieces & enemyBoard;
 
-	for (int type = 0; type < 2; type++) {
-		numOrthoSliders = enemyOrthogonalSliders[type].numPieces;
-		for (int it = 0; it < numOrthoSliders; it++) {
-			startSquare = enemyOrthogonalSliders[type][it];
+	while (orthSliders != 0ULL) {
+			startSquare = BitBoardUtility::popLSB(orthSliders);
+
 			uint64_t blockers = board->allPieces & preComp.getBlockerOrthogonalMask(startSquare);
 			BitBoardUtility::deleteBit(blockers, friendlyKingSquare);
 			uint64_t moveBitboard = preComp.getOrthMovementBoard(startSquare, blockers);
 
-			//moveBitboard &= ~(*enemyBoard);
-
 			opponentAttacks |= moveBitboard;
-		}
 	}
 
-	for (int type = 0; type < 2; type++) {
-		numDiagSliders = enemyDiagonalSliders[type].numPieces;
-		for (int it = 0; it < numDiagSliders; it++) {
-			startSquare = enemyDiagonalSliders[type][it];
+	while (diagSliders != 0ULL) {			
+		startSquare = BitBoardUtility::popLSB(diagSliders);
 			
 			uint64_t blockers = board->allPieces & preComp.getBlockerDiagonalMask(startSquare);
 			BitBoardUtility::deleteBit(blockers, friendlyKingSquare);
 			uint64_t moveBitboard = preComp.getDiagMovementBoard(startSquare, blockers);
 
-			//moveBitboard &= ~(*enemyBoard);
-
 			opponentAttacks |= moveBitboard;
-
-			/*
-			for (int dirIndex = startDiagonal; dirIndex < endDiagonal; dirIndex++) {
-				direction = slideDirections[dirIndex];
-				distance = preComp.directionDistances[startSquare].direction[dirIndex];
-				for (int it = 1; it < distance; it++) {
-					targetSquare = direction * it + startSquare;
-					// Add move
-					opponentAttacks |= 1ULL << targetSquare;
-					// If targetsquare contains opposing piece break
-					if (squares[targetSquare] != Piece::empty && squares[targetSquare] != (Piece::king | currentColor)) break;
-				}
-			}
-			*/
-		}
 	}
 
 }
 
 void MoveGen::generateKnightAttackData() {
-	int numKnights = enemyPieceLists[Piece::knight].numPieces;
-	for (int it = 0; it < numKnights; it++) {
-		const int startSquare = enemyPieceLists[Piece::knight][it];
-		for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
-			if (!preComp.directionDistances[startSquare].knightSquares[dirIndex]) continue;
-			const int targetSquare = knightDirections[dirIndex] + startSquare;
-			opponentAttacks |= 1ULL << targetSquare;
-
-		}
+	int startSquare;
+	uint64_t knights = board->knights & enemyBoard;
+	while (knights != 0ULL) {
+		startSquare = BitBoardUtility::popLSB(knights);
+		opponentAttacks |= preComp.getKnightBoard(startSquare);
 	}
 }
-void MoveGen::generatePawnAttackData() {
-	int numPawns = enemyPieceLists[Piece::pawn].numPieces;
-	const int* attackDirection = !whiteTurn ? whitePawnAttackDirections : blackPawnAttackDirections;
 
-	for (int it = 0; it < numPawns; it++) {
-		const int startSquare = enemyPieceLists[Piece::pawn][it];
-		//if (startSquare / 8 == 7) throw std::out_of_range("Pawn cannot exist on last rank.");
-		for (int i = 0; i < 2; i++) {
-			if (preComp.directionDistances[startSquare].direction[3 - i * 2] <= 1) continue;
-			int targetSquare = attackDirection[i] + startSquare;
-			opponentAttacks |= 1ULL << targetSquare;
-		}
+void MoveGen::generatePawnAttackData() {
+	int startSquare;
+	uint64_t pawns = board->pawns & enemyBoard;
+
+	while (pawns != 0ULL) {
+		startSquare = BitBoardUtility::popLSB(pawns);
+		uint64_t moveBitboard = preComp.getPawnAttackMoves(startSquare, !whiteTurn ? Piece::white : Piece::black);
+		opponentAttacks |= moveBitboard;
 	}
 }
 void MoveGen::generateKingAttackData() {
-	const int startSquare = enemyPieceLists[Piece::king][0];
-
-	for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
-		if (preComp.directionDistances[startSquare].direction[dirIndex] <= 1) continue;
-		const int targetSquare = slideDirections[dirIndex] + startSquare;
-		opponentAttacks |= 1ULL << targetSquare;
-	}
+	const int startSquare = enemyKingSquare;
+	uint64_t moveBitboard = preComp.getKingMoves(startSquare);
+	opponentAttacks |= moveBitboard;
 }
 
 void MoveGen::generateAttackData() {
@@ -505,7 +406,6 @@ void MoveGen::generateAttackData() {
 void MoveGen::generateCheckData() {
 	generateAttackData();
 
-	const int kingSquare = friendlyPieceLists[Piece::king][0];
 	int targetSquare;
 	int direction;
 	int distance;
@@ -513,16 +413,18 @@ void MoveGen::generateCheckData() {
 	uint64_t orthogonalBlockers = board->allPieces & preComp.getBlockerOrthogonalMask(friendlyKingSquare);
 	uint64_t diagonalBlockers = board->allPieces & preComp.getBlockerDiagonalMask(friendlyKingSquare);
 
-	uint64_t moveBitboard = preComp.getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
-	moveBitboard |= preComp.getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
+	checkBB = preComp.getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
+	checkBB |= preComp.getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
 
-	orthogonalBlockers = board->allPieces & ~(moveBitboard & *friendlyBoard) & preComp.getBlockerOrthogonalMask(friendlyKingSquare);
-	diagonalBlockers = board->allPieces & ~(moveBitboard & *friendlyBoard) & preComp.getBlockerDiagonalMask(friendlyKingSquare);
-	uint64_t
-	moveBitboard &= ~(*friendlyBoard);
+	orthogonalBlockers &= ~(checkBB & friendlyBoard);
+	diagonalBlockers &= ~(checkBB & friendlyBoard);
+	checkRayBB = preComp.getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
+	checkRayBB = preComp.getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
 
-	while (moveBitboard != 0) {
-		BitBoardUtility::popLSB(moveBitboard);
+	checkBB &= ~(friendlyBoard);
+
+	while (checkBB != 0) {
+		BitBoardUtility::popLSB(checkBB);
 		doubleCheck = isCheck;
 		isCheck = true;
 		if (doubleCheck)
@@ -536,9 +438,9 @@ void MoveGen::generateCheckData() {
 		uint64_t dirRayBB = 0ULL;
 		// bool dirCheck = false;
 		direction = slideDirections[dirIndex];
-		distance = preComp.directionDistances[kingSquare].direction[dirIndex];
+		distance = preComp.directionDistances[friendlyKingSquare].direction[dirIndex];
 		for (int it = 1; it < distance; it++) {
-			targetSquare = direction * it + kingSquare;
+			targetSquare = direction * it + friendlyKingSquare;
 			if (squares[targetSquare] == Piece::empty) {
 				dirBB |= 1ULL << targetSquare;
 				continue;
@@ -567,25 +469,32 @@ void MoveGen::generateCheckData() {
 		if (doubleCheck) break;
 	}
 
-	const int enemyKnight = whiteTurn ? Piece::blackKnight : Piece::whiteKnight;
-	for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
-		if (!preComp.directionDistances[kingSquare].knightSquares[dirIndex]) continue;
-		targetSquare = knightDirections[dirIndex] + kingSquare;
-		if (squares[targetSquare] != enemyKnight) continue;
-		checkBB |= 1ULL << targetSquare;
+	uint64_t enemyKnights = board->knights & enemyBoard;
+	uint64_t knightMoveBitboard = preComp.getKnightBoard(friendlyKingSquare);
+	knightMoveBitboard &= enemyKnights;
+
+	checkBB |= knightMoveBitboard;
+	
+	while (knightMoveBitboard != 0) {
+		BitBoardUtility::popLSB(knightMoveBitboard);
 		doubleCheck = isCheck;
 		isCheck = true;
+		if (doubleCheck)
+			break;
 	}
 
-	const int enemyPawn = whiteTurn ? Piece::blackPawn : Piece::whitePawn;
-	const int* attackDirection = whiteTurn ? whitePawnAttackDirections : blackPawnAttackDirections;
-	for (int i = 0; i < 2; i++) {
-		if (preComp.directionDistances[kingSquare].direction[3 - i * 2] <= 1) continue;
-		targetSquare = attackDirection[i] + kingSquare;
-		if (squares[targetSquare] != enemyPawn) continue;
-		checkBB |= 1ULL << targetSquare;
+	uint64_t enemyPawns = board->pawns & enemyBoard;
+	uint64_t pawnMoveBitboard = preComp.getPawnAttackMoves(friendlyKingSquare, whiteTurn ? Piece::white : Piece::black);
+	pawnMoveBitboard &= enemyPawns;
+
+	checkBB |= pawnMoveBitboard;
+
+	while (pawnMoveBitboard != 0) {
+		BitBoardUtility::popLSB(pawnMoveBitboard);
 		doubleCheck = isCheck;
 		isCheck = true;
+		if (doubleCheck)
+			break;
 	}
 }
 

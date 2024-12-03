@@ -28,8 +28,10 @@ struct BoardState {
 
 	BoardState();
 	BoardState(bool whiteTurn, int capturedPiece, int enPassantFile, int castlingRights, int fiftyMoveCounter, int moves, uint64_t zobristHash);
+	BoardState(BoardState&& other);
 	constexpr bool canShortCastle(bool isWhite) const;
 	constexpr bool canLongCastle(bool isWhite) const;
+	BoardState& operator=(const BoardState& other);
 };
 
 #endif // !BOARDSTATE_H

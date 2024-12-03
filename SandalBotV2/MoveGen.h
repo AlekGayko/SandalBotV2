@@ -54,16 +54,17 @@ private:
 	bool doubleCheck;
 	bool generateCaptures;
 	int friendlyKingSquare;
+	int enemyKingSquare;
 	int* squares = nullptr;
-	PieceList* friendlyPieceLists;
-	PieceList* enemyPieceLists;
-	PieceList orthogonalSliders[2];
-	PieceList diagonalSliders[2];
+	//PieceList* friendlyPieceLists;
+	//PieceList* enemyPieceLists;
+	//PieceList* orthogonalSliders[2];
+	//PieceList* diagonalSliders[2];
 
-	PieceList enemyOrthogonalSliders[2];
-	PieceList enemyDiagonalSliders[2];
+	//PieceList* enemyOrthogonalSliders[2];
+	//PieceList* enemyDiagonalSliders[2];
 
-	PieceList pawns;
+	//PieceList* pawns;
 
 	bool whiteTurn;
 	int enPassantSquare;
@@ -74,8 +75,8 @@ private:
 	uint64_t opponentAttacks;
 	uint64_t checkBB;
 	uint64_t checkRayBB;
-	uint64_t* friendlyBoard;
-	uint64_t* enemyBoard;
+	uint64_t friendlyBoard;
+	uint64_t enemyBoard;
 
 public:
 	static const int startingKingSquares[2];

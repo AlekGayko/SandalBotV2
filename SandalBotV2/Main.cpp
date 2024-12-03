@@ -5,8 +5,6 @@
 using namespace std;
 
 int main() {
-	//MovePrecomputation preComp = MovePrecomputation();
-
 	IUCI engine;
 
 	string command = "";

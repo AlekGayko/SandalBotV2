@@ -8,6 +8,7 @@
 #include "CoordHelper.h"
 #include "Move.h"
 #include "PieceList.h"
+#include "StateHistory.h"
 
 #include <stack>
 #include <vector>
@@ -25,7 +26,7 @@ public:
 	//int kings[2];
 
 	BoardHistory history;
-	std::vector<BoardState> boardStateHistory;
+	StateHistory stateHistory;
 	BoardState* state = nullptr;
 
 	// Bitboards

@@ -96,6 +96,9 @@ void MovePrecomputation::initBackwardMask(int constant) {
 void MovePrecomputation::precomputeMoves() {
 	precomputeOrthogonalMoves();
 	precomputeDiagonalMoves();
+	precomputeKnightMoves();
+	precomputeKingMoves();
+	precomputePawnMoves();
 }
 
 void MovePrecomputation::precomputeOrthogonalMoves() {
@@ -112,7 +115,6 @@ void MovePrecomputation::precomputeOrthogonalMoves() {
 		}
 		magics->addOrthogonalMoves(square, blockerConfigs, movementBoards);
 	}
-	cout << "orth size: " << size << endl;
 }
 
 void MovePrecomputation::precomputeDiagonalMoves() {
@@ -129,100 +131,57 @@ void MovePrecomputation::precomputeDiagonalMoves() {
 		}
 		magics->addDiagonalMoves(square, blockerConfigs, movementBoards);
 	}
-	cout << "diag size: " << size << endl;
 }
 
-uint64_t get_current_time_in_milliseconds() {
-	// Get the current time point from the system clock
-	auto now = std::chrono::system_clock::now();
-
-	// Convert the time point to a duration since the epoch
-	auto duration = now.time_since_epoch();
-
-	// Convert the duration to milliseconds
-	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-
-	return milliseconds;
-}
-
-uint64_t random_uint64() {
-	std::random_device rd;
-	std::mt19937_64 gen(rd());
-	std::uniform_int_distribution<uint64_t> dist(0ULL, std::numeric_limits<uint64_t>::max());
-	uint64_t u1, u2, u3, u4;
-	u1 = (uint64_t)(dist(gen)) & 0xFFFF; u2 = (uint64_t)(dist(gen)) & 0xFFFF;
-	u3 = (uint64_t)(dist(gen)) & 0xFFFF; u4 = (uint64_t)(dist(gen)) & 0xFFFF;
-	return u1 | (u2 << 16) | (u3 << 32) | (u4 << 48);
-}
-/*
-void MovePrecomputation::generateMagicNumbers(vector<uint64_t>& blockerConfigs, bool isOrth) {
-	uint64_t magicNumber = 0ULL;
-	int size = isOrth ? orthMagicNumbers.size() : diagMagicNumbers.size();
-	const int minRightShift = 63 - (log2(blockerConfigs.size()) + 3);
-	const int maxRightShift = 63 - (log2(blockerConfigs.size()));
-	cout << "size: " << blockerConfigs.size() << endl;
-	cout << "maxshift: " << maxRightShift << ", minshift: " << minRightShift << endl;
-
-	auto nextPrintTime = get_current_time_in_milliseconds() + 500ULL;
-	uint64_t acceptableSize = blockerConfigs.size() * 2;
-
-	uint64_t bestMagic = 0ULL;
-	int bestRightShift = -1;
-	uint64_t maxIndex = std::numeric_limits<uint64_t>::max();
-
-	uint64_t indexesSize = 1ULL << (68 - maxRightShift);
-	bool* indexes = new bool[indexesSize];
-	while (maxIndex > acceptableSize) {
-		// Random magic number
-		std::random_device rd;
-		std::mt19937_64 gen(rd());
-		std::uniform_int_distribution<uint64_t> dist(0ULL, std::numeric_limits<uint64_t>::max());
-		magicNumber = dist(gen);
-
-		for (int rightShift = minRightShift; rightShift <= maxRightShift; rightShift++) {
-			for (int i = 0; i < indexesSize; i++)
-				indexes[i] = false;
-			uint64_t bestIndex = numeric_limits<uint64_t>::min();
-			bool duplicates = false;
-			for (uint64_t& blocker : blockerConfigs) {
-				uint64_t index = blocker * magicNumber;
-				index >>= rightShift;
-				if (indexes[index] == true) {
-					duplicates = true;
-					break;
-				}
-				indexes[index] = true;
-				bestIndex = max(bestIndex, index);
+void MovePrecomputation::precomputeKnightMoves() {
+	for (int square = 0; square < 64; square++) {
+		knightMoves[square] = 0ULL;
+		for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
+			if (directionDistances[square].knightSquares[dirIndex]) {
+				knightMoves[square] |= 1ULL << (square + knightDirections[dirIndex]);
 			}
-			if (duplicates)
+		}
+	}
+}
+
+void MovePrecomputation::precomputeKingMoves() {
+	for (int square = 0; square < 64; square++) {
+		kingMoves[square] = 0ULL;
+		// Calculate diagonal moves
+		for (int dirIndex = startOrthogonal; dirIndex < endDiagonal; dirIndex++) {
+			int distance = directionDistances[square].direction[dirIndex];
+			if (distance <= 1)
 				continue;
-			if (bestIndex < maxIndex) {
-				bestMagic = magicNumber;
-				bestRightShift = rightShift;
-				maxIndex = bestIndex;
-			}
+
+			kingMoves[square] |= 1ULL << (square + slideDirections[dirIndex]);
 		}
-		if (get_current_time_in_milliseconds() > nextPrintTime) {
-			cout << "maxIndex: " << maxIndex << ", square: " << size << endl;
-			nextPrintTime = get_current_time_in_milliseconds() + 500;
-		}
-	}
-	delete[] indexes;
-	if (bestRightShift == -1) {
-		cout << "FAILUUUUUUUUUUUUUURE!!!!" << endl;
-	}
-	cout << "Magic Number Found!: " << maxIndex << ", Square: " << size << endl;
-	if (isOrth) {
-		orthMagicNumbers.push_back(bestMagic);
-		orthRightShifts.push_back(bestRightShift);
-		maxOrthIndex.push_back(maxIndex);
-	} else {
-		diagMagicNumbers.push_back(bestMagic);
-		diagRightShifts.push_back(bestRightShift);
-		maxDiagIndex.push_back(maxIndex);
 	}
 }
-*/
+
+void MovePrecomputation::precomputePawnMoves() {
+	for (int square = 0; square < 64; square++) {
+		whitePawnMoves[square] = 0ULL;
+		whitePawnAttackMoves[square] = 0ULL;
+		blackPawnMoves[square] = 0ULL;
+		blackPawnAttackMoves[square] = 0ULL;
+		// White pawns
+		if (directionDistances[square].direction[4] > 1) {
+			whitePawnAttackMoves[square] |= 1ULL << (square + slideDirections[4]);
+		}
+		if (directionDistances[square].direction[5] > 1) {
+			whitePawnAttackMoves[square] |= 1ULL << (square + slideDirections[5]);
+		}
+		whitePawnMoves[square] |= 1ULL << (square - 8);
+		// Black pawns
+		if (directionDistances[square].direction[6] > 1) {
+			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[6]);
+		}
+		if (directionDistances[square].direction[7] > 1) {
+			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[7]);
+		}
+		blackPawnMoves[square] |= 1ULL << (square + 8);
+	}
+}
 
 std::vector<uint64_t> MovePrecomputation::precomputeOrthogonalMove(int square) {
 	vector<int> moveSquares;
@@ -379,6 +338,23 @@ uint64_t MovePrecomputation::getOrthMovementBoard(const int& square, const uint6
 
 uint64_t MovePrecomputation::getDiagMovementBoard(const int& square, const uint64_t& blockerBoard) {
 	return magics->getDiagonalMovement(square, blockerBoard);
+}
+
+uint64_t MovePrecomputation::getKnightBoard(const int& square) {
+	return knightMoves[square];
+}
+
+uint64_t MovePrecomputation::getKingMoves(const int& square) {
+	return kingMoves[square];
+}
+
+uint64_t MovePrecomputation::getPawnMoves(const int& square, const uint64_t& blockerBoard, const int& color) {
+	uint64_t movement = color == Piece::white ? whitePawnMoves[square] : blackPawnMoves[square];
+	return movement;
+}
+
+uint64_t MovePrecomputation::getPawnAttackMoves(const int& square, const int& color) {
+	return color == Piece::white ? whitePawnAttackMoves[square] : blackPawnAttackMoves[square];
 }
 
 

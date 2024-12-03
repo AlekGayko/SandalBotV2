@@ -22,10 +22,9 @@ Board::Board() {
 	};
 	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
 	loadPieceLists();
-
-	boardStateHistory.reserve(150);
-	boardStateHistory.push_back(BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0ULL));
-	state = &boardStateHistory.back();
+	BoardState initState = BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0ULL);
+	stateHistory.push(initState);
+	state = &stateHistory.back();
 	state->zobristHash = ZobristHash::hashBoard(this);
 	history.push(state->zobristHash, false);
 	loadBitBoards();
@@ -54,7 +53,7 @@ void Board::loadPosition(std::string fen) {
 	FEN::PositionInfo newPos = FEN::fenToPosition(fen);
 	std::copy(std::begin(newPos.squares), std::end(newPos.squares), squares);
 
-	boardStateHistory.clear();
+	stateHistory.clear();
 
 	int enPassantSquare = newPos.enPassantSquare;
 	bool whiteTurn = newPos.whiteTurn;
@@ -68,9 +67,9 @@ void Board::loadPosition(std::string fen) {
 	if (newPos.blackLongCastle) castlingRights |= BoardState::blackLongCastleMask;
 
 	loadPieceLists();
-
-	boardStateHistory.push_back(BoardState(whiteTurn, Piece::empty, enPassantSquare, castlingRights, fiftyMoveCounter, moveCounter, 0ULL));
-	state = &boardStateHistory.back();
+	BoardState newState = BoardState(whiteTurn, Piece::empty, enPassantSquare, castlingRights, fiftyMoveCounter, moveCounter, 0ULL);
+	stateHistory.push(newState);
+	state = &stateHistory.back();
 	state->zobristHash = ZobristHash::hashBoard(this);
 	history.push(state->zobristHash, false);
 	loadBitBoards();
@@ -137,7 +136,18 @@ void Board::makeMove(Move& move, bool hashBoard) {
 	int fiftyMoveCounter = piece == Piece::pawn || takenPiece != Piece::empty ? 0 : state->fiftyMoveCounter + 1;
 	int castlingRights = state->castlingRights;
 	uint64_t newZobristHash = state->zobristHash;
-
+	if (Piece::type(takenPiece) == Piece::king) {
+		cout << move << endl;
+		printBoard();
+		BitBoardUtility::printBB(allPieces);
+		BitBoardUtility::printBB(whitePieces);
+		BitBoardUtility::printBB(blackPieces);
+		BitBoardUtility::printBB(orthogonalPieces);
+		BitBoardUtility::printBB(diagonalPieces);
+		BitBoardUtility::printBB(knights);
+		BitBoardUtility::printBB(pawns);
+		throw exception();
+	}
 	if (flag > Move::castleFlag) {
 		const int ownColor = state->whiteTurn ? Piece::white : Piece::black;
 		squares[startSquare] = Piece::empty;
@@ -233,8 +243,9 @@ void Board::makeMove(Move& move, bool hashBoard) {
 	}
 
 	updateBitBoards(move, piece, Piece::type(takenPiece));
-	boardStateHistory.push_back(BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash));
-	state = &boardStateHistory.back();
+	BoardState newState = BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash);
+	stateHistory.push(newState);
+	state = &stateHistory.back();
 
 	bool reset = takenPiece != Piece::empty || piece == Piece::pawn;
 
@@ -291,8 +302,8 @@ void Board::unMakeMove(Move& move) {
 
 	undoBitBoards(move, piece, Piece::type(takenPiece));
 	history.pop();
-	boardStateHistory.pop_back();
-	state = &boardStateHistory.back();
+	stateHistory.pop();
+	state = &stateHistory.back();
 }
 
 void Board::makeEnPassantChanges(Move& move) {
@@ -563,7 +574,7 @@ void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
 	}
 
 	// If taken piece is not empty and not the same type, delete bit from respective bitboard
-	if (takenPieceType != Piece::empty && pieceType != takenPieceType) {
+	if (takenPieceType != Piece::empty) {
 		switch (takenPieceType) {
 		case Piece::pawn:
 			BitBoardUtility::setBit(pawns, targetSquare);
@@ -572,21 +583,14 @@ void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
 			BitBoardUtility::setBit(knights, targetSquare);
 			break;
 		case Piece::rook:
-			if (pieceType == Piece::queen)
-				break;
 			BitBoardUtility::setBit(orthogonalPieces, targetSquare);
 			break;
 		case Piece::bishop:
-			if (pieceType == Piece::queen)
-				break;
 			BitBoardUtility::setBit(diagonalPieces, targetSquare);
 			break;
 		case Piece::queen:
-			if (pieceType != Piece::rook)
-				BitBoardUtility::setBit(orthogonalPieces, targetSquare);
-
-			if (pieceType != Piece::bishop)
-				BitBoardUtility::setBit(diagonalPieces, targetSquare);
+			BitBoardUtility::setBit(orthogonalPieces, targetSquare);
+			BitBoardUtility::setBit(diagonalPieces, targetSquare);
 			break;
 		}
 	}

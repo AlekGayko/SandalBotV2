@@ -14,6 +14,27 @@ BoardState::BoardState(bool whiteTurn, int capturedPiece, int enPassantSquare, i
 	this->zobristHash = zobristHash;
 }
 
+BoardState::BoardState(BoardState&& other) {
+	this->whiteTurn = other.whiteTurn;
+	this->capturedPiece = other.capturedPiece;
+	this->enPassantSquare = other.enPassantSquare;
+	this->castlingRights = other.castlingRights;
+	this->fiftyMoveCounter = other.fiftyMoveCounter;
+	this->moveCounter = other.moveCounter;
+	this->zobristHash = other.zobristHash;
+}
+
+BoardState& BoardState::operator=(const BoardState& other) {
+	this->whiteTurn = other.whiteTurn;
+	this->capturedPiece = other.capturedPiece;
+	this->enPassantSquare = other.enPassantSquare;
+	this->castlingRights = other.castlingRights;
+	this->fiftyMoveCounter = other.fiftyMoveCounter;
+	this->moveCounter = other.moveCounter;
+	this->zobristHash = other.zobristHash;
+	return *this;
+}
+
 constexpr bool BoardState::canShortCastle(bool isWhite) const {
 	return isWhite ? castlingRights & whiteShortCastleMask : castlingRights & blackShortCastleMask;
 }
