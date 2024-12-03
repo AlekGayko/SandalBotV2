@@ -422,7 +422,7 @@ void MoveGen::generateSlideAttackData() {
 			BitBoardUtility::deleteBit(blockers, friendlyKingSquare);
 			uint64_t moveBitboard = preComp.getOrthMovementBoard(startSquare, blockers);
 
-			moveBitboard &= ~(*enemyBoard);
+			//moveBitboard &= ~(*enemyBoard);
 
 			opponentAttacks |= moveBitboard;
 		}
@@ -509,6 +509,26 @@ void MoveGen::generateCheckData() {
 	int targetSquare;
 	int direction;
 	int distance;
+	/*
+	uint64_t orthogonalBlockers = board->allPieces & preComp.getBlockerOrthogonalMask(friendlyKingSquare);
+	uint64_t diagonalBlockers = board->allPieces & preComp.getBlockerDiagonalMask(friendlyKingSquare);
+
+	uint64_t moveBitboard = preComp.getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
+	moveBitboard |= preComp.getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
+
+	orthogonalBlockers = board->allPieces & ~(moveBitboard & *friendlyBoard) & preComp.getBlockerOrthogonalMask(friendlyKingSquare);
+	diagonalBlockers = board->allPieces & ~(moveBitboard & *friendlyBoard) & preComp.getBlockerDiagonalMask(friendlyKingSquare);
+	uint64_t
+	moveBitboard &= ~(*friendlyBoard);
+
+	while (moveBitboard != 0) {
+		BitBoardUtility::popLSB(moveBitboard);
+		doubleCheck = isCheck;
+		isCheck = true;
+		if (doubleCheck)
+			break;
+	}
+	*/
 	for (int dirIndex = startOrthogonal; dirIndex < endDiagonal; dirIndex++) {
 		bool isOrth = dirIndex < 4;
 		bool foundFriendly = false;
