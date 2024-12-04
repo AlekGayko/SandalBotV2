@@ -84,7 +84,6 @@ void MovePrecomputation::initBackwardMask(int constant) {
 	int row = constant + col;
 
 	while (col < 8) {
-		//cout << "row: " << row << ", col: " << col << endl;
 		if (row >= 0 && row < 8) {
 			mask |= 1ULL << (row * 8 + col);
 		}
@@ -110,14 +109,13 @@ void MovePrecomputation::initDirectionMasks() {
 
 	for (int diff = -64; diff < 64; diff++) {
 		int offset = diff < 0 ? 0 : 2;
-		if (diff % 7 == 0) {
-			differenceDivisibles[64 + diff] = 5 + offset;
-		} else if (diff % 9 == 0) {
+		if (diff % 9 == 0) {
 			differenceDivisibles[64 + diff] = 4 + offset;
+		} else if (diff % 7 == 0) {
+			differenceDivisibles[64 + diff] = 5 + offset;
 		}
 	}
-	BitBoardUtility::printBB(directionMasks[4 * 8 + 7]);
-	cout << differenceDivisibles[64 + 21] << endl;
+	cout << differenceDivisibles[64 + (0 - 63)] << endl;
 }
 
 void MovePrecomputation::precomputeMoves() {

@@ -16,6 +16,7 @@ public:
 	void push(BoardState& state);
 	void pop();
 	void clear();
+	BoardState& getSecondLast();
 	BoardState& back();
 };
 

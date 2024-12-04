@@ -35,7 +35,6 @@ void Searcher::iterativeSearch() {
 	stats = temp;
 
 	cout << "Transpositions: " << StringUtil::commaSeparator(stats.transpositions) << ", nNodes: " << StringUtil::commaSeparator(stats.nNodes) << ", qNodes: " << StringUtil::commaSeparator(stats.qNodes) << endl;
-	//cout << "Checkmates: " << stats.checkmates << ", Stalemates: " << stats.stalemates << ", Repetitions: " << stats.repetitions << ", FiftyMoveDraws: " << stats.fiftyMoveDraws << endl;
 	cout << "Time: " << stats.duration << ", Moves per second: " << StringUtil::commaSeparator((stats.nNodes) / stats.duration) << endl;
 	cout << "Depth " << stats.maxDepth << ", Evaluation: " << stats.eval << endl;
 	cout << endl;
@@ -70,7 +69,7 @@ int Searcher::QuiescenceSearch(int alpha, int beta, int maxDepth) {
 
 	int numMoves = moveGenerator->generateMoves(moves, true);
 
-	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, false, true);
+	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, 0, false, true);
 
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i], false);
@@ -96,9 +95,8 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExten
 		return Evaluator::cancelledScore;
 	}
 
-	if (depth == maxDepth) {
+	if (depth >= maxDepth) {
 		return QuiescenceSearch(alpha, beta, maxDepth);
-		//return evaluator.Evaluate(board);
 	}
 
 	int tTableEval = tTable->lookup(maxDepth - depth, depth, alpha, beta, board->state->zobristHash);
@@ -123,20 +121,28 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExten
 
 	Move moves[218];
 	int numMoves = moveGenerator->generateMoves(moves);
-	int reduceExtensionCutoff = 10;
-	int reducedMaxDepth = maxDepth - 1;
-	if (reducedMaxDepth - depth <= 0) reducedMaxDepth++;
-	//cout << maxDepth << ", " << reducedMaxDepth << endl;
-	Move bestMove = depth == 0 ? this->bestMove : tTable->getBestMove();
-	if (moveGenerator->isCheck && numExtensions < 16) {
-		numExtensions++;
-		maxDepth++;
-	}
-	if (numMoves > 1) orderer->order(moves, bestMove, numMoves, depth == 0, false);
+	
+	Move& bestMove = depth == 0 ? this->bestMove : tTable->getBestMove();
+
+	orderer->order(moves, bestMove, numMoves, depth, depth == 0, false);
+
 	for (int i = 0; i < numMoves; i++) {
 		board->makeMove(moves[i]);
+		bool fullSearch = true;
+		int extension = 0;
 
-		score = -negaMax(-beta, -alpha, depth + 1, i > reduceExtensionCutoff ? reducedMaxDepth : maxDepth, numExtensions);
+		if (i == reduceExtensionCutoff && (maxDepth - depth) >= 2) {
+			score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 1, numExtensions);
+			fullSearch = score > alpha;
+		}
+		
+		if (worthSearching(moves[i]) && numExtensions < 16) {
+			extension = 1;
+		}
+
+		if (fullSearch) {
+			score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 1 + extension, numExtensions + extension);
+		}
 
 		board->unMakeMove(moves[i]);
 
@@ -155,22 +161,23 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExten
 		if (alpha >= beta) {
 			stats.cutoffs++;
 			tTable->store(beta, maxDepth - depth, depth, TranspositionTable::lowerBound, moves[i], board->state->zobristHash);
+			orderer->killerMoves[depth].add(moves[i]);
 			return beta;
 		}
 	}
 
-	if (!numMoves) {
+	if (numMoves == 0) {
 		int eval = Evaluator::drawScore;
 		if (moveGenerator->isCheck) {
 			stats.checkmates++;
 			eval = -Evaluator::checkMateScore * (maxDepth - depth);
 		}
 		stats.stalemates++;
-		tTable->store(eval, maxDepth - depth, depth, TranspositionTable::exact, Move(), board->state->zobristHash);
+		tTable->store(eval, maxDepth - depth, depth, TranspositionTable::exact, nullMove, board->state->zobristHash);
 		return eval;
 	}
 
-	tTable->store(alpha, maxDepth - depth, depth, evalBound, greaterAlpha ? bestMove : Move(), board->state->zobristHash);
+	tTable->store(alpha, maxDepth - depth, depth, evalBound, greaterAlpha ? bestMove : nullMove, board->state->zobristHash);
 
 	return alpha;
 }
@@ -238,6 +245,10 @@ Searcher::~Searcher() {
 	delete moveGenerator;
 	delete orderer;
 	delete tTable;
+}
+
+bool Searcher::worthSearching(const Move& move) {
+	return move.flag > Move::castleFlag || moveGenerator->isCheck;
 }
 
 uint64_t Searcher::perft(int depth) {

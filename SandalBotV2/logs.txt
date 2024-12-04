@@ -1,3 +1,2 @@
-Command received: go perft 6
-Response: Time taken: 4.793882s, nodes per second: 24835886.987218
-Response: Nodes searched: 119060324
+Command received: go movetime 5000
+Command received: quit

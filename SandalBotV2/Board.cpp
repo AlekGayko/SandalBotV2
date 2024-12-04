@@ -136,6 +136,7 @@ void Board::makeMove(Move& move, bool hashBoard) {
 	int fiftyMoveCounter = piece == Piece::pawn || takenPiece != Piece::empty ? 0 : state->fiftyMoveCounter + 1;
 	int castlingRights = state->castlingRights;
 	uint64_t newZobristHash = state->zobristHash;
+
 	if (Piece::type(takenPiece) == Piece::king) {
 		cout << move << endl;
 		printBoard();
@@ -146,8 +147,10 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		BitBoardUtility::printBB(diagonalPieces);
 		BitBoardUtility::printBB(knights);
 		BitBoardUtility::printBB(pawns);
+		cout << stateHistory.getSecondLast().zobristHash << endl;
 		throw exception();
 	}
+
 	if (flag > Move::castleFlag) {
 		const int ownColor = state->whiteTurn ? Piece::white : Piece::black;
 		squares[startSquare] = Piece::empty;
@@ -400,8 +403,8 @@ std::vector<uint64_t> Board::getBitBoards() {
 // Update piece bitboards based on move
 void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
 	// Initialise commonly used variables
-	const int startSquare = move.startSquare;
-	const int targetSquare = move.targetSquare;
+	const int& startSquare = move.startSquare;
+	const int& targetSquare = move.targetSquare;
 	uint64_t* friendlyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
 	uint64_t* enemyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 
@@ -495,23 +498,12 @@ void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
 
 	// Update all Pieces with union of whitePieces and blackPieces
 	allPieces = whitePieces | blackPieces;
-	/*
-	cout << "ALL PIECES: " << endl;
-	BitBoardUtility::printBB(allPieces);
-	cout << "-----------" << endl;
-	cout << "WHITE PIECES: " << endl;
-	BitBoardUtility::printBB(whitePieces);
-	cout << "-----------" << endl;
-	cout << "BLACK PIECES: " << endl;
-	BitBoardUtility::printBB(blackPieces);
-	cout << "-----------" << endl;
-	*/
 }
 
 void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
 	// Initialise commonly used variables
-	const int startSquare = move.startSquare;
-	const int targetSquare = move.targetSquare;
+	const int& startSquare = move.startSquare;
+	const int& targetSquare = move.targetSquare;
 	uint64_t* friendlyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 	uint64_t* enemyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
 

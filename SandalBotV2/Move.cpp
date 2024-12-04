@@ -60,6 +60,15 @@ constexpr int Move::promotionPieceType() const {
 	}
 }
 
+Move& Move::operator=(const Move& other) {
+	this->moveValue = other.moveValue;
+	this->startSquare = other.startSquare;
+	this->targetSquare = other.targetSquare;
+	this->flag = other.flag;
+
+	return *this;
+}
+
 std::ostream& operator<<(std::ostream& os, const Move& move) {
 	os << CoordHelper::indexToString(move.startSquare) << CoordHelper::indexToString(move.targetSquare);
 	if (move.flag > Move::castleFlag) {
@@ -78,7 +87,6 @@ std::ostream& operator<<(std::ostream& os, const Move& move) {
 			flag = "n";
 			break;
 		}
-		std::cout << flag;
 	}
 	return os;
 }

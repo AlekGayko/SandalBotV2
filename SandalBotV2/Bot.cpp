@@ -94,11 +94,8 @@ void Bot::stopSearching() {
 }
 
 uint64_t Bot::perft(int depth) {
-    searcher->moveGenerator->perftRes.reset();
     uint64_t movesgenerated = searcher->perft(depth);
-    //cout << "test moves: " << board->testMoves << endl;
-    //cout << "Results: " << endl;
-    //cout << searcher->moveGenerator->perftRes << endl;
+
     return movesgenerated;
 }
 

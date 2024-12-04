@@ -18,7 +18,7 @@ MoveOrderer::~MoveOrderer() {
 
 }
 
-void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, bool firstMove, bool qSearch) {
+void MoveOrderer::order(Move moves[], Move& bestMove, int numMoves, int depth, bool firstMove, bool qSearch) {
 	if (numMoves <= 1) return;
 	int moveVals[218];
 	int colorIndex = board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
@@ -29,7 +29,9 @@ void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, bool firstMov
 			moveVals[it] = 1000000;
 			continue;
 		}
-
+		if (!qSearch && killerMoves[depth].match(moves[it])) {
+			moveVals[it] += killerValue;
+		}
 		int moveValue = 0;
 		const int startSquare = moves[it].startSquare;
 		const int targetSquare = moves[it].targetSquare;
@@ -114,27 +116,20 @@ void MoveOrderer::quickSort(Move moves[], int moveVals[], int start, int end) {
 	if (start >= end) return;
 	int pivotSpot = end - 1;
 	int pivot = moveVals[pivotSpot];
-	Move movePivot = moves[pivotSpot];
+	Move& movePivot = moves[pivotSpot];
 	int pivotIndex = start;
 
 	for (int i = start; i < end; i++) {
 		if (moveVals[i] > pivot) {
-			int temp = moveVals[i];
-			moveVals[i] = moveVals[pivotIndex];
-			moveVals[pivotIndex] = temp;
-
-			Move tempMove = moves[i];
-			moves[i] = moves[pivotIndex];
-			moves[pivotIndex] = tempMove;
+			swap(moveVals[i], moveVals[pivotIndex]);
+			swap(moves[i], moves[pivotIndex]);
 
 			pivotIndex++;
 		}
 	}
-	moveVals[pivotSpot] = moveVals[pivotIndex];
-	moveVals[pivotIndex] = pivot;
 
-	moves[pivotSpot] = moves[pivotIndex];
-	moves[pivotIndex] = movePivot;
+	swap(moveVals[pivotSpot], moveVals[pivotIndex]);
+	swap(moves[pivotSpot], moves[pivotIndex]);
 
 	quickSort(moves, moveVals, start, pivotIndex);
 	quickSort(moves, moveVals, pivotIndex + 1, end);

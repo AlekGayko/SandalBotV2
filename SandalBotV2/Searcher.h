@@ -10,6 +10,7 @@
 #include "TranspositionTable.h"
 
 #include <atomic>
+#include <limits>
 
 class Searcher {
 private:
@@ -39,23 +40,27 @@ private:
 			duration = 0.0f;
 		}
 	};
+	Move nullMove;
+
 	searchStatistics stats;
 
 	std::atomic<bool> cancelSearch;
 	const int maxDeepening = 256;
+	const int reduceExtensionCutoff = 5;
 
 	Board* board = nullptr;
 	Evaluator evaluator;
 	TranspositionTable* tTable = nullptr;
 
 	Move currentMove;
-	int defaultAlpha = -200000000;
-	int defaultBeta = 200000000;
+	int defaultAlpha = std::numeric_limits<int>::min() + 1; // Using min cannot be negated due to two complement range
+	int defaultBeta = std::numeric_limits<int>::max();
 
 	void iterativeSearch();
 	int negaMax(int alpha, int beta, int depth, int maxDepth, int numExtensions);
 	uint64_t moveSearch(bool isMaximising, int depth, int maxDepth);
 	int QuiescenceSearch(int alpha, int beta, int maxDepth);
+	bool worthSearching(const Move& move);
 public:
 	MoveGen* moveGenerator = nullptr;
 	MoveOrderer* orderer = nullptr;
