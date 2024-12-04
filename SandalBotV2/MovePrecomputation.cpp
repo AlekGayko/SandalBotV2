@@ -55,6 +55,8 @@ void MovePrecomputation::initMasks() {
 		initForwardMask(i);
 		initBackwardMask(i);
 	}
+
+	initDirectionMasks();
 }
 
 // Init 45 degree diagonal masks
@@ -91,6 +93,31 @@ void MovePrecomputation::initBackwardMask(int constant) {
 	}
 
 	backwardDiagonalMasks[constant + 7] = mask;
+}
+
+void MovePrecomputation::initDirectionMasks() {
+	for (int square = 0; square < 64; square++) {
+		// Calculate direction masks
+		for (int dirIndex = startOrthogonal; dirIndex < endDiagonal; dirIndex++) {
+			directionMasks[square * 8 + dirIndex] = 0ULL;
+			int distance = directionDistances[square].direction[dirIndex];
+			for (int it = 1; it < distance; it++) {
+				int newSquare = square + slideDirections[dirIndex] * it;
+				directionMasks[square * 8 + dirIndex] |= 1ULL << newSquare;
+			}
+		}
+	}
+
+	for (int diff = -64; diff < 64; diff++) {
+		int offset = diff < 0 ? 0 : 2;
+		if (diff % 7 == 0) {
+			differenceDivisibles[64 + diff] = 5 + offset;
+		} else if (diff % 9 == 0) {
+			differenceDivisibles[64 + diff] = 4 + offset;
+		}
+	}
+	BitBoardUtility::printBB(directionMasks[4 * 8 + 7]);
+	cout << differenceDivisibles[64 + 21] << endl;
 }
 
 void MovePrecomputation::precomputeMoves() {
@@ -355,6 +382,26 @@ uint64_t MovePrecomputation::getPawnMoves(const int& square, const uint64_t& blo
 
 uint64_t MovePrecomputation::getPawnAttackMoves(const int& square, const int& color) {
 	return color == Piece::white ? whitePawnAttackMoves[square] : blackPawnAttackMoves[square];
+}
+
+uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& square2) {	
+	if (square1 / 8 == square2 / 8) {
+		if (square2 > square1) {
+			return directionMasks[square1 * 8 + 1];
+		} else {
+			return directionMasks[square1 * 8 + 3];
+		}
+	} else if (square1 % 8 == square2 % 8) {
+		if (square2 > square1) {
+			return directionMasks[square1 * 8 + 2];
+		} else {
+			return directionMasks[square1 * 8];
+		}
+	}
+	int dir = differenceDivisibles[64 + square2 - square1];
+	
+
+	return directionMasks[square1 * 8 + dir];
 }
 
 

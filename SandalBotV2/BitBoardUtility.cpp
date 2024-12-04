@@ -54,6 +54,6 @@ void BitBoardUtility::deleteBit(u64& bitboard, u64& sideBoard, int index) {
 int BitBoardUtility::popLSB(u64& bitBoard) {
 	int trailingZeroes = _tzcnt_u64(bitBoard);
 
-	bitBoard &= bitBoard - 1;
+	bitBoard &= bitBoard - 1ULL;
 	return trailingZeroes;
 }

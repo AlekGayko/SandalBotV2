@@ -43,9 +43,14 @@ class MovePrecomputation {
 	uint64_t forwardDiagonalMasks[15]; // 45 degree diagonals
 	uint64_t backwardDiagonalMasks[15]; // -45 degree diagonals
 
+
+	uint64_t directionMasks[512]; // 64 (number of squares) * 8 (number of directions)
+	int differenceDivisibles[128]; // Lord why am I making so many tables
+
 	void initMasks();
 	void initForwardMask(int constant);
 	void initBackwardMask(int constant);
+	void initDirectionMasks();
 	void precomputeMoves();
 	void precomputeOrthogonalMoves();
 	void precomputeDiagonalMoves();
@@ -61,7 +66,6 @@ class MovePrecomputation {
 	uint64_t createDiagonalMovement(int square, uint64_t blockerBoard);
 	uint64_t createMovement(int square, uint64_t blockerBoard, int start, int end);
 public:
-	
 	struct dirDist {
 		// Distances between piece and sides of board
 		int top;
@@ -94,6 +98,7 @@ public:
 	uint64_t getKingMoves(const int& square);
 	uint64_t getPawnMoves(const int& square, const uint64_t& blockerBoard, const int& color);
 	uint64_t getPawnAttackMoves(const int& square, const int& color);
+	uint64_t getDirectionMask(const int& square1, const int& square2);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

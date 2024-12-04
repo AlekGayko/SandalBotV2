@@ -56,15 +56,6 @@ private:
 	int friendlyKingSquare;
 	int enemyKingSquare;
 	int* squares = nullptr;
-	//PieceList* friendlyPieceLists;
-	//PieceList* enemyPieceLists;
-	//PieceList* orthogonalSliders[2];
-	//PieceList* diagonalSliders[2];
-
-	//PieceList* enemyOrthogonalSliders[2];
-	//PieceList* enemyDiagonalSliders[2];
-
-	//PieceList* pawns;
 
 	bool whiteTurn;
 	int enPassantSquare;
