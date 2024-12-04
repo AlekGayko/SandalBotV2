@@ -20,19 +20,19 @@ TranspositionTable::~TranspositionTable() {
 	delete[] table;
 }
 
-Move TranspositionTable::getBestMove() {
+Move& TranspositionTable::getBestMove() {
 	return table[(board->state->zobristHash) % size].move;
 }
 
-void TranspositionTable::store(int eval, int remainingDepth, int currentDepth, int nodeType, Move move, u64 hashKey) {
+void TranspositionTable::store(int eval, int remainingDepth, int currentDepth, int nodeType, Move& move, u64 hashKey) {
 	size_t index = hashKey % size;
 
-	table[index] = Entry(hashKey, adjustMateScore(eval, currentDepth), remainingDepth, nodeType, move);
+	table[index] = std::move(Entry(hashKey, adjustMateScore(eval, currentDepth), remainingDepth, nodeType, move));
 }
 
 int TranspositionTable::lookup(int remainingDepth, int currentDepth, int alpha, int beta, u64 hashKey) {
 	size_t index = hashKey % size;
-	Entry entry = table[index];
+	Entry& entry = table[index];
 	if (entry.hash == hashKey && entry.depth >= remainingDepth) {
 		int eval = adjustStoredMateScore(entry.eval, currentDepth);
 		if (entry.nodeType == exact) {

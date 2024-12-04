@@ -62,7 +62,7 @@ void IUCI::processCommand(string command) {
 	} else if (commandType == "quit") {
 		exit(0);
 	} else if (commandType == "d") {
-		cout << (bot->printBoard()) << endl;;
+		bot->printBoard();
 	} else {
 		logInfo("Unknown Command: " + commandType);
 	}

@@ -38,6 +38,7 @@ struct Move {
 	constexpr bool isEnPassant() const;
 	constexpr bool isCastle() const;
 	constexpr int promotionPieceType() const;
+	Move& operator=(const Move& other);
 	friend std::ostream& operator<<(std::ostream& os, const Move& move);
 };
 

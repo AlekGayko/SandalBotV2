@@ -1,19 +1,24 @@
 #include "MovePrecomputation.h"
 
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <iterator>
+#include "BitBoardUtility.h"
+#include "Precomputedmagics.h"
 
-/*
-const std::vector<Coord> MovePrecomputation::orthogonalDirections = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
-const std::vector<Coord> MovePrecomputation::diagonalDirections = { { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
-const std::vector<Coord> MovePrecomputation::knightDirections = { { 2, 1 }, { 2, -1 }, { 1, 2 }, { 1, -2 }, { -1, 2 }, { -1, -2 }, { -2, 1 }, { -2, -1 } };
-const std::vector<Coord> MovePrecomputation::blackPawnMoveDirections = { { 1, 0 } };
-const std::vector<Coord> MovePrecomputation::whitePawnMoveDirections = { { -1, 0 } };
-*/
+#include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <random>
+#include <unordered_map>
+#include <vector>
+#include <set>
+#include <cmath>
+
+using namespace std;
 
 MovePrecomputation::MovePrecomputation() {
+	magics = new PrecomputedMagics();
 	for (int square = 0; square < 64; square++) {
 		int row, col, top, left, right, bottom;
 		row = square / 8;
@@ -24,7 +29,380 @@ MovePrecomputation::MovePrecomputation() {
 		right = 8 - col;
 		directionDistances[square] = dirDist(top, left, right, bottom);
 	}
+	initMasks();
+	precomputeMoves();
 }
+
+MovePrecomputation::~MovePrecomputation() {
+	delete magics;
+}
+
+void MovePrecomputation::initMasks() {
+	// Blocker Masks
+	for (int square = 0; square < 64; square++) {
+		createOrthogonalMask(square);
+		createDiagonalMask(square);
+	}
+
+	// Orthogonal masks
+	for (int i = 0; i < 8; i++) {
+		rowMasks[i] = rowMask << i * 8;
+		columnMasks[i] = columnMask << i;
+	}
+
+	// Diagonal masks
+	for (int i = 0; i < 15; i++) {
+		initForwardMask(i);
+		initBackwardMask(i);
+	}
+
+	initDirectionMasks();
+}
+
+// Init 45 degree diagonal masks
+void MovePrecomputation::initForwardMask(int constant) {
+	uint64_t mask = 0ULL;
+	int col = 0;
+	int row = constant - col;
+
+	while (col < 8) {
+		if (row >= 0 && row < 8) {
+			mask |= 1ULL << (row * 8 + col);
+		}
+		col++;
+		row = constant - col;
+	}
+
+	forwardDiagonalMasks[constant] = mask;
+}
+
+// Init -45 degree diagonal masks
+void MovePrecomputation::initBackwardMask(int constant) {
+	constant = constant - 7;
+	uint64_t mask = 0ULL;
+	int col = 0;
+	int row = constant + col;
+
+	while (col < 8) {
+		if (row >= 0 && row < 8) {
+			mask |= 1ULL << (row * 8 + col);
+		}
+		col++;
+		row = constant + col;
+	}
+
+	backwardDiagonalMasks[constant + 7] = mask;
+}
+
+void MovePrecomputation::initDirectionMasks() {
+	for (int square = 0; square < 64; square++) {
+		// Calculate direction masks
+		for (int dirIndex = startOrthogonal; dirIndex < endDiagonal; dirIndex++) {
+			directionMasks[square * 8 + dirIndex] = 0ULL;
+			int distance = directionDistances[square].direction[dirIndex];
+			for (int it = 1; it < distance; it++) {
+				int newSquare = square + slideDirections[dirIndex] * it;
+				directionMasks[square * 8 + dirIndex] |= 1ULL << newSquare;
+			}
+		}
+	}
+
+	for (int diff = -64; diff < 64; diff++) {
+		int offset = diff < 0 ? 0 : 2;
+		if (diff % 9 == 0) {
+			differenceDivisibles[64 + diff] = 4 + offset;
+		} else if (diff % 7 == 0) {
+			differenceDivisibles[64 + diff] = 5 + offset;
+		}
+	}
+	cout << differenceDivisibles[64 + (0 - 63)] << endl;
+}
+
+void MovePrecomputation::precomputeMoves() {
+	precomputeOrthogonalMoves();
+	precomputeDiagonalMoves();
+	precomputeKnightMoves();
+	precomputeKingMoves();
+	precomputePawnMoves();
+}
+
+void MovePrecomputation::precomputeOrthogonalMoves() {
+	int size = 0;
+	for (int square = 0; square < 64; square++) {
+		vector<uint64_t> blockerConfigs = precomputeOrthogonalMove(square);
+		vector<uint64_t> movementBoards;
+		movementBoards.reserve(blockerConfigs.size());
+		size += blockerConfigs.size();
+		//generateMagicNumbers(blockerConfigs);
+		for (uint64_t& blockerBoard : blockerConfigs) {
+			uint64_t moves = createOrthogonalMovement(square, blockerBoard);
+			movementBoards.push_back(moves);
+		}
+		magics->addOrthogonalMoves(square, blockerConfigs, movementBoards);
+	}
+}
+
+void MovePrecomputation::precomputeDiagonalMoves() {
+	int size = 0;
+	for (int square = 0; square < 64; square++) {
+		vector<uint64_t> blockerConfigs = precomputeDiagonalMove(square);
+		vector<uint64_t> movementBoards;
+		movementBoards.reserve(blockerConfigs.size());
+		size += blockerConfigs.size();
+		//generateMagicNumbers(blockerConfigs, false);
+		for (uint64_t& blockerBoard : blockerConfigs) {
+			uint64_t moves = createDiagonalMovement(square, blockerBoard);
+			movementBoards.push_back(moves);
+		}
+		magics->addDiagonalMoves(square, blockerConfigs, movementBoards);
+	}
+}
+
+void MovePrecomputation::precomputeKnightMoves() {
+	for (int square = 0; square < 64; square++) {
+		knightMoves[square] = 0ULL;
+		for (int dirIndex = 0; dirIndex < 8; dirIndex++) {
+			if (directionDistances[square].knightSquares[dirIndex]) {
+				knightMoves[square] |= 1ULL << (square + knightDirections[dirIndex]);
+			}
+		}
+	}
+}
+
+void MovePrecomputation::precomputeKingMoves() {
+	for (int square = 0; square < 64; square++) {
+		kingMoves[square] = 0ULL;
+		// Calculate diagonal moves
+		for (int dirIndex = startOrthogonal; dirIndex < endDiagonal; dirIndex++) {
+			int distance = directionDistances[square].direction[dirIndex];
+			if (distance <= 1)
+				continue;
+
+			kingMoves[square] |= 1ULL << (square + slideDirections[dirIndex]);
+		}
+	}
+}
+
+void MovePrecomputation::precomputePawnMoves() {
+	for (int square = 0; square < 64; square++) {
+		whitePawnMoves[square] = 0ULL;
+		whitePawnAttackMoves[square] = 0ULL;
+		blackPawnMoves[square] = 0ULL;
+		blackPawnAttackMoves[square] = 0ULL;
+		// White pawns
+		if (directionDistances[square].direction[4] > 1) {
+			whitePawnAttackMoves[square] |= 1ULL << (square + slideDirections[4]);
+		}
+		if (directionDistances[square].direction[5] > 1) {
+			whitePawnAttackMoves[square] |= 1ULL << (square + slideDirections[5]);
+		}
+		whitePawnMoves[square] |= 1ULL << (square - 8);
+		// Black pawns
+		if (directionDistances[square].direction[6] > 1) {
+			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[6]);
+		}
+		if (directionDistances[square].direction[7] > 1) {
+			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[7]);
+		}
+		blackPawnMoves[square] |= 1ULL << (square + 8);
+	}
+}
+
+std::vector<uint64_t> MovePrecomputation::precomputeOrthogonalMove(int square) {
+	vector<int> moveSquares;
+	// Calculate orthogonal moves
+	for (int i = 0; i < 64; i++) {
+		int row = i / 8;
+		int col = i % 8;
+		if (i == square) {
+			continue;
+		} else if ((square / 8 != 0 && row == 0) || (square / 8 != 7 && row == 7)) {
+			continue;
+		} else if ((square % 8 != 0 && col == 0) || (square % 8 != 7 && col == 7)) {
+			continue;
+		} else if (square / 8 == i / 8) {
+			moveSquares.push_back(i);
+		} else if (square % 8 == i % 8) {
+			moveSquares.push_back(i);
+		}
+		
+	}
+	
+	return makeConfigs(moveSquares);
+}
+
+std::vector<uint64_t> MovePrecomputation::precomputeDiagonalMove(int square) {
+	vector<int> moveSquares;
+	// Calculate diagonal moves
+	for (int dirIndex = startDiagonal; dirIndex < endDiagonal; dirIndex++) {
+		int distance = directionDistances[square].direction[dirIndex];
+		for (int it = 1; it < distance; it++) {
+			int newSquare = square + slideDirections[dirIndex] * it;
+			int row = newSquare / 8;
+			int col = newSquare % 8;
+			if ((square / 8 != 0 && row == 0) || (square / 8 != 7 && row == 7)) {
+				break;
+			} else if ((square % 8 != 0 && col == 0) || (square % 8 != 7 && col == 7)) {
+				break;
+			}
+			moveSquares.push_back(newSquare);
+		}
+	}
+
+	return makeConfigs(moveSquares);
+}
+
+std::vector<uint64_t> MovePrecomputation::makeConfigs(std::vector<int>& moveSquares) {
+	int n = moveSquares.size();
+	int numConfigs = 1 << n; // 2^n
+	std::vector<uint64_t> blockerConfigs;
+	blockerConfigs.reserve(n);
+
+	for (int i = 0; i < numConfigs; i++)
+		blockerConfigs.push_back(0ULL);
+
+	for (int pattern = 0; pattern < numConfigs; pattern++) {
+		for (int bitIndex = 0; bitIndex < n; bitIndex++) {
+			uint64_t bit = (pattern & (1ULL << bitIndex)) >> bitIndex;
+			blockerConfigs[pattern] |= bit << moveSquares[bitIndex];
+		}
+		
+	}
+
+	return blockerConfigs;
+}
+
+uint64_t MovePrecomputation::createOrthogonalMask(int square) {
+	uint64_t mask = 0ULL;
+	mask |= blockerRowMask << (square / 8) * 8;
+
+	mask |= blockerColumnMask << (square % 8);
+	mask &= ~(1ULL << square);
+
+	blockerOrthogonalMasks[square] = mask;
+	
+	return mask;
+}
+
+uint64_t MovePrecomputation::createDiagonalMask(int square) {
+	uint64_t mask = 0ULL;
+
+	for (int dirIndex = startDiagonal; dirIndex < endDiagonal; dirIndex++) {
+		int distance = directionDistances[square].direction[dirIndex];
+		for (int it = 1; it < distance; it++) {
+			int newSquare = square + slideDirections[dirIndex] * it;
+			int row = newSquare / 8;
+			int col = newSquare % 8;
+			if ((square / 8 != 0 && row == 0) || (square / 8 != 7 && row == 7)) {
+				break;
+			} else if ((square % 8 != 0 && col == 0) || (square % 8 != 7 && col == 7)) {
+				break;
+			}
+			mask |= 1ULL << newSquare;
+		}
+	}
+	blockerDiagonalMasks[square] = mask;
+
+	return mask;
+}
+
+uint64_t MovePrecomputation::createOrthogonalMovement(int square, uint64_t blockerBoard) {
+	return createMovement(square, blockerBoard, startOrthogonal, endOrthogonal);
+}
+
+uint64_t MovePrecomputation::createDiagonalMovement(int square, uint64_t blockerBoard) {
+	return createMovement(square, blockerBoard, startDiagonal, endDiagonal);
+}
+
+uint64_t MovePrecomputation::createMovement(int square, uint64_t blockerBoard, int start, int end) {
+	uint64_t movementBoard = 0ULL;
+
+	for (int dirIndex = start; dirIndex < end; dirIndex++) {
+		int distance = directionDistances[square].direction[dirIndex];
+		for (int it = 1; it < distance; it++) {
+			int newSquare = square + slideDirections[dirIndex] * it;
+
+			movementBoard |= 1ULL << newSquare;
+
+			if (BitBoardUtility::getBit(blockerBoard, newSquare)) {
+				break;
+			}
+		}
+	}
+
+	return movementBoard;
+}
+
+uint64_t MovePrecomputation::getForwardMask(const int& square) {
+	return forwardDiagonalMasks[(square / 8) + (square % 8)];
+}
+
+uint64_t MovePrecomputation::getBackwardMask(const int& square) {
+	return backwardDiagonalMasks[7 + (square / 8) - (square % 8)];
+}
+
+uint64_t MovePrecomputation::getRowMask(const int& square) {
+	return rowMasks[square / 8];
+}
+
+uint64_t MovePrecomputation::getColMask(const int& square) {
+	return columnMasks[square % 8];
+}
+
+uint64_t MovePrecomputation::getBlockerOrthogonalMask(const int& square) {
+	return blockerOrthogonalMasks[square];
+}
+
+uint64_t MovePrecomputation::getBlockerDiagonalMask(const int& square) {
+	return blockerDiagonalMasks[square];
+}
+
+uint64_t MovePrecomputation::getOrthMovementBoard(const int& square, const uint64_t& blockerBoard) {
+	return magics->getOrthogonalMovement(square, blockerBoard);
+}
+
+uint64_t MovePrecomputation::getDiagMovementBoard(const int& square, const uint64_t& blockerBoard) {
+	return magics->getDiagonalMovement(square, blockerBoard);
+}
+
+uint64_t MovePrecomputation::getKnightBoard(const int& square) {
+	return knightMoves[square];
+}
+
+uint64_t MovePrecomputation::getKingMoves(const int& square) {
+	return kingMoves[square];
+}
+
+uint64_t MovePrecomputation::getPawnMoves(const int& square, const uint64_t& blockerBoard, const int& color) {
+	uint64_t movement = color == Piece::white ? whitePawnMoves[square] : blackPawnMoves[square];
+	return movement;
+}
+
+uint64_t MovePrecomputation::getPawnAttackMoves(const int& square, const int& color) {
+	return color == Piece::white ? whitePawnAttackMoves[square] : blackPawnAttackMoves[square];
+}
+
+uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& square2) {	
+	if (square1 / 8 == square2 / 8) {
+		if (square2 > square1) {
+			return directionMasks[square1 * 8 + 1];
+		} else {
+			return directionMasks[square1 * 8 + 3];
+		}
+	} else if (square1 % 8 == square2 % 8) {
+		if (square2 > square1) {
+			return directionMasks[square1 * 8 + 2];
+		} else {
+			return directionMasks[square1 * 8];
+		}
+	}
+	int dir = differenceDivisibles[64 + square2 - square1];
+	
+
+	return directionMasks[square1 * 8 + dir];
+}
+
+
 
 MovePrecomputation::dirDist::dirDist() {
 }
@@ -51,44 +429,3 @@ MovePrecomputation::dirDist::dirDist(int top, int left, int right, int bottom) :
 	this->minVertical = std::min(top, bottom);
 	this->minHorizontal = std::min(left, right);
 }
-/*
-MovePrecomputation::MovePrecomputation() {
-	initMoves(orthogonalDirections, rookMoves, true);
-	initMoves(diagonalDirections, bishopMoves, true);
-	initMoves(orthogonalDirections, kingMoves);
-	initMoves(diagonalDirections, kingMoves);
-	initMoves(orthogonalDirections, queenMoves, true);
-	initMoves(diagonalDirections, queenMoves, true);
-	initMoves(knightDirections, knightMoves);
-	initPawnMoves(blackPawnMoveDirections, blackPawnMoves, false);
-	initPawnMoves(whitePawnMoveDirections, whitePawnMoves, true);
-}
-*/
-/*
-void MovePrecomputation::initMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool scalable) {
-	for (int square = 0; square < 64; square++) {
-		Coord startSquare = Coord(square);
-		for (Coord direction : directions) {
-			Coord scalar = direction;
-			do {
-				if (CoordHelper::validCoordAddition(startSquare, direction)) {
-					Coord targetSquare = startSquare + direction;
-					Move move = Move(square, CoordHelper::coordToIndex(startSquare + direction));
-					moves[square].push_back(move);
-				} else break;
-				direction = direction + scalar;
-			} while (scalable);
-		}
-	}
-}
-
-void MovePrecomputation::initPawnMoves(std::vector<Coord> directions, std::vector<Move> moves[64], bool isWhite) {
-	initMoves(directions, moves);
-	Coord startSquare = isWhite ? Coord(6, 0) : Coord(1, 0);
-	for (int i = 0; i < 8; i++) {
-		Coord startDirection = { isWhite ? -2 : 2, 0 };
-		Move move = Move(CoordHelper::coordToIndex(startSquare), CoordHelper::coordToIndex(startSquare + startDirection));
-		moves[CoordHelper::coordToIndex(startSquare)].push_back(move);
-	}
-}
-*/

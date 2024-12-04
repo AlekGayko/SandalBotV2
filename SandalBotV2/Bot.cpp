@@ -94,16 +94,13 @@ void Bot::stopSearching() {
 }
 
 uint64_t Bot::perft(int depth) {
-    searcher->moveGenerator->perftRes.reset();
     uint64_t movesgenerated = searcher->perft(depth);
-    //cout << "test moves: " << board->testMoves << endl;
-    //cout << "Results: " << endl;
-    //cout << searcher->moveGenerator->perftRes << endl;
+
     return movesgenerated;
 }
 
-std::string Bot::printBoard() {
-    return board->printBoard();
+void Bot::printBoard() {
+    board->printBoard();
 }
 
 int Bot::chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs, int blackIncMs) {

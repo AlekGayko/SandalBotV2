@@ -8,6 +8,7 @@
 #include "CoordHelper.h"
 #include "Move.h"
 #include "PieceList.h"
+#include "StateHistory.h"
 
 #include <stack>
 #include <vector>
@@ -25,12 +26,10 @@ public:
 	//int kings[2];
 
 	BoardHistory history;
-	std::vector<BoardState> boardStateHistory;
+	StateHistory stateHistory;
 	BoardState* state = nullptr;
 
 	// Bitboards
-	uint64_t bitBoards[7];
-
 	uint64_t allPieces;
 	uint64_t whitePieces;
 	uint64_t blackPieces;
@@ -58,7 +57,8 @@ public:
 	void undoCastlingChanges(Move& move);
 	void updateBitBoards(Move& move, int pieceType, int takenPiece);
 	void undoBitBoards(Move& move, int pieceType, int takenPiece);
-	std::string printBoard();
+	void printBoard();
+	std::vector<uint64_t> getBitBoards();
 };
 
 #endif // !BOARD_H
