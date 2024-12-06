@@ -41,6 +41,8 @@ int Evaluator::Evaluate() {
 
 	evaluation += staticPieceEvaluations();
 	evaluation += kingDist();
+	evaluation += pawnIslandEvaluation();
+	evaluation += passedPawnEvaluation();
 
 	return evaluation;
 }
@@ -101,7 +103,7 @@ int Evaluator::pawnIslandEvaluation() {
 		pawns = board->pawns & (colorIndex == maximisingIndex ? friendlyBoard : enemyBoard);
 		numPawns = board->pieceLists[colorIndex][Piece::pawn].numPieces;
 		for (int i = 0; i < numPawns; i++) {
-			square = board->pieceLists[maximisingIndex][Piece::pawn][i];
+			square = board->pieceLists[colorIndex][Piece::pawn][i];
 			islandMask = precomputation->getPawnIslandMask(square % 8);
 			if ((pawns & islandMask) != 0ULL)
 				continue;

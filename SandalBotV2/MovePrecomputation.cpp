@@ -137,7 +137,6 @@ void MovePrecomputation::initIslandMasks() {
 		}
 
 		pawnIslandMasks[col] = mask;
-		BitBoardUtility::printBB(pawnIslandMasks[col]);
 	}
 }
 
