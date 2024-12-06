@@ -5,11 +5,11 @@
 
 #define u64 uint64_t
 
-#include <vector>
+#include <iostream>
 
 class BoardHistory {
 private:
-	const int historySize = 256;
+	const int historySize = 2048;
 	u64* hashHistory = nullptr;
 	int* startSearchIndicies = nullptr;
 	int numBoards = 0;

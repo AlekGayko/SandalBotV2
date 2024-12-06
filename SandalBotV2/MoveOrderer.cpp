@@ -134,3 +134,9 @@ void MoveOrderer::quickSort(Move moves[], int moveVals[], int start, int end) {
 	quickSort(moves, moveVals, start, pivotIndex);
 	quickSort(moves, moveVals, pivotIndex + 1, end);
 }
+
+void MoveOrderer::addKiller(int depth, Move& move) {
+	if (depth >= 32)
+		return;
+	killerMoves[depth].add(move);
+}

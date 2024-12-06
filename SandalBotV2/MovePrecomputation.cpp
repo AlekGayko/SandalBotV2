@@ -3,17 +3,9 @@
 #include "BitBoardUtility.h"
 #include "Precomputedmagics.h"
 
-#include <algorithm>
-#include <chrono>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <iterator>
-#include <random>
-#include <unordered_map>
-#include <vector>
-#include <set>
 #include <cmath>
+#include <iostream>
+#include <limits>
 
 using namespace std;
 
@@ -57,6 +49,8 @@ void MovePrecomputation::initMasks() {
 	}
 
 	initDirectionMasks();
+	initPassedPawnMasks();
+	initIslandMasks();
 }
 
 // Init 45 degree diagonal masks
@@ -115,7 +109,36 @@ void MovePrecomputation::initDirectionMasks() {
 			differenceDivisibles[64 + diff] = 5 + offset;
 		}
 	}
-	cout << differenceDivisibles[64 + (0 - 63)] << endl;
+
+}
+
+void MovePrecomputation::initPassedPawnMasks() {
+	for (int square = 0; square < 64; square++) {
+		uint64_t whiteFrontMask = numeric_limits<uint64_t>::max() >> min(((7 - square / 8) + 1), 7) * 8;
+		uint64_t blackFrontMask = numeric_limits<uint64_t>::max() << min((square / 8 + 1), 7) * 8;
+
+		uint64_t columnMask = columnMasks[square % 8];
+		columnMask |= columnMasks[min((square % 8) + 1, 7)];
+		columnMask |= columnMasks[max((square % 8) - 1, 0)];
+
+		whitePassedPawnMasks[square] = whiteFrontMask & columnMask;
+		blackPassedPawnMasks[square] = blackFrontMask & columnMask;
+	}
+}
+
+void MovePrecomputation::initIslandMasks() {
+	for (int col = 0; col < 8; col++) {
+		uint64_t mask = 0ULL;
+		if (directionDistances[col].right > 1) {
+			mask |= columnMasks[col + 1];
+		}
+		if (directionDistances[col].left > 1) {
+			mask |= columnMasks[col - 1];
+		}
+
+		pawnIslandMasks[col] = mask;
+		BitBoardUtility::printBB(pawnIslandMasks[col]);
+	}
 }
 
 void MovePrecomputation::precomputeMoves() {
@@ -185,9 +208,7 @@ void MovePrecomputation::precomputeKingMoves() {
 
 void MovePrecomputation::precomputePawnMoves() {
 	for (int square = 0; square < 64; square++) {
-		whitePawnMoves[square] = 0ULL;
 		whitePawnAttackMoves[square] = 0ULL;
-		blackPawnMoves[square] = 0ULL;
 		blackPawnAttackMoves[square] = 0ULL;
 		// White pawns
 		if (directionDistances[square].direction[4] > 1) {
@@ -196,7 +217,6 @@ void MovePrecomputation::precomputePawnMoves() {
 		if (directionDistances[square].direction[5] > 1) {
 			whitePawnAttackMoves[square] |= 1ULL << (square + slideDirections[5]);
 		}
-		whitePawnMoves[square] |= 1ULL << (square - 8);
 		// Black pawns
 		if (directionDistances[square].direction[6] > 1) {
 			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[6]);
@@ -204,7 +224,6 @@ void MovePrecomputation::precomputePawnMoves() {
 		if (directionDistances[square].direction[7] > 1) {
 			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[7]);
 		}
-		blackPawnMoves[square] |= 1ULL << (square + 8);
 	}
 }
 
@@ -373,13 +392,16 @@ uint64_t MovePrecomputation::getKingMoves(const int& square) {
 	return kingMoves[square];
 }
 
-uint64_t MovePrecomputation::getPawnMoves(const int& square, const uint64_t& blockerBoard, const int& color) {
-	uint64_t movement = color == Piece::white ? whitePawnMoves[square] : blackPawnMoves[square];
-	return movement;
-}
-
 uint64_t MovePrecomputation::getPawnAttackMoves(const int& square, const int& color) {
 	return color == Piece::white ? whitePawnAttackMoves[square] : blackPawnAttackMoves[square];
+}
+
+uint64_t MovePrecomputation::getPassedPawnMask(const int& square, const int& color) {
+	return color == Piece::white ? whitePassedPawnMasks[square] : blackPassedPawnMasks[square];
+}
+
+uint64_t MovePrecomputation::getPawnIslandMask(const int& column) {
+	return pawnIslandMasks[column];
 }
 
 uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& square2) {	

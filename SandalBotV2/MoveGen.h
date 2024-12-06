@@ -14,7 +14,6 @@ class MoveGen {
 	friend class MovePrecomputation;
 private:
 	Board* board = nullptr;
-	MovePrecomputation preComp;
 
 	const int whitePawnDirection = -8;
 	const int blackPawnDirection = 8;
@@ -45,6 +44,7 @@ private:
 	uint64_t enemyBoard;
 
 public:
+	MovePrecomputation* preComp;
 	static const int startingKingSquares[2];
 	static const int shortCastleKingSquares[2];
 	static const int longCastleKingSquares[2];
@@ -58,6 +58,7 @@ public:
 
 	MoveGen();
 	MoveGen(Board* board);
+	~MoveGen();
 	int generateMoves(Move moves[], bool capturesOnly = false);
 	void initVariables(bool capturesOnly);
 	void generateSlideMoves(Move moves[]);

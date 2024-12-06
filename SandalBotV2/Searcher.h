@@ -49,7 +49,7 @@ private:
 	const int reduceExtensionCutoff = 5;
 
 	Board* board = nullptr;
-	Evaluator evaluator;
+	Evaluator* evaluator;
 	TranspositionTable* tTable = nullptr;
 
 	Move currentMove;
