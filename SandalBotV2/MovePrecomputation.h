@@ -27,8 +27,13 @@ class MovePrecomputation {
 	
 	PrecomputedMagics* magics = nullptr;
 
+	unsigned char distances[64][64];
+
 	uint64_t knightMoves[64];
 	uint64_t kingMoves[64];
+
+	uint64_t whitePawnShieldMask[64];
+	uint64_t blackPawnShieldMask[64];
 
 	uint64_t whitePawnAttackMoves[64];
 	uint64_t blackPawnAttackMoves[64];
@@ -56,6 +61,8 @@ class MovePrecomputation {
 	void initDirectionMasks();
 	void initPassedPawnMasks();
 	void initIslandMasks();
+	void initShieldMasks();
+	void initDistances();
 	void precomputeMoves();
 	void precomputeOrthogonalMoves();
 	void precomputeDiagonalMoves();
@@ -104,7 +111,9 @@ public:
 	uint64_t getPawnAttackMoves(const int& square, const int& color);
 	uint64_t getPassedPawnMask(const int& square, const int& color);
 	uint64_t getPawnIslandMask(const int& column);
+	uint64_t getShieldMask(const int& square, const int& color);
 	uint64_t getDirectionMask(const int& square1, const int& square2);
+	unsigned char getDistance(const int& square1, const int& square2);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

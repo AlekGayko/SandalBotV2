@@ -16,6 +16,13 @@ Evaluator::Evaluator(Board* board, MovePrecomputation* precomputation) : precomp
 	initBlackSquares();
 }
 
+void Evaluator::initBlackSquares() {
+	for (int square = 0; square < 64; square++) {
+		int row = square / 8;
+		int col = square % 8;
+		blackEvalSquare[square] = (7 - row) * 8 + col;
+	}
+}
 
 void Evaluator::initVariables() {
 	evaluation = 0;
@@ -41,129 +48,186 @@ int Evaluator::Evaluate() {
 
 	evaluation += staticPieceEvaluations();
 	evaluation += kingDist();
-	evaluation += pawnIslandEvaluation();
-	evaluation += passedPawnEvaluation();
+	evaluation += pawnIslandEvaluations();
+	evaluation += passedPawnEvaluations();
+	evaluation += pawnShieldEvaluations();
+	evaluation += kingTropismEvaluations();
 
 	return evaluation;
 }
 
-int Evaluator::kingTropism() {
-	return 0;
+int Evaluator::kingTropismEvaluations() {
+	int evaluation = kingTropism(friendlyKingSquare, board->pieceLists[maximisingIndex]);
+	evaluation -= kingTropism(enemyKingSquare, board->pieceLists[minimisingIndex]);
+	return evaluation;
 }
 
-int Evaluator::pawnShieldEvaluation() {
-	return 0;
+int Evaluator::kingTropism(const int& kingSquare, PieceList* enemyList) {
+	int evaluation = 0;
+	int numPieces;
+	int square;
+
+	for (int piece = Piece::pawn; piece < Piece::king; piece++) {
+		numPieces = enemyList[piece].numPieces;
+		for (int it = 0; it < numPieces; it++) {
+			square = enemyList[piece][it];
+
+			evaluation -= (7 - precomputation->getDistance(kingSquare, square)) * tropismWeightings[piece];
+		}
+	}
+
+	return evaluation;
+}
+
+int Evaluator::pawnShieldEvaluations() {
+	if (endGameWeight >= 0.3f) {
+		return 0;
+	}
+
+	uint64_t friendlyShield = precomputation->getShieldMask(friendlyKingSquare, friendlyColor);
+	uint64_t enemyShield = precomputation->getShieldMask(enemyKingSquare, enemyColor);
+
+	friendlyShield &= board->pawns & friendlyBoard;
+	enemyShield &= board->pawns & enemyBoard;
+
+	return (1 - endGameWeight) * (pawnShieldEvaluation(friendlyKingSquare, friendlyShield) - pawnShieldEvaluation(enemyKingSquare, enemyShield));
+}
+
+int Evaluator::pawnShieldEvaluation(const int& square, uint64_t& pawns) {
+	int evaluation = 0;
+	uint64_t attackMask;
+	uint64_t pawnDefenders;
+	uint64_t kingSquares = precomputation->getKingMoves(square);
+	int targetSquare;
+	int col = square % 8;
+
+	// If there is no pawn shield on a column, add penalty
+	if ((pawns & precomputation->getColMask(col)) == 0ULL) {
+		evaluation -= pawnShieldColumnPenalty;
+	}
+	if (col < 7 && (pawns & precomputation->getColMask(col + 1)) == 0ULL) {
+		evaluation -= pawnShieldColumnPenalty;
+	}
+	if (col > 0 && (pawns & precomputation->getColMask(col - 1)) == 0ULL) {
+		evaluation -= pawnShieldColumnPenalty;
+	}
+
+	// Undefended pawns have penalty
+	while (pawns != 0ULL) {
+		targetSquare = BitBoardUtility::popLSB(pawns);
+		attackMask = precomputation->getPawnAttackMoves(targetSquare, Piece::white);
+		attackMask |= precomputation->getPawnAttackMoves(targetSquare, Piece::black);
+
+		pawnDefenders = pawns & attackMask;
+
+		if (pawnDefenders == 0ULL && (kingSquares & (1ULL << targetSquare)) == 0ULL) {
+			evaluation -= pawnShieldUndefendedPenalty;
+		}
+	}
+
+	return evaluation;
+}
+
+int Evaluator::passedPawnEvaluations() {
+	uint64_t friendlyPawns = board->pawns & friendlyBoard;
+	uint64_t enemyPawns = board->pawns & enemyBoard;
+
+	int evaluation = passedPawnEvaluation(board->pieceLists[maximisingIndex][Piece::pawn], friendlyPawns, enemyPawns, friendlyColor);
+	evaluation -= passedPawnEvaluation(board->pieceLists[minimisingIndex][Piece::pawn], enemyPawns, friendlyPawns, enemyColor);
+
+	return evaluation;
 }
 
 // Evaluates the passed pawns of either side
-int Evaluator::passedPawnEvaluation() {
+int Evaluator::passedPawnEvaluation(PieceList& pieceList, uint64_t& pawns, uint64_t& opposingPawns, const int& color) {
 	int evaluation = 0;
 
-	uint64_t opposingPawns;
 	uint64_t passedMask;
-	int color;
-	int numPawns;
+	int numPawns = pieceList.numPieces;
 	int square;
 	int promotionDistance;
 
-	for (int colorIndex = Board::blackIndex; colorIndex <= Board::whiteIndex; colorIndex++) {
-		opposingPawns = board->pawns & (colorIndex == maximisingIndex ? friendlyBoard : enemyBoard);
-		color = colorIndex == Board::whiteIndex ? Piece::white : Piece::black;
-		numPawns = board->pieceLists[colorIndex][Piece::pawn].numPieces;
-		for (int i = 0; i < numPawns; i++) {
-			square = board->pieceLists[colorIndex][Piece::pawn][i];
-			passedMask = precomputation->getPassedPawnMask(square, color);
+	for (int i = 0; i < numPawns; i++) {
+		square = pieceList[i];
+		passedMask = precomputation->getPassedPawnMask(square, color);
 
-			// If no pawns in front of pawn's promotion path
-			if ((passedMask & opposingPawns) == 0ULL) {
-				promotionDistance = colorIndex == Board::whiteIndex ? square / 8 : 7 - (square / 8);
-				if (colorIndex == maximisingIndex)
-					evaluation += passedPawnBonus[promotionDistance];
-				else
-					evaluation -= passedPawnBonus[promotionDistance];
-			}
+		// If no pawns in front of pawn's promotion path
+		if ((passedMask & opposingPawns) == 0ULL) {
+			promotionDistance = color == Piece::white ? square / 8 : 7 - (square / 8);
+
+			evaluation += passedPawnBonus[promotionDistance];
 		}
 	}
-	
-	evaluation *= endGameWeight;
 
 	return evaluation;
 }
 
-int Evaluator::pawnIslandEvaluation() {
+int Evaluator::pawnIslandEvaluations() {
+	uint64_t friendlyPawns = board->pawns & friendlyBoard;
+	uint64_t enemyPawns = board->pawns & enemyBoard;
+
+	int evaluation = pawnIslandEvaluation(board->pieceLists[maximisingIndex][Piece::pawn], friendlyPawns);
+	evaluation -= pawnIslandEvaluation(board->pieceLists[minimisingIndex][Piece::pawn], enemyPawns);
+
+	return evaluation;
+}
+
+int Evaluator::pawnIslandEvaluation(PieceList& pieceList, uint64_t& pawns) {
 	int evaluation = 0;
 
-	uint64_t pawns;
 	uint64_t islandMask;
-	int col;
-	int numPawns;
+	int numPawns = pieceList.numPieces;
 	int square;
 
-	for (int colorIndex = Board::blackIndex; colorIndex <= Board::whiteIndex; colorIndex++) {
-		pawns = board->pawns & (colorIndex == maximisingIndex ? friendlyBoard : enemyBoard);
-		numPawns = board->pieceLists[colorIndex][Piece::pawn].numPieces;
-		for (int i = 0; i < numPawns; i++) {
-			square = board->pieceLists[colorIndex][Piece::pawn][i];
-			islandMask = precomputation->getPawnIslandMask(square % 8);
-			if ((pawns & islandMask) != 0ULL)
-				continue;
+	for (int i = 0; i < numPawns; i++) {
+		square = pieceList[i];
+		islandMask = precomputation->getPawnIslandMask(square % 8);
+		if ((pawns & islandMask) != 0ULL)
+			continue;
 
-			if (colorIndex == maximisingIndex)
-				evaluation -= pawnIslandPenalty;
-			else
-				evaluation += pawnIslandPenalty;
-		}
+		evaluation -= pawnIslandPenalty;
 	}
 
 	return evaluation;
-}
-
-void Evaluator::initBlackSquares() {
-	for (int square = 0; square < 64; square++) {
-		int row = square / 8;
-		int col = square % 8;
-		blackEvalSquare[square] = (7 - row) * 8 + col;
-	}
 }
 
 int Evaluator::staticPieceEvaluations() {
-	int evaluation;
-	int* sideEval;
-	int whiteEval = 0;
-	int blackEval = 0;
+	int evaluation = staticPieceEvaluation(board->pieceLists[maximisingIndex]);
+	evaluation -= staticPieceEvaluation(board->pieceLists[minimisingIndex], true);
+
+	return evaluation;
+}
+
+int Evaluator::staticPieceEvaluation(PieceList* pieceList, bool useBlackSquares) {
+	int evaluation = 0;
 	int numPieces;
 	int pieceEval;
 	int square;
 
-	for (int colorIndex = Board::blackIndex; colorIndex <= Board::whiteIndex; colorIndex++) {
-		sideEval = colorIndex == Board::blackIndex ? &blackEval : &whiteEval;
-		for (int piece = Piece::pawn; piece <= Piece::king; piece++) {
-			numPieces = board->pieceLists[colorIndex][piece].numPieces;
-			pieceEval = PieceEvaluations::pieceVals[piece];
+	for (int piece = Piece::pawn; piece <= Piece::king; piece++) {
+		numPieces = pieceList[piece].numPieces;
+		pieceEval = PieceEvaluations::pieceVals[piece];
 
-			*sideEval += pieceEval * numPieces;
+		evaluation += pieceEval * numPieces;
 
-			for (int it = 0; it < numPieces; it++) {
-				square = board->pieceLists[colorIndex][piece][it];
-				if (colorIndex == Board::blackIndex) {
-					square = blackEvalSquare[square];
-				}
-				switch (piece) {
-				case Piece::pawn:
-					*sideEval += (1 - endGameWeight) * (float) PieceEvaluations::pawnEval[square] + endGameWeight * (float) PieceEvaluations::pawnEndgameEval[square];
-					break;
-				case Piece::king:
-					*sideEval += (1 - endGameWeight) * (float) PieceEvaluations::kingEval[square] + endGameWeight * (float) PieceEvaluations::kingEndgameEval[square];
-					break;
-				default:
-					*sideEval += PieceEvaluations::pieceEvals[piece][square];
-					break;
-				}
+		for (int it = 0; it < numPieces; it++) {
+			square = pieceList[piece][it];
+			if (useBlackSquares)
+				square = blackEvalSquare[square];
+
+			switch (piece) {
+			case Piece::pawn:
+				evaluation += (1 - endGameWeight) * (float)PieceEvaluations::pawnEval[square] + endGameWeight * (float)PieceEvaluations::pawnEndgameEval[square];
+				break;
+			case Piece::king:
+				evaluation += (1 - endGameWeight) * (float)PieceEvaluations::kingEval[square] + endGameWeight * (float)PieceEvaluations::kingEndgameEval[square];
+				break;
+			default:
+				evaluation += PieceEvaluations::pieceEvals[piece][square];
+				break;
 			}
 		}
 	}
-
-	evaluation = maximisingSide * (whiteEval - blackEval);
 
 	return evaluation;
 }

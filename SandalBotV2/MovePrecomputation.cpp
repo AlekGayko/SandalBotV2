@@ -51,6 +51,7 @@ void MovePrecomputation::initMasks() {
 	initDirectionMasks();
 	initPassedPawnMasks();
 	initIslandMasks();
+	initShieldMasks();
 }
 
 // Init 45 degree diagonal masks
@@ -137,6 +138,42 @@ void MovePrecomputation::initIslandMasks() {
 		}
 
 		pawnIslandMasks[col] = mask;
+	}
+}
+
+void MovePrecomputation::initShieldMasks() {
+	for (int square = 0; square < 64; square++) {
+		uint64_t whiteMask = (numeric_limits<uint64_t>::max() << 6 * 8) >> min(((7 - square / 8) + 1), 7) * 8;
+		uint64_t blackMask = (numeric_limits<uint64_t>::max() >> 6 * 8) << min((square / 8 + 1), 7) * 8;
+
+		uint64_t colMask = 0ULL;
+		colMask |= columnMasks[square % 8];
+
+		colMask |= columnMasks[min(1 + square % 8, 7)];
+
+		colMask |= columnMasks[max(-1 + square % 8, 0)];
+
+		whiteMask &= colMask;
+		blackMask &= colMask;
+		
+		whitePawnShieldMask[square] = whiteMask;
+		blackPawnShieldMask[square] = blackMask;
+	}
+}
+
+void MovePrecomputation::initDistances() {
+	for (int square1 = 0; square1 < 64; square1++) {
+		for (int square2 = 0; square2 < 64; square2++) {
+			int file1, file2, rank1, rank2;
+			int rankDistance, fileDistance;
+			file1 = square1 % 8;
+			file2 = square2 % 8;
+			rank1 = square1 / 8;
+			rank2 = square2 / 8;
+			rankDistance = abs(rank2 - rank1);
+			fileDistance = abs(file2 - file1);
+			distances[square1][square2] = max(rankDistance, fileDistance);
+		}
 	}
 }
 
@@ -403,6 +440,10 @@ uint64_t MovePrecomputation::getPawnIslandMask(const int& column) {
 	return pawnIslandMasks[column];
 }
 
+uint64_t MovePrecomputation::getShieldMask(const int& square, const int& color) {
+	return color == Piece::white ? whitePawnShieldMask[square] : blackPawnShieldMask[square];
+}
+
 uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& square2) {	
 	if (square1 / 8 == square2 / 8) {
 		if (square2 > square1) {
@@ -421,6 +462,10 @@ uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& squ
 	
 
 	return directionMasks[square1 * 8 + dir];
+}
+
+unsigned char MovePrecomputation::getDistance(const int& square1, const int& square2) {
+	return distances[square1][square2];
 }
 
 

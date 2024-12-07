@@ -25,7 +25,10 @@ private:
 	};
 
 	const unsigned char passedPawnBonus[7] = { 0, 90, 60, 40, 25, 15, 15 };
+	const float tropismWeightings[7] = { 0.f, 0.2f, 0.5f, 0.5f, 1.f, 2.f, 0.f };
 	const unsigned char pawnIslandPenalty = 30;
+	const unsigned char pawnShieldColumnPenalty = 40;
+	const unsigned char pawnShieldUndefendedPenalty = 20;
 
 	float endGameWeight;
 	float numMajorMinorPieces;
@@ -48,11 +51,16 @@ private:
 	void initVariables();
 	void calculateEndgameWeight();
 	int staticPieceEvaluations();
+	int staticPieceEvaluation(PieceList* pieceList, bool useBlackSquares=false);
 	int kingDist();
-	int kingTropism();
-	int pawnShieldEvaluation();
-	int passedPawnEvaluation();
-	int pawnIslandEvaluation();
+	int kingTropismEvaluations();
+	int kingTropism(const int& kingSquare, PieceList* enemyList);
+	int pawnShieldEvaluations();
+	int pawnShieldEvaluation(const int& square, uint64_t& pawns);
+	int passedPawnEvaluations();
+	int passedPawnEvaluation(PieceList& pieceList, uint64_t& pawns, uint64_t& opposingPawns, const int& color);
+	int pawnIslandEvaluations();
+	int pawnIslandEvaluation(PieceList& pieceList, uint64_t& pawns);
 public:
 	static int blackEvalSquare[64];
 	static int colorStart[2];
