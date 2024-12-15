@@ -35,6 +35,11 @@ class MovePrecomputation {
 	uint64_t whitePawnShieldMask[64];
 	uint64_t blackPawnShieldMask[64];
 
+	uint64_t whiteKingAttackZone[64];
+	uint64_t blackKingAttackZone[64];
+
+	uint64_t kingUnbiasAttackZone[64];
+
 	uint64_t whitePawnAttackMoves[64];
 	uint64_t blackPawnAttackMoves[64];
 
@@ -63,6 +68,7 @@ class MovePrecomputation {
 	void initIslandMasks();
 	void initShieldMasks();
 	void initDistances();
+	void initKingAttackSquares();
 	void precomputeMoves();
 	void precomputeOrthogonalMoves();
 	void precomputeDiagonalMoves();
@@ -114,6 +120,8 @@ public:
 	uint64_t getShieldMask(const int& square, const int& color);
 	uint64_t getDirectionMask(const int& square1, const int& square2);
 	unsigned char getDistance(const int& square1, const int& square2);
+	uint64_t getKingAttackSquare(const int& square, const int& color);
+	uint64_t getUnbiasKingAttackZone(const int& square);
 };
 
 #endif // !MOVEPRECOMPUTATION_H

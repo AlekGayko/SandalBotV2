@@ -4,11 +4,13 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 using namespace std;
 using namespace chrono;
+using namespace StringUtil;
 
 const vector<string> IUCI::positionLabels = { "position", "fen", "moves" };
 const vector<string> IUCI::goLabels = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
@@ -40,61 +42,105 @@ IUCI::~IUCI() {
 }
 
 void IUCI::processCommand(string command) {
-	logInfo("Command received: " + command);
-	command = StringUtil::trim(command);
-	const string commandType = StringUtil::toLower(StringUtil::splitString(command)[0]);
+	try {
+		//logInfo("Command received: " + command);
+		command = trim(command);
+		const string commandType = toLower(splitString(command)[0]);
 
-	if (commandType == "uci") {
-		respond("uciok");
-	} else if (commandType == "isready") {
-		respond("readyok");
-	} else if (commandType == "ucinewgame") {
-		newGame();
-	} else if (commandType == "position") {
-		processPositionCommand(command);
-	} else if (commandType == "go") {
-		processGoCommand(command);
-	} else if (commandType == "stop") {
-		/*if (player.IsThinking)
-				{
-					player.StopThinking();
-				}*/
-	} else if (commandType == "quit") {
-		exit(0);
-	} else if (commandType == "d") {
-		bot->printBoard();
-	} else {
-		logInfo("Unknown Command: " + commandType);
+		if (commandType == "uci") {
+			UCIok();
+		} else if (commandType == "isready") {
+			respond("readyok");
+		} else if (commandType == "ucinewgame") {
+			newGame();
+		} else if (commandType == "position") {
+			processPositionCommand(command);
+		} else if (commandType == "go") {
+			processGoCommand(command);
+		} else if (commandType == "eval") {
+			eval();
+		} else if (commandType == "stop") {
+			stop();
+		} else if (commandType == "quit") {
+			quit();
+		} else if (commandType == "d") {
+			bot->printBoard();
+		} else {
+			logInfo("Unknown Command: " + commandType);
+		}
+	} catch (exception& e) {
+		logInfo(e.what());
 	}
 }
 
 void IUCI::newGame() {
+	stop();
 	delete bot;
 	bot = new Bot();
 }
 
+void IUCI::stop() {
+	
+	if (goThread.joinable()) {
+		bot->stopSearching();
+		this_thread::sleep_for(chrono::milliseconds(100));
+		goThread.join();
+		this_thread::sleep_for(chrono::milliseconds(100));
+	}
+}
+
+void IUCI::quit() {
+	if (goThread.joinable()) {
+		bot->stopSearching();
+		goThread.join();
+	}
+
+	exit(0);
+}
+
+void IUCI::UCIok() {
+	respond("id name " + name);
+	respond("id author " + author);
+	cout << endl;
+	respond("uciok");
+}
+
+void IUCI::eval() {
+	int evaluation = bot->eval();
+	string sign = evaluation >= 0 ? "+" : "-";
+	respond("evaluation " + sign + to_string((float) evaluation / 100.f));
+}
+
 void IUCI::OnMoveChosen(string move) {
-	logInfo("OnMoveChosen: book move = " /*+ player.LatestMoveIsBookMove*/);
 	respond("bestmove " + move);
 }
 
 void IUCI::processGoCommand(string command) {
-	if (StringUtil::contains(command, "movetime")) {
-		int moveTimeMs = getLabelledValueInt(command, "movetime", goLabels, 0);
+	if (goThread.joinable()) {
+		return;
+	}
+	if (command == "go" || contains(command, "infinite")) {
+		goThread = thread(&Bot::go, bot);
+	} else if (contains(command, "movetime")) {
+		int moveTimeMs = getLabelledValueInt(command, "movetime", goLabels);
 		bot->generateMove(moveTimeMs);
-	} else if (StringUtil::contains(command, "perft")) {
-		int searchDepth = getLabelledValueInt(command, "perft", goLabels, 0);
+	} else if (contains(command, "perft")) {
+		int searchDepth = getLabelledValueInt(command, "perft", goLabels);
 		auto start = high_resolution_clock::now();
+
 		uint64_t nodesSearched = bot->perft(searchDepth);
+
 		auto end = high_resolution_clock::now();
 		duration<double> duration = end - start;
+
 		respond("Time taken: " + to_string(duration.count()) + "s, nodes per second: " + to_string(nodesSearched / duration.count()));
 		respond("Nodes searched: " + to_string(nodesSearched));
 	} else {
-		int timeRemainingWhiteMs = getLabelledValueInt(command, "wtime", goLabels, 0);
-		int timeRemainingBlackMs = getLabelledValueInt(command, "btime", goLabels, 0);
-		int incrementWhiteMs = getLabelledValueInt(command, "winc", goLabels, 0);
-		int incrementBlackMs = getLabelledValueInt(command, "binc", goLabels, 0);
+		int timeRemainingWhiteMs = getLabelledValueInt(command, "wtime", goLabels);
+		int timeRemainingBlackMs = getLabelledValueInt(command, "btime", goLabels);
+		int incrementWhiteMs = getLabelledValueInt(command, "winc", goLabels);
+		int incrementBlackMs = getLabelledValueInt(command, "binc", goLabels);
+
 		int thinkTime = bot->chooseMoveTime(timeRemainingWhiteMs, timeRemainingBlackMs, incrementWhiteMs, incrementBlackMs);
 		string str = "Thinking for: " + to_string(thinkTime);
 		respond(str + " ms.");
@@ -104,19 +150,21 @@ void IUCI::processGoCommand(string command) {
 }
 
 void IUCI::processPositionCommand(string command) {
-	if (StringUtil::contains(StringUtil::toLower(command), "startpos")) {
+	if (goThread.joinable()) {
+		return;
+	}
+	if (contains(toLower(command), "startpos")) {
 		bot->setPosition(FEN::startpos);
-	} else if (StringUtil::contains(StringUtil::toLower(command), "fen")) {
+	} else if (contains(toLower(command), "fen")) {
 		string customFEN = getLabelledValue(command, "fen", positionLabels);
 		bot->setPosition(customFEN);
 	} else {
-		cout << "Invalid position command (expected 'startpos' or 'fen')" << endl;
 		return;
 	}
 
 	string allMoves = getLabelledValue(command, "moves", positionLabels);
 	if (allMoves.size() > 0) {
-		vector<string> moveList = StringUtil::splitString(allMoves);
+		vector<string> moveList = splitString(allMoves);
 		for (string move : moveList) {
 			bot->makeMove(move);
 		}
@@ -131,32 +179,43 @@ void IUCI::respond(string response) {
 	cout.flush();
 }
 
-int IUCI::getLabelledValueInt(string text, string label, const vector<string> allLabels, int defaultValue) {
-	string valueString = getLabelledValue(text, label, allLabels, defaultValue + "");
-	string resultString = StringUtil::splitString(valueString)[0];
-	if (StringUtil::isDigitString(resultString)) {
-		return stoi(resultString);
+int IUCI::getLabelledValueInt(string text, string label, const vector<string> allLabels) {
+	string valueString = getLabelledValue(text, label, allLabels);
+	string resultString = splitString(valueString)[0];
+
+	if (!isDigitString(resultString)) {
+		throw runtime_error("'" + resultString + "' is not an integer.'");
 	}
-	return defaultValue;
+
+	int value = stoi(resultString);
+
+	if (value < 0) {
+		throw runtime_error("'" + to_string(value) + "' is not a positive integer");
+	}
+
+	return value;
 }
 
-string IUCI::getLabelledValue(string text, string label, const vector<string> allLabels, string defaultValue) {
-	text = StringUtil::trim(text);
-	if (StringUtil::contains(text, label)) {
-		int valueStart = StringUtil::indexOf(text, label) + label.size();
-		int valueEnd = text.size();
-		for (int i = 0; i < allLabels.size(); i++) {
-			if (allLabels[i] != label && StringUtil::contains(text, allLabels[i])) {
-				int otherIDStartIndex = StringUtil::indexOf(text, allLabels[i]);
-				if (otherIDStartIndex > valueStart && otherIDStartIndex < valueEnd) {
-					valueEnd = otherIDStartIndex;
-				}
+string IUCI::getLabelledValue(string text, string label, const vector<string> allLabels) {
+	text = trim(text);
+
+	if (!contains(text, label)) {
+		throw runtime_error("'" + label + "' not found within '" + text + "'");
+	}
+
+	int valueStart = indexOf(text, label) + label.size();
+	int valueEnd = text.size();
+
+	for (int i = 0; i < allLabels.size(); i++) {
+		if (allLabels[i] != label && contains(text, allLabels[i])) {
+			int otherIDStartIndex = indexOf(text, allLabels[i]);
+			if (otherIDStartIndex > valueStart && otherIDStartIndex < valueEnd) {
+				valueEnd = otherIDStartIndex;
 			}
 		}
-
-		return StringUtil::trim(text.substr(valueStart, valueEnd - valueStart));
 	}
-	return defaultValue;
+
+	return trim(text.substr(valueStart, valueEnd - valueStart));
 }
 
 
@@ -165,6 +224,7 @@ void IUCI::logInfo(string text) {
 	ofstream outFile(logPath, ios::app);
 	if (!outFile.is_open()) {
 		cerr << "Could not write to " << logPath << endl;
+		outFile.close();
 		return;
 	}
 	outFile << text << endl;

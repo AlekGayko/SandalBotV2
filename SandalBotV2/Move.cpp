@@ -3,50 +3,42 @@
 #include <iostream>
 
 Move::Move() {
-	
+	this->moveValue = 0;
 }
 
 Move::Move(unsigned short int move) {
 	this->moveValue = move;
-	this->startSquare = (move & startingSquareMask) >> 6;
-	this->targetSquare = move & targetSquareMask;
-	this->flag = move & flagMask;
 }
 
 Move::Move(int startingSquare, int targetSquare) {
 	this->moveValue = (startingSquare << 6) | targetSquare;
-	this->startSquare = startingSquare;
-	this->targetSquare = targetSquare;
 }
 
 Move::Move(int startingSquare, int targetSquare, int flag) {
 	this->moveValue = (flag << 12) | (startingSquare << 6) | targetSquare;
-	this->startSquare = startingSquare;
-	this->targetSquare = targetSquare;
-	this->flag = flag;
 }
 
-bool Move::operator==(const Move& other) const {
+bool Move::operator==(const Move& other) {
 	if (this == &other) {
 		return true;
 	}
 	return moveValue == other.moveValue;
 }
 
-constexpr bool Move::isPromotion() const {
-	return flag >= promoteToQueenFlag;
+bool Move::isPromotion() {
+	return getFlag() >= promoteToQueenFlag;
 }
 
-constexpr bool Move::isEnPassant() const {
-	return flag == enPassantCaptureFlag;
+bool Move::isEnPassant() {
+	return getFlag() == enPassantCaptureFlag;
 }
 
-constexpr bool Move::isCastle() const {
-	return flag == castleFlag;
+bool Move::isCastle() {
+	return getFlag() == castleFlag;
 }
 
-constexpr int Move::promotionPieceType() const {
-	switch (flag) {
+int Move::promotionPieceType() {
+	switch (getFlag()) {
 	case promoteToQueenFlag:
 		return Piece::queen;
 	case promoteToRookFlag:
@@ -60,33 +52,84 @@ constexpr int Move::promotionPieceType() const {
 	}
 }
 
+unsigned short int Move::getStartSquare() const {
+	return (moveValue & startingSquareMask) >> 6;
+}
+
+unsigned short int Move::getTargetSquare() const {
+	return moveValue & targetSquareMask;
+}
+
+unsigned short int Move::getFlag() const {
+	return (moveValue & flagMask) >> 12;
+}
+
 Move& Move::operator=(const Move& other) {
 	this->moveValue = other.moveValue;
-	this->startSquare = other.startSquare;
-	this->targetSquare = other.targetSquare;
-	this->flag = other.flag;
 
 	return *this;
 }
 
-std::ostream& operator<<(std::ostream& os, const Move& move) {
-	os << CoordHelper::indexToString(move.startSquare) << CoordHelper::indexToString(move.targetSquare);
-	if (move.flag > Move::castleFlag) {
-		std::string flag;
-		switch (move.flag) {
-		case Move::promoteToQueenFlag:
-			flag = "q";
-			break;
-		case Move::promoteToRookFlag:
-			flag = "r";
-			break;
-		case Move::promoteToBishopFlag:
-			flag = "b";
-			break;
-		case Move::promoteToKnightFlag:
-			flag = "n";
-			break;
+bool Move::operator!=(const Move& other) {
+	return moveValue != other.moveValue;
+}
+
+std::string Move::str() const {
+	std::string str = "";
+	str += CoordHelper::indexToString(getStartSquare());
+	str += CoordHelper::indexToString(getTargetSquare());
+
+	switch (getFlag()) {
+	case castleFlag:
+		if (getTargetSquare() > getStartSquare()) {
+			str = "O-O";
+		} else {
+			str = "O-O-O";
 		}
+		break;
+	case promoteToQueenFlag:
+		str += "q";
+		break;
+	case promoteToRookFlag:
+		str += "r";
+		break;
+	case promoteToBishopFlag:
+		str += "b";
+		break;
+	case promoteToKnightFlag:
+		str += "n";
+		break;
 	}
+
+	return str;
+}
+
+std::string Move::binStr() const {
+	std::string binaryStr = "";
+	
+	// Flag
+	for (int i = 15; i > 11; i--) {
+		binaryStr += std::to_string((moveValue >> i) & 0b1);
+	}
+
+	binaryStr += " ";
+
+	// StartSquare
+	for (int i = 11; i > 5; i--) {
+		binaryStr += std::to_string((moveValue >> i) & 0b1);
+	}
+
+	binaryStr += " ";
+
+	// TargetSquare
+	for (int i = 5; i >= 0; i--) {
+		binaryStr += std::to_string((moveValue >> i) & 0b1);
+	}
+
+	return binaryStr;
+}
+
+std::ostream& operator<<(std::ostream& os, const Move& move) {
+	os << move.str();
 	return os;
 }

@@ -9,7 +9,7 @@
 
 class BoardHistory {
 private:
-	const int historySize = 2048;
+	int historySize = 1024;
 	u64* hashHistory = nullptr;
 	int* startSearchIndicies = nullptr;
 	int numBoards = 0;

@@ -8,14 +8,16 @@
 #include "CoordHelper.h"
 #include "Move.h"
 #include "PieceList.h"
-#include "StateHistory.h"
+#include "stateHistory.h"
 
 #include <stack>
 #include <vector>
 
 class FEN;
+class Evaluator;
 
 class Board {
+	friend class Searcher;
 private:
 	
 public:
@@ -28,7 +30,7 @@ public:
 	BoardHistory history;
 	StateHistory stateHistory;
 	BoardState* state = nullptr;
-
+	Evaluator* evaluator = nullptr;
 	// Bitboards
 	uint64_t allPieces;
 	uint64_t whitePieces;
@@ -45,13 +47,16 @@ public:
 
 	Board();
 	~Board();
+	void setEvaluator(Evaluator* evaluator);
 	void loadPieceLists();
 	void loadBitBoards();
 	void loadPosition(std::string fen);
 	void makeMove(Move& move, bool hashBoard = true);
-	void makeEnPassantChanges(Move& move);
-	void makeCastlingChanges(Move& move, int& castlingRights);
-	void makePromotionChanges(Move& move, int& piece);
+	void flagMoveChanges(Move& move, uint64_t& newZobristHash, int& enPassantSquare, int& castlingRights, int colorIndex, int oppositeIndex);
+	int updateCastlingRights(const int& piece, const int& colorIndex, const int& startSquare, int castlingRights);
+	void makeEnPassantChanges(Move& move, uint64_t& newZobristHash, int oppositeIndex);
+	void makeCastlingChanges(Move& move, uint64_t& newZobristHash, int& castlingRights, int colorIndex);
+	int makePromotionChanges(Move& move, int& piece, int colorIndex);
 	void unMakeMove(Move& move);
 	void undoEnPassantChanges(Move& move);
 	void undoCastlingChanges(Move& move);

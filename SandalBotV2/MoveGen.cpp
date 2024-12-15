@@ -325,11 +325,11 @@ void MoveGen::castlingMoves(Move moves[], int startSquare) {
 	}
 }
 
-void MoveGen::generateSlideAttackData() {
+uint64_t MoveGen::generateOrthogonalAttackData(const uint64_t& orthogonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare) {
+	uint64_t opponentAttacks = 0ULL;
 	int startSquare;
-	uint64_t orthSliders = board->orthogonalPieces & enemyBoard;
-	uint64_t diagSliders = board->diagonalPieces & enemyBoard;
-
+	uint64_t orthSliders = orthogonalPieces & enemyBoard;
+	
 	while (orthSliders != 0ULL) {
 		startSquare = BitBoardUtility::popLSB(orthSliders);
 
@@ -339,6 +339,14 @@ void MoveGen::generateSlideAttackData() {
 
 		opponentAttacks |= moveBitboard;
 	}
+
+	return opponentAttacks;
+}
+
+uint64_t MoveGen::generateDiagonalAttackData(const uint64_t& diagonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare) {
+	uint64_t opponentAttacks = 0ULL;
+	int startSquare;
+	uint64_t diagSliders = diagonalPieces & enemyBoard;
 
 	while (diagSliders != 0ULL) {
 		startSquare = BitBoardUtility::popLSB(diagSliders);
@@ -350,18 +358,23 @@ void MoveGen::generateSlideAttackData() {
 		opponentAttacks |= moveBitboard;
 	}
 
+	return opponentAttacks;
 }
 
-void MoveGen::generateKnightAttackData() {
+uint64_t MoveGen::generateKnightAttackData(const uint64_t& enemyBoard) {
+	uint64_t opponentAttacks = 0ULL;
 	int startSquare;
 	uint64_t knights = board->knights & enemyBoard;
 	while (knights != 0ULL) {
 		startSquare = BitBoardUtility::popLSB(knights);
 		opponentAttacks |= preComp->getKnightBoard(startSquare);
 	}
+
+	return opponentAttacks;
 }
 
-void MoveGen::generatePawnAttackData() {
+uint64_t MoveGen::generatePawnAttackData(const uint64_t& enemyBoard, const int& opposingColor) {
+	uint64_t opponentAttacks = 0ULL;
 	int startSquare;
 	uint64_t pawns = board->pawns & enemyBoard;
 
@@ -370,18 +383,19 @@ void MoveGen::generatePawnAttackData() {
 		uint64_t moveBitboard = preComp->getPawnAttackMoves(startSquare, opposingColor);
 		opponentAttacks |= moveBitboard;
 	}
+
+	return opponentAttacks;
 }
-void MoveGen::generateKingAttackData() {
-	const int startSquare = enemyKingSquare;
-	uint64_t moveBitboard = preComp->getKingMoves(startSquare);
-	opponentAttacks |= moveBitboard;
+uint64_t MoveGen::generateKingAttackData(const int& enemyKingSquare) {
+	return preComp->getKingMoves(enemyKingSquare);
 }
 
 void MoveGen::generateAttackData() {
-	generateSlideAttackData();
-	generateKingAttackData();
-	generateKnightAttackData();
-	generatePawnAttackData();
+	opponentAttacks |= generateOrthogonalAttackData(board->orthogonalPieces, enemyBoard, friendlyKingSquare);
+	opponentAttacks |= generateDiagonalAttackData(board->diagonalPieces, enemyBoard, friendlyKingSquare);
+	opponentAttacks |= generateKingAttackData(enemyKingSquare);
+	opponentAttacks |= generateKnightAttackData(enemyBoard);
+	opponentAttacks |= generatePawnAttackData(enemyBoard, opposingColor);
 }
 
 void MoveGen::generateCheckData() {

@@ -147,12 +147,22 @@ void MovePrecomputation::initShieldMasks() {
 		uint64_t blackMask = (numeric_limits<uint64_t>::max() >> 6 * 8) << min((square / 8 + 1), 7) * 8;
 
 		uint64_t colMask = 0ULL;
-		colMask |= columnMasks[square % 8];
 
-		colMask |= columnMasks[min(1 + square % 8, 7)];
+		int col = square % 8;
+		colMask |= columnMasks[col];
 
-		colMask |= columnMasks[max(-1 + square % 8, 0)];
+		if (col == 0) {
+			colMask |= columnMasks[col + 2];
+		} else {
+			colMask |= columnMasks[col - 1];
+		}
 
+		if (col == 7) {
+			colMask |= columnMasks[col - 2];
+		} else {
+			colMask |= columnMasks[1 + col];
+		}
+	
 		whiteMask &= colMask;
 		blackMask &= colMask;
 		
@@ -177,6 +187,51 @@ void MovePrecomputation::initDistances() {
 	}
 }
 
+void MovePrecomputation::initKingAttackSquares() {
+	for (int square = 0; square < 64; square++) {
+		uint64_t immediateSquares = kingMoves[square];
+		uint64_t whiteMask = immediateSquares;
+		uint64_t blackMask = immediateSquares;
+
+		if (square / 8 > 1)
+			whiteMask |= whitePawnShieldMask[square - 8];
+		if (square / 8 < 6)
+			blackMask |= blackPawnShieldMask[square + 8];
+
+		whiteKingAttackZone[square] = whiteMask;
+		blackKingAttackZone[square] = blackMask;
+	}
+
+	for (int square = 0; square < 64; square++) {
+		int row = square / 8;
+		int column = square % 8;
+
+		uint64_t rows = rowMasks[square / 8];
+		uint64_t columns = columnMasks[square % 8];
+
+		if (row > 0)
+			rows |= rowMasks[row - 1];
+		if (row > 1)
+			rows |= rowMasks[row - 2];
+		if (row < 7)
+			rows |= rowMasks[row + 1];
+		if (row < 6)
+			rows |= rowMasks[row + 2];
+
+		if (column > 0)
+			columns |= columnMasks[column - 1];
+		if (column > 1)
+			columns |= columnMasks[column - 2];
+		if (column < 7)
+			columns |= columnMasks[column + 1];
+		if (column < 6)
+			columns |= columnMasks[column + 2];
+
+		uint64_t zone = rows & columns;
+		zone &= ~(1ULL << square);
+	}
+}
+
 void MovePrecomputation::precomputeMoves() {
 	precomputeOrthogonalMoves();
 	precomputeDiagonalMoves();
@@ -186,13 +241,11 @@ void MovePrecomputation::precomputeMoves() {
 }
 
 void MovePrecomputation::precomputeOrthogonalMoves() {
-	int size = 0;
 	for (int square = 0; square < 64; square++) {
 		vector<uint64_t> blockerConfigs = precomputeOrthogonalMove(square);
 		vector<uint64_t> movementBoards;
 		movementBoards.reserve(blockerConfigs.size());
-		size += blockerConfigs.size();
-		//generateMagicNumbers(blockerConfigs);
+
 		for (uint64_t& blockerBoard : blockerConfigs) {
 			uint64_t moves = createOrthogonalMovement(square, blockerBoard);
 			movementBoards.push_back(moves);
@@ -202,13 +255,11 @@ void MovePrecomputation::precomputeOrthogonalMoves() {
 }
 
 void MovePrecomputation::precomputeDiagonalMoves() {
-	int size = 0;
 	for (int square = 0; square < 64; square++) {
 		vector<uint64_t> blockerConfigs = precomputeDiagonalMove(square);
 		vector<uint64_t> movementBoards;
 		movementBoards.reserve(blockerConfigs.size());
-		size += blockerConfigs.size();
-		//generateMagicNumbers(blockerConfigs, false);
+
 		for (uint64_t& blockerBoard : blockerConfigs) {
 			uint64_t moves = createDiagonalMovement(square, blockerBoard);
 			movementBoards.push_back(moves);
@@ -240,6 +291,7 @@ void MovePrecomputation::precomputeKingMoves() {
 			kingMoves[square] |= 1ULL << (square + slideDirections[dirIndex]);
 		}
 	}
+	initKingAttackSquares();
 }
 
 void MovePrecomputation::precomputePawnMoves() {
@@ -466,6 +518,14 @@ uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& squ
 
 unsigned char MovePrecomputation::getDistance(const int& square1, const int& square2) {
 	return distances[square1][square2];
+}
+
+uint64_t MovePrecomputation::getKingAttackSquare(const int& square, const int& color) {
+	return color == Piece::white ? whiteKingAttackZone[square] : blackKingAttackZone[square];
+}
+
+uint64_t MovePrecomputation::getUnbiasKingAttackZone(const int& square) {
+	return kingUnbiasAttackZone[square];
 }
 
 

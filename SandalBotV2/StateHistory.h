@@ -6,7 +6,7 @@ class BoardState;
 
 class StateHistory {
 private:
-	const size_t defaultSize = 100;
+	const size_t defaultSize = 1024;
 	size_t size = 0;
 	size_t allocatedSize = 0;
 	BoardState* history = nullptr;

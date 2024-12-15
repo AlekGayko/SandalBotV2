@@ -12,6 +12,7 @@
 class MoveGen {
 	friend class MoveOrderer;
 	friend class MovePrecomputation;
+	friend class Searcher;
 private:
 	Board* board = nullptr;
 
@@ -71,10 +72,11 @@ public:
 	void promotionMoves(Move moves[], int targetSquare, int startSquare);
 	void castlingMoves(Move moves[], int startSquare);
 
-	void generateKnightAttackData();
-	void generatePawnAttackData();
-	void generateKingAttackData();
-	void generateSlideAttackData();
+	uint64_t generateKnightAttackData(const uint64_t& enemyBoard);
+	uint64_t generatePawnAttackData(const uint64_t& enemyBoard, const int& opposingColor);
+	uint64_t generateKingAttackData(const int& enemyKingSquare);
+	uint64_t generateOrthogonalAttackData(const uint64_t& orthogonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare);
+	uint64_t generateDiagonalAttackData(const uint64_t& diagonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare);
 	void generateAttackData();
 	void generateCheckData();
 

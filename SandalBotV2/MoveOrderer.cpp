@@ -33,9 +33,9 @@ void MoveOrderer::order(Move moves[], Move& bestMove, int numMoves, int depth, b
 			moveVals[it] += killerValue;
 		}
 		int moveValue = 0;
-		const int startSquare = moves[it].startSquare;
-		const int targetSquare = moves[it].targetSquare;
-		const int flag = moves[it].flag;
+		const int startSquare = moves[it].getStartSquare();
+		const int targetSquare = moves[it].getTargetSquare();
+		const int flag = moves[it].getFlag();
 		int ownPiece = Piece::type(board->squares[startSquare]);
 		int enemyPiece = Piece::type(board->squares[targetSquare]);
 		bool targetSquareDefended = generator->opponentAttacks & (1ULL << targetSquare);

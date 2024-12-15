@@ -17,7 +17,23 @@ BoardHistory::~BoardHistory() {
 }
 
 void BoardHistory::push(u64 value, bool reset) {
-	if (numBoards >= historySize) return;
+	if (numBoards >= historySize) {
+		historySize *= 2;
+		u64* newHashHistory = new u64[historySize];
+		int* newSearchIndice = new int[historySize + 1];
+
+		for (int i = 0; i < numBoards; i++) {
+			newHashHistory[i] = hashHistory[i];
+			newSearchIndice[i] = startSearchIndicies[i];
+		}
+		newSearchIndice[numBoards] = startSearchIndicies[numBoards];
+
+		delete[] hashHistory;
+		delete[] startSearchIndicies;
+
+		hashHistory = newHashHistory;
+		startSearchIndicies = newSearchIndice;
+	}
 	hashHistory[numBoards] = value;
 	startSearchIndicies[numBoards + 1] = reset ? numBoards : startSearchIndicies[numBoards];
 	numBoards++;
