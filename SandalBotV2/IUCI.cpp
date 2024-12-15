@@ -107,8 +107,8 @@ void IUCI::UCIok() {
 
 void IUCI::eval() {
 	int evaluation = bot->eval();
-	string sign = evaluation >= 0 ? "+" : "-";
-	respond("evaluation " + sign + to_string((float) evaluation / 100.f));
+
+	respond("evaluation " + to_string((float) evaluation / 100.f));
 }
 
 void IUCI::OnMoveChosen(string move) {

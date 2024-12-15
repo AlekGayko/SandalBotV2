@@ -107,9 +107,9 @@ int Evaluator::Evaluate() {
 	evaluation += staticPieceEvaluations();
 	evaluation += pawnIslandEvaluations();
 	evaluation += passedPawnEvaluations();
-	evaluation += kingDist();
 	evaluation += kingSafety();
 	evaluation += openFilesEvaluation();
+	evaluation += kingDist();
 
 	return evaluation;
 }
@@ -127,11 +127,16 @@ int Evaluator::movesTilMate(int score) {
 int Evaluator::kingSafety() {
 	int evaluation = 0;
 
+	if (enemyMaterial == 0 || enemyMajorMinorPieces == 0) {
+		return evaluation;
+	}
+
 	evaluation += pawnShieldEvaluations();
-	evaluation += kingTropismEvaluations();
+	//evaluation += kingTropismEvaluations();
+
 	evaluation *= kingSafetyCoefficient;
+
 	//evaluation += kingAttackZones();
-	//cout << evaluation << endl;
 
 	return evaluation;
 }
@@ -170,11 +175,11 @@ int Evaluator::pawnShieldEvaluations() {
 	friendlyShield &= board->pawns & friendlyBoard;
 	enemyShield &= board->pawns & enemyBoard;
 
-	int evaluation = - (enemyMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(friendlyKingSquare, friendlyShield);
-	evaluation += (friendlyMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(enemyKingSquare, enemyShield);
+	int evaluation = (enemyMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(friendlyKingSquare, friendlyShield);
+	evaluation -= (friendlyMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(enemyKingSquare, enemyShield);
 
 	evaluation *= (1 - endGameWeight);
-	//cout << "pawn shield eval: " << evaluation << endl;
+
 	return evaluation;
 }
 
@@ -191,18 +196,23 @@ int Evaluator::pawnShieldEvaluation(const int& square, uint64_t& pawns) {
 		evaluation -= pawnShieldColumnPenalty;
 	}
 	// Logic pertains to include edge file shields
-	col = col + 1;
 	if (col == 7) {
 		col = (square % 8) - 2;
+	} else {
+		col = col + 1;
 	}
+
+
 	if ((pawns & precomputation->getColMask(col)) == 0ULL) {
 		evaluation -= pawnShieldColumnPenalty;
 	}
 
-	col = col - 1;
 	if (col == 0) {
 		col = (square % 8) + 2;
+	} else {
+		col = (square % 8) - 1;
 	}
+
 	if ((pawns & precomputation->getColMask(col)) == 0ULL) {
 		evaluation -= pawnShieldColumnPenalty;
 	}
@@ -306,7 +316,6 @@ int Evaluator::kingAttackZones() {
 	int evaluation = kingAttackZone(friendlyKingZone, friendlyBoard, enemyKingSquare, enemyColor);
 	evaluation -= kingAttackZone(enemyKingZone, enemyBoard, friendlyKingSquare, friendlyColor);
 
-	//cout << "kingattackzone: " << evaluation << endl;
 	return evaluation;
 }
 
@@ -321,7 +330,7 @@ int Evaluator::kingAttackZone(uint64_t& attackZone, uint64_t& friendlyPieces, in
 	evaluation += evalOrthMoves(attackZone, rooks, enemyKingSquare);
 	evaluation += evalDiagMoves(attackZone, bishops, enemyKingSquare);
 	evaluation += evalQueenMoves(attackZone, queens, enemyKingSquare);
-	//evaluation += evalPawnMoves(attackZone, pawns, opposingColor);
+	evaluation += evalPawnMoves(attackZone, pawns, opposingColor);
 	evaluation += evalKnightMoves(attackZone, knights);
 
 	evaluation = -kingZoneSafety[evaluation];
@@ -556,19 +565,7 @@ int Evaluator::staticPieceEvaluation(PieceList* pieceList, int& material, bool u
 			if (useBlackSquares)
 				square = blackEvalSquare[square];
 
-			switch (piece) {
-				/*
-			case Piece::pawn:
-				evaluation += (1 - endGameWeight) * (float)PieceEvaluations::pawnEval[square] + endGameWeight * (float)PieceEvaluations::pawnEndgameEval[square];
-				break;
-			case Piece::king:
-				evaluation += (1 - endGameWeight) * (float)PieceEvaluations::kingEval[square] + endGameWeight * (float)PieceEvaluations::kingEndgameEval[square];
-				break;
-				*/
-			default:
-				evaluation += PieceEvaluations::pieceEvals[piece][square];
-				break;
-			}
+			evaluation += PieceEvaluations::pieceEvals[piece][square];
 		}
 	}
 
@@ -670,11 +667,8 @@ void Evaluator::staticPieceSpawn(const int piece, int square, const bool whiteTu
 	if (!whiteTurn) {
 		square = blackEvalSquare[square];
 	}
-	switch (piece) {
-	default:
-		*movingSide += PieceEvaluations::pieceEvals[piece][square];
-		break;
-	}
+
+	*movingSide += PieceEvaluations::pieceEvals[piece][square];
 
 	int* material = whiteTurn ? &whiteMaterial : &blackMaterial;
 	*material += PieceEvaluations::pieceVals[piece];

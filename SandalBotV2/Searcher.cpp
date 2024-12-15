@@ -436,7 +436,7 @@ void Searcher::enactBestLine(Move& move, int depth) {
 }
 
 int Searcher::eval() {
-	return quiescenceSearch(defaultAlpha, defaultBeta, 0);
+	return evaluator->Evaluate();
 }
 
 // Performs perft test
