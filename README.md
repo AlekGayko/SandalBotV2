@@ -13,6 +13,6 @@ The bot follows standard UCI protocols and uses a variety of techniques to achie
 - Magic Bitboards
 - Piece-Square Tables
 - 
-#Lichess Account
+# Lichess Account
 SandalBotV2 can be found playing on the 'SandalBot' account.
 https://lichess.org/@/SandalBot
