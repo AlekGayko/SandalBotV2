@@ -6,7 +6,7 @@ The bot follows standard UCI protocols and uses various techniques to achieve op
 - Negamax Search
 - Quiescence Search
 - Move Ordering
-- Depth reduction and extension
+- Depth Reduction and Extension
 - Transposition Table
 - Move Pre-Computation
 - Bitboards
