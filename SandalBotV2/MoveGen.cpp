@@ -15,13 +15,18 @@ const int MoveGen::longCastleRookSquares[2] = { 0, 56 };
 const int MoveGen::shortCastleRookSpawn[2] = { 5, 61 };
 const int MoveGen::longCastleRookSpawn[2] = { 3, 59 };
 
-MoveGen::MoveGen() {
+MoveGen::~MoveGen() {
+	delete preComp;
+}
 
+MoveGen::MoveGen() {
+	preComp = new MovePrecomputation();
 }
 
 MoveGen::MoveGen(Board* board) {
 	if (board == nullptr) throw std::invalid_argument("board cannot be nullptr");
 	this->board = board;
+	preComp = new MovePrecomputation();
 }
 
 int MoveGen::generateMoves(Move moves[], bool capturesOnly) {
@@ -89,8 +94,8 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 			continue;
 		}
 
-		uint64_t blockers = board->allPieces & preComp.getBlockerOrthogonalMask(startSquare);
-		uint64_t moveBitboard = preComp.getOrthMovementBoard(startSquare, blockers);
+		uint64_t blockers = board->allPieces & preComp->getBlockerOrthogonalMask(startSquare);
+		uint64_t moveBitboard = preComp->getOrthMovementBoard(startSquare, blockers);
 
 		moveBitboard &= ~(friendlyBoard);
 		if (isCheck) {
@@ -105,10 +110,10 @@ void MoveGen::generateOrthogonalMoves(Move moves[]) {
 
 
 		if (isPinned && friendlyKingSquare / 8 == startSquare / 8) {
-			moveBitboard &= preComp.getRowMask(startSquare);
+			moveBitboard &= preComp->getRowMask(startSquare);
 		}
 		if (isPinned && abs(friendlyKingSquare - startSquare) % 8 == 0) {
-			moveBitboard &= preComp.getColMask(startSquare);
+			moveBitboard &= preComp->getColMask(startSquare);
 		}
 
 		while (moveBitboard != 0ULL) {
@@ -136,8 +141,8 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 			continue;
 		}
 
-		uint64_t blockers = board->allPieces & preComp.getBlockerDiagonalMask(startSquare);
-		uint64_t moveBitboard = preComp.getDiagMovementBoard(startSquare, blockers);
+		uint64_t blockers = board->allPieces & preComp->getBlockerDiagonalMask(startSquare);
+		uint64_t moveBitboard = preComp->getDiagMovementBoard(startSquare, blockers);
 		moveBitboard &= ~(friendlyBoard);
 
 		if (isCheck) {
@@ -151,9 +156,9 @@ void MoveGen::generateDiagonalMoves(Move moves[]) {
 		}
 
 		if (isPinned && abs(friendlyKingSquare - startSquare) % 7 == 0) {
-			moveBitboard &= preComp.getForwardMask(startSquare);
+			moveBitboard &= preComp->getForwardMask(startSquare);
 		} else if (isPinned && abs(friendlyKingSquare - startSquare) % 9 == 0) {
-			moveBitboard &= preComp.getBackwardMask(startSquare);
+			moveBitboard &= preComp->getBackwardMask(startSquare);
 		}
 
 		while (moveBitboard != 0ULL) {
@@ -175,7 +180,7 @@ void MoveGen::generateKnightMoves(Move moves[]) {
 		isPinned = checkRayBB & (1ULL << startSquare);
 		if (isPinned) continue;
 
-		uint64_t moveBitboard = preComp.getKnightBoard(startSquare);
+		uint64_t moveBitboard = preComp->getKnightBoard(startSquare);
 		moveBitboard &= ~(friendlyBoard);
 		if (isCheck)
 			moveBitboard &= checkBB;
@@ -197,7 +202,7 @@ void MoveGen::generateKingMoves(Move moves[]) {
 	if (!generateCaptures && friendlyKingSquare == startingKingSquares[colorIndex] && castlingRights & castleMask && !isCheck)
 		castlingMoves(moves, friendlyKingSquare);
 
-	uint64_t moveBitboard = preComp.getKingMoves(friendlyKingSquare);
+	uint64_t moveBitboard = preComp->getKingMoves(friendlyKingSquare);
 	moveBitboard &= ~(opponentAttacks);
 	moveBitboard &= ~(friendlyBoard);
 	if (generateCaptures)
@@ -238,14 +243,14 @@ void MoveGen::generatePawnMoves(Move moves[]) {
 		if (isPinned && friendlyKingSquare % 8 != startSquare % 8)
 			moveBitboard = 0ULL;
 
-		uint64_t attackBitboard = preComp.getPawnAttackMoves(startSquare, currentColor);
+		uint64_t attackBitboard = preComp->getPawnAttackMoves(startSquare, currentColor);
 		if (isPinned && friendlyKingSquare % 8 == startSquare % 8) {
 			attackBitboard = 0ULL;
 		} else if (isPinned && kingDir % 9 == 0) {
-			attackBitboard &= preComp.getBackwardMask(startSquare);
+			attackBitboard &= preComp->getBackwardMask(startSquare);
 			moveBitboard = 0ULL;
 		} else if (isPinned && kingDir % 7 == 0) {
-			attackBitboard &= preComp.getForwardMask(startSquare);
+			attackBitboard &= preComp->getForwardMask(startSquare);
 			moveBitboard = 0ULL;
 		}
 		// En Passant
@@ -288,17 +293,17 @@ bool MoveGen::enPassantPin(int friendlyPawnSquare, int enemyPawnSquare) {
 	if (friendlyKingSquare / 8 != friendlyPawnSquare / 8) return false;
 
 	// Create blocker board
-	uint64_t blockers = preComp.getBlockerOrthogonalMask(friendlyKingSquare) & board->allPieces;
+	uint64_t blockers = preComp->getBlockerOrthogonalMask(friendlyKingSquare) & board->allPieces;
 	// After en passant pawns will be gone
 	blockers &= ~(1ULL << friendlyPawnSquare) & ~(1ULL << enemyPawnSquare);
 	// Block column
-	blockers |= preComp.getColMask(friendlyKingSquare) & ~(1ULL << friendlyKingSquare);
-	blockers &= ~preComp.getRowMask(0);
-	blockers &= ~preComp.getRowMask(63);
+	blockers |= preComp->getColMask(friendlyKingSquare) & ~(1ULL << friendlyKingSquare);
+	blockers &= ~preComp->getRowMask(0);
+	blockers &= ~preComp->getRowMask(63);
 	// Get movement board
-	uint64_t movementBitboard = preComp.getOrthMovementBoard(friendlyKingSquare, blockers);
+	uint64_t movementBitboard = preComp->getOrthMovementBoard(friendlyKingSquare, blockers);
 	// Restrict movement to row and enemy orthogonal pieces
-	movementBitboard &= board->orthogonalPieces & enemyBoard & preComp.getRowMask(friendlyKingSquare);
+	movementBitboard &= board->orthogonalPieces & enemyBoard & preComp->getRowMask(friendlyKingSquare);
 	// If movement board != 0ULL, there is a pin
 	return movementBitboard != 0ULL;
 }
@@ -320,63 +325,77 @@ void MoveGen::castlingMoves(Move moves[], int startSquare) {
 	}
 }
 
-void MoveGen::generateSlideAttackData() {
+uint64_t MoveGen::generateOrthogonalAttackData(const uint64_t& orthogonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare) {
+	uint64_t opponentAttacks = 0ULL;
 	int startSquare;
-	uint64_t orthSliders = board->orthogonalPieces & enemyBoard;
-	uint64_t diagSliders = board->diagonalPieces & enemyBoard;
-
+	uint64_t orthSliders = orthogonalPieces & enemyBoard;
+	
 	while (orthSliders != 0ULL) {
 		startSquare = BitBoardUtility::popLSB(orthSliders);
 
-		uint64_t blockers = board->allPieces & preComp.getBlockerOrthogonalMask(startSquare);
+		uint64_t blockers = board->allPieces & preComp->getBlockerOrthogonalMask(startSquare);
 		BitBoardUtility::deleteBit(blockers, friendlyKingSquare);
-		uint64_t moveBitboard = preComp.getOrthMovementBoard(startSquare, blockers);
+		uint64_t moveBitboard = preComp->getOrthMovementBoard(startSquare, blockers);
 
 		opponentAttacks |= moveBitboard;
 	}
+
+	return opponentAttacks;
+}
+
+uint64_t MoveGen::generateDiagonalAttackData(const uint64_t& diagonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare) {
+	uint64_t opponentAttacks = 0ULL;
+	int startSquare;
+	uint64_t diagSliders = diagonalPieces & enemyBoard;
 
 	while (diagSliders != 0ULL) {
 		startSquare = BitBoardUtility::popLSB(diagSliders);
 
-		uint64_t blockers = board->allPieces & preComp.getBlockerDiagonalMask(startSquare);
+		uint64_t blockers = board->allPieces & preComp->getBlockerDiagonalMask(startSquare);
 		BitBoardUtility::deleteBit(blockers, friendlyKingSquare);
-		uint64_t moveBitboard = preComp.getDiagMovementBoard(startSquare, blockers);
+		uint64_t moveBitboard = preComp->getDiagMovementBoard(startSquare, blockers);
 
 		opponentAttacks |= moveBitboard;
 	}
 
+	return opponentAttacks;
 }
 
-void MoveGen::generateKnightAttackData() {
+uint64_t MoveGen::generateKnightAttackData(const uint64_t& enemyBoard) {
+	uint64_t opponentAttacks = 0ULL;
 	int startSquare;
 	uint64_t knights = board->knights & enemyBoard;
 	while (knights != 0ULL) {
 		startSquare = BitBoardUtility::popLSB(knights);
-		opponentAttacks |= preComp.getKnightBoard(startSquare);
+		opponentAttacks |= preComp->getKnightBoard(startSquare);
 	}
+
+	return opponentAttacks;
 }
 
-void MoveGen::generatePawnAttackData() {
+uint64_t MoveGen::generatePawnAttackData(const uint64_t& enemyBoard, const int& opposingColor) {
+	uint64_t opponentAttacks = 0ULL;
 	int startSquare;
 	uint64_t pawns = board->pawns & enemyBoard;
 
 	while (pawns != 0ULL) {
 		startSquare = BitBoardUtility::popLSB(pawns);
-		uint64_t moveBitboard = preComp.getPawnAttackMoves(startSquare, opposingColor);
+		uint64_t moveBitboard = preComp->getPawnAttackMoves(startSquare, opposingColor);
 		opponentAttacks |= moveBitboard;
 	}
+
+	return opponentAttacks;
 }
-void MoveGen::generateKingAttackData() {
-	const int startSquare = enemyKingSquare;
-	uint64_t moveBitboard = preComp.getKingMoves(startSquare);
-	opponentAttacks |= moveBitboard;
+uint64_t MoveGen::generateKingAttackData(const int& enemyKingSquare) {
+	return preComp->getKingMoves(enemyKingSquare);
 }
 
 void MoveGen::generateAttackData() {
-	generateSlideAttackData();
-	generateKingAttackData();
-	generateKnightAttackData();
-	generatePawnAttackData();
+	opponentAttacks |= generateOrthogonalAttackData(board->orthogonalPieces, enemyBoard, friendlyKingSquare);
+	opponentAttacks |= generateDiagonalAttackData(board->diagonalPieces, enemyBoard, friendlyKingSquare);
+	opponentAttacks |= generateKingAttackData(enemyKingSquare);
+	opponentAttacks |= generateKnightAttackData(enemyBoard);
+	opponentAttacks |= generatePawnAttackData(enemyBoard, opposingColor);
 }
 
 void MoveGen::generateCheckData() {
@@ -386,20 +405,20 @@ void MoveGen::generateCheckData() {
 	uint64_t temp;
 	uint64_t enemyBlockers;
 
-	uint64_t orthogonalBlockers = board->allPieces & preComp.getBlockerOrthogonalMask(friendlyKingSquare);
-	uint64_t diagonalBlockers = board->allPieces & preComp.getBlockerDiagonalMask(friendlyKingSquare);
+	uint64_t orthogonalBlockers = board->allPieces & preComp->getBlockerOrthogonalMask(friendlyKingSquare);
+	uint64_t diagonalBlockers = board->allPieces & preComp->getBlockerDiagonalMask(friendlyKingSquare);
 
-	temp = preComp.getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
+	temp = preComp->getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
 	uint64_t checkBoard = temp;
 	enemyBlockers = temp & enemyBoard & board->orthogonalPieces;
 
-	temp = preComp.getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
+	temp = preComp->getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
 	checkBoard |= temp;
 	enemyBlockers |= temp & enemyBoard & board->diagonalPieces;
 
 	while (enemyBlockers != 0ULL) {
 		targetSquare = BitBoardUtility::popLSB(enemyBlockers);
-		temp = preComp.getDirectionMask(friendlyKingSquare, targetSquare);
+		temp = preComp->getDirectionMask(friendlyKingSquare, targetSquare);
 		checkBB |= temp & checkBoard;
 
 		doubleCheck = isCheck;
@@ -411,21 +430,21 @@ void MoveGen::generateCheckData() {
 	orthogonalBlockers &= ~(checkBoard & friendlyBoard);
 	diagonalBlockers &= ~(checkBoard & friendlyBoard);
 
-	temp = preComp.getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
+	temp = preComp->getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
 	checkBoard = temp;
 	enemyBlockers = temp & enemyBoard & board->orthogonalPieces;
-	temp = preComp.getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
+	temp = preComp->getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
 	checkBoard |= temp;
 	enemyBlockers |= temp & enemyBoard & board->diagonalPieces;
 
 	while (enemyBlockers != 0ULL) {
 		targetSquare = BitBoardUtility::popLSB(enemyBlockers);
-		temp = preComp.getDirectionMask(friendlyKingSquare, targetSquare);
+		temp = preComp->getDirectionMask(friendlyKingSquare, targetSquare);
 		checkRayBB |= temp & checkBoard;
 	}
 
 	uint64_t enemyKnights = board->knights & enemyBoard;
-	uint64_t knightMoveBitboard = preComp.getKnightBoard(friendlyKingSquare);
+	uint64_t knightMoveBitboard = preComp->getKnightBoard(friendlyKingSquare);
 	knightMoveBitboard &= enemyKnights;
 
 	checkBB |= knightMoveBitboard;
@@ -439,7 +458,7 @@ void MoveGen::generateCheckData() {
 	}
 
 	uint64_t enemyPawns = board->pawns & enemyBoard;
-	uint64_t pawnMoveBitboard = preComp.getPawnAttackMoves(friendlyKingSquare, currentColor);
+	uint64_t pawnMoveBitboard = preComp->getPawnAttackMoves(friendlyKingSquare, currentColor);
 	pawnMoveBitboard &= enemyPawns;
 
 	checkBB |= pawnMoveBitboard;

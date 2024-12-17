@@ -1,7 +1,10 @@
 #include "Board.h"
+#include "Evaluator.h"
 #include "FEN.h"
 #include "MoveGen.h"
 #include "ZobristHash.h"
+
+#include <intrin.h>
 
 #include <iostream>
 #include <stdexcept>
@@ -31,6 +34,12 @@ Board::Board() {
 }
 
 Board::~Board() {
+
+}
+
+void Board::setEvaluator(Evaluator* evaluator) {
+	this->evaluator = evaluator;
+	this->evaluator->initStaticVariables();
 }
 
 void Board::loadPieceLists() {
@@ -73,6 +82,7 @@ void Board::loadPosition(std::string fen) {
 	state->zobristHash = ZobristHash::hashBoard(this);
 	history.push(state->zobristHash, false);
 	loadBitBoards();
+	evaluator->initStaticVariables();
 }
 
 void Board::loadBitBoards() {
@@ -93,9 +103,6 @@ void Board::loadBitBoards() {
 					break;
 				case Piece::knight:
 					knights |= 1ULL << square;
-					break;
-				case Piece::king:
-					// kings |= 1ULL << square;
 					break;
 				case Piece::bishop:
 					diagonalPieces |= 1ULL << square;
@@ -124,18 +131,20 @@ void Board::loadBitBoards() {
 }
 
 void Board::makeMove(Move& move, bool hashBoard) {
-	int startSquare = move.startSquare;
-	int targetSquare = move.targetSquare;
+	int startSquare = move.getStartSquare();
+	int targetSquare = move.getTargetSquare();
 	int piece = Piece::type(squares[startSquare]);
 	int colorIndex = state->whiteTurn ? whiteIndex : blackIndex;
 	int oppositeIndex = !(state->whiteTurn) ? whiteIndex : blackIndex;
 	int takenPiece = squares[targetSquare];
-	int flag = move.flag;
+	int flag = move.getFlag();
 	int promotedPiece = 0;
 	int enPassantSquare = -1;
 	int fiftyMoveCounter = piece == Piece::pawn || takenPiece != Piece::empty ? 0 : state->fiftyMoveCounter + 1;
 	int castlingRights = state->castlingRights;
 	uint64_t newZobristHash = state->zobristHash;
+
+	newZobristHash ^= ZobristHash::whiteMoveHash;
 
 	if (Piece::type(takenPiece) == Piece::king) {
 		cout << move << endl;
@@ -151,43 +160,62 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		throw exception();
 	}
 
-	if (flag > Move::castleFlag) {
-		const int ownColor = state->whiteTurn ? Piece::white : Piece::black;
-		squares[startSquare] = Piece::empty;
+	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare];
 
-		switch (flag) {
-		case Move::promoteToQueenFlag:
-			squares[targetSquare] = Piece::queen | ownColor;
-			promotedPiece = Piece::queen;
-			break;
-		case Move::promoteToRookFlag:
-			squares[targetSquare] = Piece::rook | ownColor;
-			promotedPiece = Piece::rook;
-			break;
-		case Move::promoteToKnightFlag:
-			squares[targetSquare] = Piece::knight | ownColor;
-			promotedPiece = Piece::knight;
-			break;
-		case Move::promoteToBishopFlag:
-			squares[targetSquare] = Piece::bishop | ownColor;
-			promotedPiece = Piece::bishop;
-			break;
-		}
-
-		pieceLists[colorIndex][piece].deletePiece(startSquare);
-		pieceLists[colorIndex][promotedPiece].addPiece(targetSquare);
+	if (flag >= Move::promoteToQueenFlag) {
+		promotedPiece = makePromotionChanges(move, piece, colorIndex);
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][promotedPiece][targetSquare];
 	} else {
+		evaluator->staticPieceMove(piece, startSquare, targetSquare, state->whiteTurn);
 		pieceLists[colorIndex][piece].movePiece(startSquare, targetSquare);
 		squares[targetSquare] = squares[startSquare];
 		squares[startSquare] = Piece::empty;
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][targetSquare];
 	}
 
 	if (takenPiece != Piece::empty) {
 		int type = Piece::type(takenPiece);
-
+		evaluator->staticPieceDelete(type, targetSquare, !state->whiteTurn);
 		pieceLists[oppositeIndex][type].deletePiece(targetSquare);
-		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::type(takenPiece)][targetSquare];
+		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][type][targetSquare];
 	}
+
+	castlingRights = updateCastlingRights(piece, colorIndex, startSquare, castlingRights);
+
+	flagMoveChanges(move, newZobristHash, enPassantSquare, castlingRights, colorIndex, oppositeIndex);
+
+	if (state->enPassantSquare != -1) 
+		newZobristHash ^= ZobristHash::enPassantHash[state->enPassantSquare];
+
+	newZobristHash ^= ZobristHash::castlingRightsHash[state->castlingRights];
+	newZobristHash ^= ZobristHash::castlingRightsHash[castlingRights];
+
+	updateBitBoards(move, piece, Piece::type(takenPiece));
+	BoardState newState = BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash);
+	stateHistory.push(newState);
+	state = &stateHistory.back();
+
+	bool reset = takenPiece != Piece::empty || piece == Piece::pawn;
+
+	history.push(state->zobristHash, reset);
+}
+
+void Board::flagMoveChanges(Move& move, uint64_t& newZobristHash, int& enPassantSquare, int& castlingRights, int colorIndex, int oppositeIndex) {
+	switch (move.getFlag()) {
+	case Move::pawnTwoSquaresFlag:
+		enPassantSquare = move.getTargetSquare() + (state->whiteTurn ? 8 : -8);
+		newZobristHash ^= ZobristHash::enPassantHash[enPassantSquare];
+		break;
+	case Move::enPassantCaptureFlag:
+		makeEnPassantChanges(move, newZobristHash, oppositeIndex);
+		break;
+	case Move::castleFlag:
+		makeCastlingChanges(move, newZobristHash, castlingRights, colorIndex);
+		break;
+	}
+}
+
+int Board::updateCastlingRights(const int& piece, const int& colorIndex, const int& startSquare, int castlingRights) {
 	int castleMask;
 
 	switch (piece) {
@@ -208,88 +236,43 @@ void Board::makeMove(Move& move, bool hashBoard) {
 		break;
 	}
 
-	newZobristHash ^= ZobristHash::whiteMoveHash;
-	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare];
-	if (flag <= Move::castleFlag) {
-		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][targetSquare];
-	} else {
-		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][promotedPiece][targetSquare];
-	}
-	if (state->enPassantSquare != -1) newZobristHash ^= ZobristHash::enPassantHash[state->enPassantSquare];
-	newZobristHash ^= ZobristHash::castlingRightsHash[state->castlingRights];
-	newZobristHash ^= ZobristHash::castlingRightsHash[castlingRights];
-
-	int pawnToBeDeleted;
-	int rookOffset;
-	int rookSquareOffset;
-	switch (flag) {
-	case Move::noFlag:
-		break;
-	case Move::pawnTwoSquaresFlag:
-		enPassantSquare = targetSquare + (state->whiteTurn ? 8 : -8);
-		newZobristHash ^= ZobristHash::enPassantHash[enPassantSquare];
-		break;
-	case Move::enPassantCaptureFlag:
-		makeEnPassantChanges(move);
-		pawnToBeDeleted = targetSquare + (state->whiteTurn ? 8 : -8);
-		pieceLists[oppositeIndex][Piece::pawn].deletePiece(pawnToBeDeleted);
-		newZobristHash ^= ZobristHash::pieceHashes[oppositeIndex][Piece::pawn][pawnToBeDeleted];
-		break;
-	case Move::castleFlag:
-		makeCastlingChanges(move, castlingRights);
-		rookOffset = targetSquare > startSquare ? 1 : -1;
-		rookSquareOffset = rookOffset == 1 ? 3 : -4;
-		pieceLists[colorIndex][Piece::rook].movePiece(startSquare + rookSquareOffset, startSquare + rookOffset);
-		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][startSquare + rookSquareOffset];
-		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][startSquare + rookOffset];
-		break;
-	}
-
-	updateBitBoards(move, piece, Piece::type(takenPiece));
-	BoardState newState = BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash);
-	stateHistory.push(newState);
-	state = &stateHistory.back();
-
-	bool reset = takenPiece != Piece::empty || piece == Piece::pawn;
-
-	history.push(state->zobristHash, reset);
+	return castlingRights;
 }
 
 void Board::unMakeMove(Move& move) {
 	const int colorIndex = !state->whiteTurn ? whiteIndex : blackIndex;
 	const int oppositeIndex = state->whiteTurn ? whiteIndex : blackIndex;
-	const int startSquare = move.startSquare;
-	const int targetSquare = move.targetSquare;
+	const int startSquare = move.getStartSquare();
+	const int targetSquare = move.getTargetSquare();
 	int piece = Piece::type(squares[targetSquare]);
 	const int takenPiece = state->capturedPiece;
-	const int flag = move.flag;
+	const int flag = move.getFlag();
 	const int pawn = !(state->whiteTurn) ? Piece::whitePawn : Piece::blackPawn;
-	if (flag > Move::castleFlag) {
+	if (flag >= Move::promoteToQueenFlag) {
 		pieceLists[colorIndex][piece].deletePiece(targetSquare);
+		evaluator->staticPieceDelete(piece, targetSquare, !state->whiteTurn);
+		evaluator->staticPieceSpawn(Piece::pawn, startSquare, !state->whiteTurn);
 		piece = Piece::pawn;
 		pieceLists[colorIndex][piece].addPiece(startSquare);
 		squares[startSquare] = pawn;
 		squares[targetSquare] = takenPiece;
 	} else {
 		pieceLists[colorIndex][piece].movePiece(targetSquare, startSquare);
-
+		evaluator->staticPieceMove(piece, targetSquare, startSquare, !state->whiteTurn);
 		squares[startSquare] = squares[targetSquare];
 		squares[targetSquare] = takenPiece;
 	}
 
 	if (takenPiece != Piece::empty) {
 		int type = Piece::type(takenPiece);
-
-			pieceLists[oppositeIndex][type].addPiece(targetSquare);
-
+		pieceLists[oppositeIndex][type].addPiece(targetSquare);
+		evaluator->staticPieceSpawn(type, targetSquare, state->whiteTurn);
 	}
 
 	int pawnToBeDeleted;
 	int rookOffset;
 	int rookSquareOffset;
 	switch (flag) {
-	case Move::noFlag:
-		break;
 	case Move::enPassantCaptureFlag:
 		undoEnPassantChanges(move);
 		pawnToBeDeleted = targetSquare + (state->whiteTurn ? -8 : 8);
@@ -309,36 +292,72 @@ void Board::unMakeMove(Move& move) {
 	state = &stateHistory.back();
 }
 
-void Board::makeEnPassantChanges(Move& move) {
-	int pawnToBeDeleted = move.targetSquare + (state->whiteTurn ? 8 : -8);
+void Board::makeEnPassantChanges(Move& move, uint64_t& newZobristHash, int oppositeIndex) {
+	int pawnToBeDeleted = move.getTargetSquare() + (state->whiteTurn ? 8 : -8);
+
+	pieceLists[oppositeIndex][Piece::pawn].deletePiece(pawnToBeDeleted);
+	newZobristHash ^= ZobristHash::pieceHashes[oppositeIndex][Piece::pawn][pawnToBeDeleted];
 	squares[pawnToBeDeleted] = Piece::empty;
+	evaluator->staticPieceDelete(Piece::pawn, pawnToBeDeleted, !state->whiteTurn);
 }
 
-void Board::makeCastlingChanges(Move& move, int& castlingRights) {
-	const int rookDistance = move.targetSquare < move.startSquare ? -4 : 3;
-	const int rookSpawnOffset = move.targetSquare < move.startSquare ? -1 : 1;
+void Board::makeCastlingChanges(Move& move, uint64_t& newZobristHash, int& castlingRights, int colorIndex) {
+	const int startSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -4 : 3);
+	const int targetSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -1 : 1);
 	const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
-	squares[move.startSquare + rookDistance] = Piece::empty;
-	squares[move.startSquare + rookSpawnOffset] = friendlyRook;
+
+	squares[startSquare] = Piece::empty;
+	squares[targetSquare] = friendlyRook;
+	pieceLists[colorIndex][Piece::rook].movePiece(startSquare, targetSquare);
+	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][startSquare];
+	newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][targetSquare];
+	evaluator->staticPieceMove(Piece::rook, startSquare, targetSquare, state->whiteTurn);
 }
 
-void Board::makePromotionChanges(Move& move, int& piece) {
-	
+int Board::makePromotionChanges(Move& move, int& piece, int colorIndex) {
+	int promotedPiece = piece;
+	const int ownColor = state->whiteTurn ? Piece::white : Piece::black;
+
+	switch (move.getFlag()) {
+	case Move::promoteToQueenFlag:
+		promotedPiece = Piece::queen;
+		break;
+	case Move::promoteToRookFlag:
+		promotedPiece = Piece::rook;
+		break;
+	case Move::promoteToKnightFlag:
+		promotedPiece = Piece::knight;
+		break;
+	case Move::promoteToBishopFlag:
+		promotedPiece = Piece::bishop;
+		break;
+	}
+
+	squares[move.getStartSquare()] = Piece::empty;
+	squares[move.getTargetSquare()] = promotedPiece | ownColor;
+	pieceLists[colorIndex][piece].deletePiece(move.getStartSquare());
+	pieceLists[colorIndex][promotedPiece].addPiece(move.getTargetSquare());
+	evaluator->staticPieceDelete(Piece::pawn, move.getStartSquare(), state->whiteTurn);
+	evaluator->staticPieceSpawn(promotedPiece, move.getTargetSquare(), state->whiteTurn);
+
+	return promotedPiece;
 }
 
 void Board::undoEnPassantChanges(Move& move) {
 	const int enemyPawn = state->whiteTurn ? Piece::whitePawn : Piece::blackPawn;
-	int pawnToBeDeleted = move.targetSquare + (state->whiteTurn ? -8 : 8);;
+	int pawnToBeDeleted = move.getTargetSquare() + (state->whiteTurn ? -8 : 8);;
 	squares[pawnToBeDeleted] = enemyPawn;
+	evaluator->staticPieceSpawn(Piece::pawn, pawnToBeDeleted, state->whiteTurn);
 }
 
 void Board::undoCastlingChanges(Move& move) {
-	const int rookDistance = move.targetSquare < move.startSquare ? -4 : 3;
-	const int rookSpawnOffset = move.targetSquare < move.startSquare ? -1 : 1;
+	const int startSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -4 : 3);
+	const int targetSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -1 : 1);
 	const int friendlyRook = state->whiteTurn ? Piece::blackRook : Piece::whiteRook;
 
-	squares[move.startSquare + rookDistance] = friendlyRook;
-	squares[move.startSquare + rookSpawnOffset] = Piece::empty;
+	squares[startSquare] = friendlyRook;
+	squares[targetSquare] = Piece::empty;
+	evaluator->staticPieceMove(Piece::rook, targetSquare, startSquare, !state->whiteTurn);
 }
 
 void Board::printBoard() {
@@ -403,8 +422,8 @@ std::vector<uint64_t> Board::getBitBoards() {
 // Update piece bitboards based on move
 void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
 	// Initialise commonly used variables
-	const int& startSquare = move.startSquare;
-	const int& targetSquare = move.targetSquare;
+	const int& startSquare = move.getStartSquare();
+	const int& targetSquare = move.getTargetSquare();
 	uint64_t* friendlyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
 	uint64_t* enemyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 
@@ -466,7 +485,7 @@ void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
 	}
 
 	// If move is special and has unconsidered consequences from previous sections, cover edge cases
-	switch (move.flag) {
+	switch (move.getFlag()) {
 		// Remove pawn that is removed during en passant
 	case Move::enPassantCaptureFlag:
 		BitBoardUtility::deleteBit(pawns, *enemyBoard, targetSquare + (state->whiteTurn ? 8 : -8));
@@ -502,13 +521,13 @@ void Board::updateBitBoards(Move& move, int pieceType, int takenPieceType) {
 
 void Board::undoBitBoards(Move& move, int pieceType, int takenPieceType) {
 	// Initialise commonly used variables
-	const int& startSquare = move.startSquare;
-	const int& targetSquare = move.targetSquare;
+	const int& startSquare = move.getStartSquare();
+	const int& targetSquare = move.getTargetSquare();
 	uint64_t* friendlyBoard = !state->whiteTurn ? &whitePieces : &blackPieces;
 	uint64_t* enemyBoard = state->whiteTurn ? &whitePieces : &blackPieces;
 
 	// If move is special and has unconsidered consequences from previous sections, cover edge cases
-	switch (move.flag) {
+	switch (move.getFlag()) {
 		// Remove pawn that is removed during en passant
 	case Move::enPassantCaptureFlag:
 		BitBoardUtility::setBit(pawns, *enemyBoard, targetSquare + (!state->whiteTurn ? 8 : -8));

@@ -5,12 +5,10 @@
 
 #include "Board.h"
 #include "Searcher.h"
-#include "OpeningBook.h"
 
 class Bot {
 private:
 	Board* board = nullptr;
-	OpeningBook* openingBook = nullptr;
 	Searcher* searcher = nullptr;
 	int validateUserMove(Move moves[218], int startSquare, int targetSquare, int flag);
 
@@ -22,6 +20,8 @@ public:
 	void setPosition(std::string FEN);
 	void makeMove(std::string movestr);
 	std::string generateMove(int moveTimeMs);
+	void go();
+	int eval();
 	void stopSearching();
 	uint64_t perft(int depth);
 	void printBoard();

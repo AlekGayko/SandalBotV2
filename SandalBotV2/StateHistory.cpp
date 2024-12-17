@@ -1,4 +1,4 @@
-#include "StateHistory.h"
+#include "stateHistory.h"
 #include "BoardState.h"
 
 #include <algorithm>
@@ -18,7 +18,7 @@ StateHistory::~StateHistory() {
 }
 
 void StateHistory::push(BoardState& state) {
-	if (size >= allocatedSize - 1) {
+	if (size >= allocatedSize - 2) {
 		BoardState* newHistory = new BoardState[2 * allocatedSize];
 		allocatedSize *= 2;
 

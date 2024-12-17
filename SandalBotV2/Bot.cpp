@@ -11,7 +11,8 @@ int Bot::validateUserMove(Move moves[218], int startSquare, int targetSquare, in
     int moveIndex = -1;
 
     for (int i = 0; i < numMoves; i++) {
-        if (moves[i].startSquare == startSquare && moves[i].targetSquare == targetSquare && (moves[i].flag < Move::promoteToQueenFlag || moves[i].flag == flag)) {
+        if (moves[i].getStartSquare() == startSquare && moves[i].getTargetSquare() == targetSquare && 
+            (moves[i].getFlag() < Move::promoteToQueenFlag || moves[i].getFlag() == flag)) {
             moveIndex = i;
             break;
         }
@@ -23,6 +24,7 @@ int Bot::validateUserMove(Move moves[218], int startSquare, int targetSquare, in
 Bot::Bot() {
     board = new Board();
     searcher = new Searcher(board);
+    board->setEvaluator(searcher->evaluator);
 }
 
 Bot::~Bot() {
@@ -35,25 +37,39 @@ void Bot::setPosition(std::string FEN) {
 }
 
 void Bot::makeMove(std::string movestr) {
-    if (movestr.size() != 4 && movestr.size() != 5) return;
-
-    int startSquare = CoordHelper::stringToIndex(movestr.substr(0, 2));
-    int targetSquare = CoordHelper::stringToIndex(movestr.substr(2, 2));
-    int flag = 0;
-    if (movestr.size() == 5) {
-        switch (movestr[4]) {
-        case 'q':
-            flag = Move::promoteToQueenFlag;
-            break;
-        case 'r':
-            flag = Move::promoteToRookFlag;
-            break;
-        case 'n':
-            flag = Move::promoteToKnightFlag;
-            break;
-        case 'b':
-            flag = Move::promoteToBishopFlag;
-            break;
+    if (movestr.size() < 3 || movestr.size() > 5) {
+        return;
+    }
+    int startSquare;
+    int targetSquare;
+    int flag;
+    if (movestr == "O-O") {
+        startSquare = board->state->whiteTurn ? 60 : 4;
+        targetSquare = board->state->whiteTurn ? 62 : 6;
+        flag = Move::castleFlag;
+    } else if (movestr == "O-O-O") {
+        startSquare = board->state->whiteTurn ? 60 : 4;
+        targetSquare = board->state->whiteTurn ? 58 : 2;
+        flag = Move::castleFlag;
+    } else {
+        startSquare = CoordHelper::stringToIndex(movestr.substr(0, 2));
+        targetSquare = CoordHelper::stringToIndex(movestr.substr(2, 2));
+        flag = 0;
+        if (movestr.size() == 5) {
+            switch (movestr[4]) {
+            case 'q':
+                flag = Move::promoteToQueenFlag;
+                break;
+            case 'r':
+                flag = Move::promoteToRookFlag;
+                break;
+            case 'n':
+                flag = Move::promoteToKnightFlag;
+                break;
+            case 'b':
+                flag = Move::promoteToBishopFlag;
+                break;
+            }
         }
     }
 
@@ -66,12 +82,12 @@ void Bot::makeMove(std::string movestr) {
 }
 
 string Bot::generateMove(int moveTimeMs) {
-    searcher->startSearch(moveTimeMs);
-    string startSquare = CoordHelper::indexToString(searcher->bestMove.startSquare);
-    string targetSquare = CoordHelper::indexToString(searcher->bestMove.targetSquare);
+    searcher->startSearch(true, moveTimeMs);
+    string startSquare = CoordHelper::indexToString(searcher->bestMove.getStartSquare());
+    string targetSquare = CoordHelper::indexToString(searcher->bestMove.getTargetSquare());
     string flag = "";
 
-    switch (searcher->bestMove.flag) {
+    switch (searcher->bestMove.getFlag()) {
     case Move::promoteToQueenFlag:
         flag = "q";
         break;
@@ -90,7 +106,16 @@ string Bot::generateMove(int moveTimeMs) {
     return startSquare + targetSquare;
 }
 
+void Bot::go() {
+    searcher->startSearch(false);
+}
+
+int Bot::eval() {
+    return searcher->eval();
+}
+
 void Bot::stopSearching() {
+    searcher->endSearch();
 }
 
 uint64_t Bot::perft(int depth) {

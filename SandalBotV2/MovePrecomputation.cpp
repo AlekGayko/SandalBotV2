@@ -3,17 +3,9 @@
 #include "BitBoardUtility.h"
 #include "Precomputedmagics.h"
 
-#include <algorithm>
-#include <chrono>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <iterator>
-#include <random>
-#include <unordered_map>
-#include <vector>
-#include <set>
 #include <cmath>
+#include <iostream>
+#include <limits>
 
 using namespace std;
 
@@ -57,6 +49,9 @@ void MovePrecomputation::initMasks() {
 	}
 
 	initDirectionMasks();
+	initPassedPawnMasks();
+	initIslandMasks();
+	initShieldMasks();
 }
 
 // Init 45 degree diagonal masks
@@ -115,7 +110,126 @@ void MovePrecomputation::initDirectionMasks() {
 			differenceDivisibles[64 + diff] = 5 + offset;
 		}
 	}
-	cout << differenceDivisibles[64 + (0 - 63)] << endl;
+
+}
+
+void MovePrecomputation::initPassedPawnMasks() {
+	for (int square = 0; square < 64; square++) {
+		uint64_t whiteFrontMask = numeric_limits<uint64_t>::max() >> min(((7 - square / 8) + 1), 7) * 8;
+		uint64_t blackFrontMask = numeric_limits<uint64_t>::max() << min((square / 8 + 1), 7) * 8;
+
+		uint64_t columnMask = columnMasks[square % 8];
+		columnMask |= columnMasks[min((square % 8) + 1, 7)];
+		columnMask |= columnMasks[max((square % 8) - 1, 0)];
+
+		whitePassedPawnMasks[square] = whiteFrontMask & columnMask;
+		blackPassedPawnMasks[square] = blackFrontMask & columnMask;
+	}
+}
+
+void MovePrecomputation::initIslandMasks() {
+	for (int col = 0; col < 8; col++) {
+		uint64_t mask = 0ULL;
+		if (directionDistances[col].right > 1) {
+			mask |= columnMasks[col + 1];
+		}
+		if (directionDistances[col].left > 1) {
+			mask |= columnMasks[col - 1];
+		}
+
+		pawnIslandMasks[col] = mask;
+	}
+}
+
+void MovePrecomputation::initShieldMasks() {
+	for (int square = 0; square < 64; square++) {
+		uint64_t whiteMask = (numeric_limits<uint64_t>::max() << 6 * 8) >> min(((7 - square / 8) + 1), 7) * 8;
+		uint64_t blackMask = (numeric_limits<uint64_t>::max() >> 6 * 8) << min((square / 8 + 1), 7) * 8;
+
+		uint64_t colMask = 0ULL;
+
+		int col = square % 8;
+		colMask |= columnMasks[col];
+
+		if (col == 0) {
+			colMask |= columnMasks[col + 2];
+		} else {
+			colMask |= columnMasks[col - 1];
+		}
+
+		if (col == 7) {
+			colMask |= columnMasks[col - 2];
+		} else {
+			colMask |= columnMasks[1 + col];
+		}
+	
+		whiteMask &= colMask;
+		blackMask &= colMask;
+		
+		whitePawnShieldMask[square] = whiteMask;
+		blackPawnShieldMask[square] = blackMask;
+	}
+}
+
+void MovePrecomputation::initDistances() {
+	for (int square1 = 0; square1 < 64; square1++) {
+		for (int square2 = 0; square2 < 64; square2++) {
+			int file1, file2, rank1, rank2;
+			int rankDistance, fileDistance;
+			file1 = square1 % 8;
+			file2 = square2 % 8;
+			rank1 = square1 / 8;
+			rank2 = square2 / 8;
+			rankDistance = abs(rank2 - rank1);
+			fileDistance = abs(file2 - file1);
+			distances[square1][square2] = max(rankDistance, fileDistance);
+		}
+	}
+}
+
+void MovePrecomputation::initKingAttackSquares() {
+	for (int square = 0; square < 64; square++) {
+		uint64_t immediateSquares = kingMoves[square];
+		uint64_t whiteMask = immediateSquares;
+		uint64_t blackMask = immediateSquares;
+
+		if (square / 8 > 1)
+			whiteMask |= whitePawnShieldMask[square - 8];
+		if (square / 8 < 6)
+			blackMask |= blackPawnShieldMask[square + 8];
+
+		whiteKingAttackZone[square] = whiteMask;
+		blackKingAttackZone[square] = blackMask;
+	}
+
+	for (int square = 0; square < 64; square++) {
+		int row = square / 8;
+		int column = square % 8;
+
+		uint64_t rows = rowMasks[square / 8];
+		uint64_t columns = columnMasks[square % 8];
+
+		if (row > 0)
+			rows |= rowMasks[row - 1];
+		if (row > 1)
+			rows |= rowMasks[row - 2];
+		if (row < 7)
+			rows |= rowMasks[row + 1];
+		if (row < 6)
+			rows |= rowMasks[row + 2];
+
+		if (column > 0)
+			columns |= columnMasks[column - 1];
+		if (column > 1)
+			columns |= columnMasks[column - 2];
+		if (column < 7)
+			columns |= columnMasks[column + 1];
+		if (column < 6)
+			columns |= columnMasks[column + 2];
+
+		uint64_t zone = rows & columns;
+		zone &= ~(1ULL << square);
+	}
 }
 
 void MovePrecomputation::precomputeMoves() {
@@ -127,13 +241,11 @@ void MovePrecomputation::precomputeMoves() {
 }
 
 void MovePrecomputation::precomputeOrthogonalMoves() {
-	int size = 0;
 	for (int square = 0; square < 64; square++) {
 		vector<uint64_t> blockerConfigs = precomputeOrthogonalMove(square);
 		vector<uint64_t> movementBoards;
 		movementBoards.reserve(blockerConfigs.size());
-		size += blockerConfigs.size();
-		//generateMagicNumbers(blockerConfigs);
+
 		for (uint64_t& blockerBoard : blockerConfigs) {
 			uint64_t moves = createOrthogonalMovement(square, blockerBoard);
 			movementBoards.push_back(moves);
@@ -143,13 +255,11 @@ void MovePrecomputation::precomputeOrthogonalMoves() {
 }
 
 void MovePrecomputation::precomputeDiagonalMoves() {
-	int size = 0;
 	for (int square = 0; square < 64; square++) {
 		vector<uint64_t> blockerConfigs = precomputeDiagonalMove(square);
 		vector<uint64_t> movementBoards;
 		movementBoards.reserve(blockerConfigs.size());
-		size += blockerConfigs.size();
-		//generateMagicNumbers(blockerConfigs, false);
+
 		for (uint64_t& blockerBoard : blockerConfigs) {
 			uint64_t moves = createDiagonalMovement(square, blockerBoard);
 			movementBoards.push_back(moves);
@@ -181,13 +291,12 @@ void MovePrecomputation::precomputeKingMoves() {
 			kingMoves[square] |= 1ULL << (square + slideDirections[dirIndex]);
 		}
 	}
+	initKingAttackSquares();
 }
 
 void MovePrecomputation::precomputePawnMoves() {
 	for (int square = 0; square < 64; square++) {
-		whitePawnMoves[square] = 0ULL;
 		whitePawnAttackMoves[square] = 0ULL;
-		blackPawnMoves[square] = 0ULL;
 		blackPawnAttackMoves[square] = 0ULL;
 		// White pawns
 		if (directionDistances[square].direction[4] > 1) {
@@ -196,7 +305,6 @@ void MovePrecomputation::precomputePawnMoves() {
 		if (directionDistances[square].direction[5] > 1) {
 			whitePawnAttackMoves[square] |= 1ULL << (square + slideDirections[5]);
 		}
-		whitePawnMoves[square] |= 1ULL << (square - 8);
 		// Black pawns
 		if (directionDistances[square].direction[6] > 1) {
 			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[6]);
@@ -204,7 +312,6 @@ void MovePrecomputation::precomputePawnMoves() {
 		if (directionDistances[square].direction[7] > 1) {
 			blackPawnAttackMoves[square] |= 1ULL << (square + slideDirections[7]);
 		}
-		blackPawnMoves[square] |= 1ULL << (square + 8);
 	}
 }
 
@@ -373,13 +480,20 @@ uint64_t MovePrecomputation::getKingMoves(const int& square) {
 	return kingMoves[square];
 }
 
-uint64_t MovePrecomputation::getPawnMoves(const int& square, const uint64_t& blockerBoard, const int& color) {
-	uint64_t movement = color == Piece::white ? whitePawnMoves[square] : blackPawnMoves[square];
-	return movement;
-}
-
 uint64_t MovePrecomputation::getPawnAttackMoves(const int& square, const int& color) {
 	return color == Piece::white ? whitePawnAttackMoves[square] : blackPawnAttackMoves[square];
+}
+
+uint64_t MovePrecomputation::getPassedPawnMask(const int& square, const int& color) {
+	return color == Piece::white ? whitePassedPawnMasks[square] : blackPassedPawnMasks[square];
+}
+
+uint64_t MovePrecomputation::getPawnIslandMask(const int& column) {
+	return pawnIslandMasks[column];
+}
+
+uint64_t MovePrecomputation::getShieldMask(const int& square, const int& color) {
+	return color == Piece::white ? whitePawnShieldMask[square] : blackPawnShieldMask[square];
 }
 
 uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& square2) {	
@@ -400,6 +514,18 @@ uint64_t MovePrecomputation::getDirectionMask(const int& square1, const int& squ
 	
 
 	return directionMasks[square1 * 8 + dir];
+}
+
+unsigned char MovePrecomputation::getDistance(const int& square1, const int& square2) {
+	return distances[square1][square2];
+}
+
+uint64_t MovePrecomputation::getKingAttackSquare(const int& square, const int& color) {
+	return color == Piece::white ? whiteKingAttackZone[square] : blackKingAttackZone[square];
+}
+
+uint64_t MovePrecomputation::getUnbiasKingAttackZone(const int& square) {
+	return kingUnbiasAttackZone[square];
 }
 
 

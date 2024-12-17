@@ -12,9 +12,9 @@
 class MoveGen {
 	friend class MoveOrderer;
 	friend class MovePrecomputation;
+	friend class Searcher;
 private:
 	Board* board = nullptr;
-	MovePrecomputation preComp;
 
 	const int whitePawnDirection = -8;
 	const int blackPawnDirection = 8;
@@ -45,6 +45,7 @@ private:
 	uint64_t enemyBoard;
 
 public:
+	MovePrecomputation* preComp;
 	static const int startingKingSquares[2];
 	static const int shortCastleKingSquares[2];
 	static const int longCastleKingSquares[2];
@@ -58,6 +59,7 @@ public:
 
 	MoveGen();
 	MoveGen(Board* board);
+	~MoveGen();
 	int generateMoves(Move moves[], bool capturesOnly = false);
 	void initVariables(bool capturesOnly);
 	void generateSlideMoves(Move moves[]);
@@ -70,10 +72,11 @@ public:
 	void promotionMoves(Move moves[], int targetSquare, int startSquare);
 	void castlingMoves(Move moves[], int startSquare);
 
-	void generateKnightAttackData();
-	void generatePawnAttackData();
-	void generateKingAttackData();
-	void generateSlideAttackData();
+	uint64_t generateKnightAttackData(const uint64_t& enemyBoard);
+	uint64_t generatePawnAttackData(const uint64_t& enemyBoard, const int& opposingColor);
+	uint64_t generateKingAttackData(const int& enemyKingSquare);
+	uint64_t generateOrthogonalAttackData(const uint64_t& orthogonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare);
+	uint64_t generateDiagonalAttackData(const uint64_t& diagonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare);
 	void generateAttackData();
 	void generateCheckData();
 

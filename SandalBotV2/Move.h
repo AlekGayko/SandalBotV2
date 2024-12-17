@@ -24,21 +24,24 @@ struct Move {
 	static constexpr short int promoteToKnightFlag = 0b0111;
 
 	unsigned short int moveValue = 0;
-	short int startSquare = 0;
-	short int targetSquare = 0;
-	short int flag = 0;
 
 	Move();
 	Move(unsigned short int move);
 	Move(int startingSquare, int targetSquare);
 	Move(int startingSquare, int targetSquare, int flag);
 
-	bool operator==(const Move& other) const;
-	constexpr bool isPromotion() const;
-	constexpr bool isEnPassant() const;
-	constexpr bool isCastle() const;
-	constexpr int promotionPieceType() const;
+	bool operator==(const Move& other);
 	Move& operator=(const Move& other);
+	bool operator!=(const Move& other);
+	bool isPromotion();
+	bool isEnPassant();
+	bool isCastle();
+	int promotionPieceType();
+	unsigned short int getStartSquare() const;
+	unsigned short int getTargetSquare() const;
+	unsigned short int getFlag() const;
+	std::string str() const;
+	std::string binStr() const;
 	friend std::ostream& operator<<(std::ostream& os, const Move& move);
 };
 

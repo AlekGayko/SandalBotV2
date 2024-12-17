@@ -425,3 +425,5 @@ $RECYCLE.BIN/
 *.sln
 
 SandalBotTests/*
+
+SandalBotV2/logs.txt

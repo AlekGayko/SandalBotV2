@@ -18,21 +18,21 @@ struct Coord {
 	friend std::ostream& operator<<(std::ostream& os, const Coord& coord);
 };
 
-class CoordHelper {
-public:
-	static const std::string charFiles;
-	static const std::string charRanks;
-	static std::string indexToString(int index);
-	static int stringToIndex(std::string str);
-	static constexpr int indexToRow(int index);
-	static constexpr int indexToCol(int index);
-	static int coordToIndex(Coord coord);
-	static int coordToIndex(int row, int col);
-	static bool validCoord(Coord coord);
-	static bool validCoordAddition(Coord coord, Coord direction);
-	static bool validCoordAddition(Coord coord, Coord direction, int scalar);
-	static bool validCoordAddition(int index, Coord direction);
-	static bool validCoordAddition(int index, int move);
+namespace CoordHelper {
+	const std::string charFiles = "abcdefgh";
+	const std::string charRanks = "87654321";
+
+	std::string indexToString(int index);
+	int stringToIndex(std::string str);
+	constexpr int indexToRow(int index);
+	constexpr int indexToCol(int index);
+	int coordToIndex(Coord coord);
+	int coordToIndex(int row, int col);
+	bool validCoord(Coord coord);
+	bool validCoordAddition(Coord coord, Coord direction);
+	bool validCoordAddition(Coord coord, Coord direction, int scalar);
+	bool validCoordAddition(int index, Coord direction);
+	bool validCoordAddition(int index, int move);
 };
 
 #endif

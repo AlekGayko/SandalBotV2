@@ -27,13 +27,26 @@ class MovePrecomputation {
 	
 	PrecomputedMagics* magics = nullptr;
 
+	unsigned char distances[64][64];
+
 	uint64_t knightMoves[64];
 	uint64_t kingMoves[64];
 
-	uint64_t whitePawnMoves[64];
+	uint64_t whitePawnShieldMask[64];
+	uint64_t blackPawnShieldMask[64];
+
+	uint64_t whiteKingAttackZone[64];
+	uint64_t blackKingAttackZone[64];
+
+	uint64_t kingUnbiasAttackZone[64];
+
 	uint64_t whitePawnAttackMoves[64];
-	uint64_t blackPawnMoves[64];
 	uint64_t blackPawnAttackMoves[64];
+
+	uint64_t whitePassedPawnMasks[64];
+	uint64_t blackPassedPawnMasks[64];
+
+	uint64_t pawnIslandMasks[8];
 
 	uint64_t blockerOrthogonalMasks[64];
 	uint64_t blockerDiagonalMasks[64];
@@ -51,6 +64,11 @@ class MovePrecomputation {
 	void initForwardMask(int constant);
 	void initBackwardMask(int constant);
 	void initDirectionMasks();
+	void initPassedPawnMasks();
+	void initIslandMasks();
+	void initShieldMasks();
+	void initDistances();
+	void initKingAttackSquares();
 	void precomputeMoves();
 	void precomputeOrthogonalMoves();
 	void precomputeDiagonalMoves();
@@ -96,9 +114,14 @@ public:
 	uint64_t getDiagMovementBoard(const int& square, const uint64_t& blockerBoard);
 	uint64_t getKnightBoard(const int& square);
 	uint64_t getKingMoves(const int& square);
-	uint64_t getPawnMoves(const int& square, const uint64_t& blockerBoard, const int& color);
 	uint64_t getPawnAttackMoves(const int& square, const int& color);
+	uint64_t getPassedPawnMask(const int& square, const int& color);
+	uint64_t getPawnIslandMask(const int& column);
+	uint64_t getShieldMask(const int& square, const int& color);
 	uint64_t getDirectionMask(const int& square1, const int& square2);
+	unsigned char getDistance(const int& square1, const int& square2);
+	uint64_t getKingAttackSquare(const int& square, const int& color);
+	uint64_t getUnbiasKingAttackZone(const int& square);
 };
 
 #endif // !MOVEPRECOMPUTATION_H
