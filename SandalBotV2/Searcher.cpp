@@ -68,6 +68,8 @@ int Searcher::quiescenceSearch(int alpha, int beta, int maxDepth) {
 	// Check for threefold repetition
 	if (board->history.contains(board->state->zobristHash)) {
 		return Evaluator::drawScore;
+	} else if (evaluator->insufficientMaterial()) {
+		return Evaluator::drawScore;
 	}
 
 	// If position has been previously stored, use its evaluation
@@ -146,15 +148,13 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExten
 		} else if (evaluator->insufficientMaterial()) {
 			return Evaluator::drawScore;
 		}
-		/*
-		* Not sure if this is necessarily beneficial
+
 		alpha = max(alpha, -Evaluator::checkMateScore + depth);
 		beta = min(beta, Evaluator::checkMateScore - depth);
 
 		if (alpha >= beta) {
 			return alpha;
 		}
-		*/
 	}
 	
 	// Lookup position to see if it has been searched and stored in hashtable before
@@ -165,15 +165,14 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExten
 		if (tTableDepth > stats.seldepth && tTableDepth != -1) {
 			stats.seldepth = tTableDepth;
 		}
+
 		if (depth == 0) {
 			currentMove = tTable->getBestMove(board->state->zobristHash);
 		}
+
 		return tTableEval;
 	}
-	if (board->state->zobristHash == 3868631796917292577ULL) {
-		cout << "bestMove: " << tTable->getBestMove(board->state->zobristHash) << endl;
-		cout << "prev Hash: " << board->stateHistory.getSecondLast().zobristHash << endl;
-	}
+
 	// If maximum depth is achieved, perform quiescence search
 	if (depth >= maxDepth) {
 		if (maxDepth > stats.seldepth) {
@@ -255,7 +254,7 @@ int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExten
 	if (numMoves == 0) {
 		int eval = Evaluator::drawScore;
 		if (moveGenerator->isCheck) {
-			eval = -Evaluator::checkMateScore + depth;
+			eval = -(Evaluator::checkMateScore - depth);
 		}
 		// Store move
 		tTable->store(eval, maxDepth - depth, depth, TranspositionTable::exact, nullMove, board->state->zobristHash);
@@ -401,35 +400,17 @@ void Searcher::enactBestLine(Move& move, int depth) {
 	if (move.moveValue == 0) {
 		return;
 	}
-	//cout << "move: " << move << endl;
-	//cout << "hash: " << board->state->zobristHash << endl;
-	//cout << "hash % tableSize: " << board->state->zobristHash % 65536000ULL << endl;
-	//board->printBoard();
-	/*
-	if (board->state->zobristHash == 6552879911533713140ULL) {
-		cout << "seldepth: " << stats.seldepth << endl;
-		cout << "depth: " << depth << endl;
-		cout << "move: " << move << endl;
-		cout << "movevalue: " << move.moveValue << endl;
-		void* rsp = _AddressOfReturnAddress();
-		std::cout << "Stack pointer (RSP): " << rsp << std::endl;
-		board->printBoard();
-	}
-	*/
 
 	bestLine->add(move);
 
 	if (board->history.contains(board->state->zobristHash)) {
 		return;
 	}
-	//cout << board->state->zobristHash << endl;
+
 	board->makeMove(move);
-	//cout << board->state->zobristHash << endl;
+
 	Move nextMove = tTable->getBestMove(board->state->zobristHash);
-	if (board->state->zobristHash == 3868631796917292577ULL) {
-		board->printBoard();
-		cout << "NextMove: " << nextMove << endl;
-	}
+
 	enactBestLine(nextMove, depth + 1);
 
 	board->unMakeMove(move);

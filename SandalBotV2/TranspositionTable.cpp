@@ -46,7 +46,7 @@ void TranspositionTable::store(int eval, int remainingDepth, int currentDepth, i
 int TranspositionTable::lookup(int remainingDepth, int currentDepth, int alpha, int beta, u64 hashKey) {
 	size_t index = hashKey % size;
 	Entry entry = table[index];
-	if (entry.hash == hashKey && entry.depth >= remainingDepth) {
+	if (entry.hash == hashKey && (entry.depth >= remainingDepth || Evaluator::isMateScore(entry.eval))) {
 		int eval = retrieveMateScore(entry.eval, currentDepth);
 		if (entry.nodeType == exact) {
 			return eval;
@@ -63,12 +63,15 @@ int TranspositionTable::lookup(int remainingDepth, int currentDepth, int alpha, 
 }
 
 void TranspositionTable::clear() {
-	if (table == nullptr) return;
+	if (table == nullptr) 
+		return;
+	delete[] table;
+	table = new Entry[size];
 }
 
 // Checkmate score needs to be recalibrated to currentDepth
 int TranspositionTable::retrieveMateScore(int eval, int currentDepth) {
-	if (abs(eval) >= Evaluator::checkMateScore / 2) {
+	if (Evaluator::isMateScore(eval)) {
 		int sign = eval >= 0 ? 1 : -1;
 		return eval - currentDepth * sign;
 	}
@@ -77,7 +80,7 @@ int TranspositionTable::retrieveMateScore(int eval, int currentDepth) {
 
 // Checkmate score needs to be adjusted relative to currentDepth
 int TranspositionTable::storeMateScore(int eval, int currentDepth) {
-	if (abs(eval) >= Evaluator::checkMateScore / 2) {
+	if (Evaluator::isMateScore(eval)) {
 		int sign = eval >= 0 ? 1 : -1;
 		return eval + currentDepth * sign;
 	}

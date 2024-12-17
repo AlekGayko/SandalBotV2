@@ -18,6 +18,10 @@ Evaluator::Evaluator(Board* board, MovePrecomputation* precomputation) : precomp
 }
 
 bool Evaluator::insufficientMaterial() {
+	if (endGameWeight == 0.f) {
+		return false;
+	}
+
 	// If there are only kings, insufficient
 	if (whiteMaterial == 0 && blackMaterial == 0) {
 		return true;
@@ -109,6 +113,7 @@ int Evaluator::Evaluate() {
 	evaluation += passedPawnEvaluations();
 	evaluation += kingSafety();
 	evaluation += openFilesEvaluation();
+	evaluation += openDiagEvaluation();
 	evaluation += kingDist();
 
 	return evaluation;
@@ -439,30 +444,37 @@ int Evaluator::openFilesEvaluation() {
 	// Endgame is less likely to require open files
 	if (endGameWeight >= 0.3)
 		return 0;
+	// If no orthogonal pieces, no use of open file
+	if (board->orthogonalPieces == 0ULL) {
+		return 0;
+	}
+
 	int evaluation = 0;
 	uint64_t colMask;
 	uint64_t filePieces;
-	int pieceCounter;
+	int pawnCounter;
 	for (int col = 0; col < 8; col++) {
 		colMask = precomputation->getColMask(col);
 		filePieces = board->pawns & colMask;
-		pieceCounter = 0;
+		pawnCounter = 0;
 
 		while (filePieces != 0ULL) {
-			pieceCounter++;
 			BitBoardUtility::popLSB(filePieces);
+			pawnCounter++;
+			if (pawnCounter > 1) {
+				break;
+			}
 		}
-
-		evaluation += evaluateOpenFile(colMask, pieceCounter);
+		if (pawnCounter > 1) {
+			continue;
+		}
+		evaluation += evaluateOpenFile(colMask, pawnCounter);
 	}
 
 	return evaluation;
 }
 
-int Evaluator::evaluateOpenFile(uint64_t& column, int& pawnCounter) {
-	// If column has more than one pawn
-	if (pawnCounter > 1)
-		return 0;
+int Evaluator::evaluateOpenFile(uint64_t column, int pawnCounter) {
 	// If open/semi-open file has no orthogonal pieces, unlikely to be advantageous
 	if ((column & board->orthogonalPieces) == 0ULL)
 		return 0;
@@ -471,15 +483,20 @@ int Evaluator::evaluateOpenFile(uint64_t& column, int& pawnCounter) {
 	// Start by analysing queens on file
 	uint64_t OrthFile = column & board->orthogonalPieces & board->diagonalPieces;
 
+	int friendlyOrths = 0;
+	int enemyOrths = 0;
+
 	while (OrthFile != 0ULL) {
 		square = BitBoardUtility::popLSB(OrthFile);
 		// Friendly Queen
 		if (friendlyBoard & (1ULL << square)) {
 			evaluation += 0.7f * openFileBonus;
+			friendlyOrths += 1;
 		}
 		// Enemy Queen
 		else {
 			evaluation -= 0.7f * openFileBonus;
+			enemyOrths += 1;
 		}
 	}
 	// Only rooks
@@ -490,16 +507,150 @@ int Evaluator::evaluateOpenFile(uint64_t& column, int& pawnCounter) {
 		// Friendly Rook
 		if (friendlyBoard & (1ULL << square)) {
 			evaluation += openFileBonus;
+			friendlyOrths += 1;
 		}
 		// Enemy Rook
 		else {
 			evaluation -= openFileBonus;
+			enemyOrths += 1;
 		}
 	}
 
 	evaluation = pawnCounter == 0 ? evaluation : 0.2f * evaluation;
 
+	if (openDiagFileNearKing(column, friendlyKingSquare) && enemyOrths != 0) {
+		evaluation -= openFileNearKingBonus * enemyOrths;
+	}
+
+	if (openDiagFileNearKing(column, enemyKingSquare) && friendlyOrths != 0) {
+		evaluation += openFileNearKingBonus * friendlyOrths;
+	}
+
 	return evaluation;
+}
+
+int Evaluator::openDiagEvaluation() {
+	// Endgame is less likely to require open diags
+	if (endGameWeight >= 0.3)
+		return 0;
+	// If no diagonal pieces, no use of open diag
+	if (board->orthogonalPieces == 0ULL) {
+		return 0;
+	}
+
+	int evaluation = 0;
+	uint64_t forwardDiagMask;
+	uint64_t backwardDiagMask;
+
+	uint64_t forwardPawns;
+	uint64_t backwardPawns;
+
+	int pawnCounter;
+	const int diagSize = 3;
+	int forwardDiagSquares[3] = { 6, 7, 15 };
+	int backwardDiagSquares[3] = { 8, 0, 1 };
+
+	for (int it = 0; it < diagSize; it++) {
+		forwardDiagMask = precomputation->getForwardMask(forwardDiagSquares[it]);
+
+		forwardPawns = board->pawns & forwardDiagMask;
+
+		pawnCounter = 0;
+
+		while (forwardPawns != 0ULL) {
+			BitBoardUtility::popLSB(forwardPawns);
+			pawnCounter++;
+			if (pawnCounter > 1) {
+				break;
+			}
+		}
+		if (pawnCounter > 1) {
+			continue;
+		}
+		evaluation += evaluateOpenDiag(forwardDiagMask, pawnCounter);
+	}
+
+	for (int it = 0; it < diagSize; it++) {
+		backwardDiagMask = precomputation->getBackwardMask(backwardDiagSquares[it]);
+
+		backwardPawns = board->pawns & backwardDiagMask;
+
+		pawnCounter = 0;
+
+		while (backwardPawns != 0ULL) {
+			BitBoardUtility::popLSB(backwardPawns);
+			pawnCounter++;
+			if (pawnCounter > 1) {
+				break;
+			}
+		}
+		if (pawnCounter > 1) {
+			continue;
+		}
+		evaluation += evaluateOpenDiag(backwardDiagMask, pawnCounter);
+	}
+
+	return evaluation;
+}
+
+int Evaluator::evaluateOpenDiag(uint64_t diag, int pawnCounter) {
+	// If open/semi-open diagonal has no diagonal pieces, unlikely to be advantageous
+	if ((diag & board->diagonalPieces) == 0ULL)
+		return 0;
+
+	int evaluation = 0;
+	int square;
+	// Start by analysing queens on file
+	uint64_t diagPieces = diag & board->orthogonalPieces & board->diagonalPieces;
+
+	int friendlyDiags = 0;
+	int enemyDiags = 0;
+
+	while (diagPieces != 0ULL) {
+		square = BitBoardUtility::popLSB(diagPieces);
+		// Friendly Queen
+		if (friendlyBoard & (1ULL << square)) {
+			evaluation += 0.7f * openDiagBonus;
+			friendlyDiags += 1;
+		}
+		// Enemy Queen
+		else {
+			evaluation -= 0.7f * openDiagBonus;
+			enemyDiags += 1;
+		}
+	}
+	// Only bishops
+	diagPieces = diag & board->diagonalPieces & ~board->orthogonalPieces;
+
+	while (diagPieces != 0ULL) {
+		square = BitBoardUtility::popLSB(diagPieces);
+		// Friendly bishop
+		if (friendlyBoard & (1ULL << square)) {
+			evaluation += openDiagBonus;
+			friendlyDiags += 1;
+		}
+		// Enemy bishop
+		else {
+			evaluation -= openDiagBonus;
+			enemyDiags += 1;
+		}
+	}
+
+	evaluation = pawnCounter == 0 ? evaluation : 0.2f * evaluation;
+
+	if (openDiagFileNearKing(diag, friendlyKingSquare) && enemyDiags != 0) {
+		evaluation -= openDiagNearKingBonus * enemyDiags;
+	}
+
+	if (openDiagFileNearKing(diag, enemyKingSquare) && friendlyDiags != 0) {
+		evaluation += openDiagNearKingBonus * friendlyDiags;
+	}
+
+	return evaluation;
+}
+
+bool Evaluator::openDiagFileNearKing(uint64_t mask, int kingSquare) {
+	return mask & (precomputation->getKingMoves(kingSquare));
 }
 
 void Evaluator::initPieceEvaluations() {

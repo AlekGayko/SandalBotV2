@@ -46,7 +46,12 @@ private:
 	const unsigned char pawnShieldColumnPenalty = 30;
 	const unsigned char pawnShieldUndefendedPenalty = 30;
 	const float kingSafetyCoefficient = 0.04;
+
 	const unsigned char openFileBonus = 20;
+	const unsigned char openFileNearKingBonus = 40;
+
+	const unsigned char openDiagBonus = 20;
+	const unsigned char openDiagNearKingBonus = 40;
 
 	float endGameWeight;
 
@@ -93,8 +98,14 @@ private:
 	int kingAttackZones();
 	int kingAttackZone(uint64_t& attackZone, uint64_t& friendlyPieces, int& enemyKingSquare, int& opposingColor);
 	int incrementAttackZoneEval(uint64_t& attackZone, uint64_t& moves, const int& piece);
+
 	int openFilesEvaluation();
-	int evaluateOpenFile(uint64_t& column, int& pawnCounter);
+	int evaluateOpenFile(uint64_t column, int pawnCounter);
+
+	int openDiagEvaluation();
+	int evaluateOpenDiag(uint64_t diag, int pawnCounter);
+
+	bool openDiagFileNearKing(uint64_t mask, int kingSquare);
 
 	int evalKnightMoves(uint64_t& attackZone, uint64_t& knights);
 	int evalPawnMoves(uint64_t& attackZone, uint64_t& pawns, const int& opposingColor);
