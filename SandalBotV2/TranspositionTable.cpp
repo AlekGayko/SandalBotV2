@@ -37,8 +37,8 @@ int TranspositionTable::getDepth(u64 hashKey) {
 
 void TranspositionTable::store(int eval, int remainingDepth, int currentDepth, int nodeType, Move& move, u64 hashKey) {
 	size_t index = hashKey % size;
-	if (table[index].hash == 0ULL) {
-		slotsFilled = slotsFilled >= size ? size : slotsFilled + 1;
+	if (table[index].hash == 0ULL && slotsFilled < size) {
+		slotsFilled++;
 	}
 	table[index] = std::move(Entry(hashKey, storeMateScore(eval, currentDepth), remainingDepth, nodeType, move));
 }
@@ -65,6 +65,7 @@ int TranspositionTable::lookup(int remainingDepth, int currentDepth, int alpha, 
 void TranspositionTable::clear() {
 	if (table == nullptr) 
 		return;
+	slotsFilled = 0ULL;
 	delete[] table;
 	table = new Entry[size];
 }

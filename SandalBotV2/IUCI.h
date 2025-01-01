@@ -9,14 +9,17 @@
 
 #include "Bot.h"
 #include "FEN.h"
+#include "OptionHandler.h"
 #include "StringUtil.h"
 
 class IUCI {
 private:
 	Bot* bot = nullptr;
+	OptionHandler* optionHandler = nullptr;
 	std::thread goThread;
 	static const std::vector<std::string> positionLabels;
 	static const std::vector<std::string> goLabels;
+	static const std::vector<std::string> optionLabels;
 	static const std::string logPath;
 	const std::string name = "SandalBotV2";
 	const std::string author = "DirtySandals";
@@ -35,6 +38,7 @@ public:
 	void OnMoveChosen(std::string move);
 	void processGoCommand(std::string command);
 	void processPositionCommand(std::string command);
+	void processSetOption(std::string command);
 	void respond(std::string response);
 	int getLabelledValueInt(std::string text, std::string label, const std::vector<std::string> allLabels);
 	std::string getLabelledValue(std::string text, std::string label, const std::vector<std::string> allLabels);

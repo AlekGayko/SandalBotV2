@@ -5,11 +5,11 @@
 
 class PieceList {
 public:
-	int occupiedSquares[16];
+	int occupiedSquares[64]; // array of 16 is enough, but 64 for potential
 	int map[64];
 	int numPieces = 0;
 
-	PieceList(int maxNumPieces = 16);
+	PieceList(int maxNumPieces = 64);
 	~PieceList();
 
 	void addPiece(int square);

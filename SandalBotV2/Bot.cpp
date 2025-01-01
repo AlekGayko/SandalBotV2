@@ -83,6 +83,11 @@ void Bot::makeMove(std::string movestr) {
 
 string Bot::generateMove(int moveTimeMs) {
     searcher->startSearch(true, moveTimeMs);
+
+    if (searcher->bestMove == Move()) {
+        return "";
+    }
+
     string startSquare = CoordHelper::indexToString(searcher->bestMove.getStartSquare());
     string targetSquare = CoordHelper::indexToString(searcher->bestMove.getTargetSquare());
     string flag = "";
@@ -143,4 +148,12 @@ int Bot::chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs, int bl
     int a = max(minTimeMs, moveTimeMs);
 
     return int(ceil(min(a, maxMoveTime)));
+}
+
+void Bot::changeHashSize(int sizeMB) {
+    searcher->changeHashSize(sizeMB);
+}
+
+void Bot::clearHash() {
+    searcher->clearHash();
 }

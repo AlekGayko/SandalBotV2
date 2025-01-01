@@ -64,6 +64,7 @@ private:
 	void moveSleep(int moveTimeMs);
 	void generateBestLine(Move bestMove);
 	void enactBestLine(Move& move, int depth);
+	bool isPositionIllegal();
 public:
 	Evaluator* evaluator = nullptr;
 	MoveGen* moveGenerator = nullptr;
@@ -78,6 +79,8 @@ public:
 	void endSearch();
 	int eval();
 	uint64_t perft(int depth);
+	void clearHash();
+	void changeHashSize(int sizeMB);
 };
 
 #endif // !SEARCHER_H

@@ -13,24 +13,7 @@
 using namespace std;
 
 Board::Board() {
-	int tempSquares[64] = {
-			Piece::blackRook, Piece::blackKnight, Piece::blackBishop, Piece::blackQueen, Piece::blackKing, Piece::blackBishop, Piece::blackKnight, Piece::blackRook,
-			Piece::blackPawn, Piece::blackPawn, Piece::blackPawn, Piece::blackPawn, Piece::blackPawn, Piece::blackPawn, Piece::blackPawn, Piece::blackPawn,
-			Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, 
-			Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, 
-			Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, 
-			Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty, Piece::empty,
-			Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, Piece::whitePawn, 
-			Piece::whiteRook, Piece::whiteKnight, Piece::whiteBishop, Piece::whiteQueen, Piece::whiteKing, Piece::whiteBishop, Piece::whiteKnight, Piece::whiteRook 
-	};
-	std::copy(std::begin(tempSquares), std::end(tempSquares), squares);
-	loadPieceLists();
-	BoardState initState = BoardState(true, Piece::empty, -1, 0b1111, 0, 0, 0ULL);
-	stateHistory.push(initState);
-	state = &stateHistory.back();
-	state->zobristHash = ZobristHash::hashBoard(this);
-	history.push(state->zobristHash, false);
-	loadBitBoards();
+	loadPosition(startPosFEN);
 }
 
 Board::~Board() {
@@ -76,13 +59,22 @@ void Board::loadPosition(std::string fen) {
 	if (newPos.blackLongCastle) castlingRights |= BoardState::blackLongCastleMask;
 
 	loadPieceLists();
+
+	if (pieceLists[whiteIndex][Piece::king].numPieces != 1 || pieceLists[blackIndex][Piece::king].numPieces != 1) {
+		loadPosition(startPosFEN);
+		return;
+	}
+
 	BoardState newState = BoardState(whiteTurn, Piece::empty, enPassantSquare, castlingRights, fiftyMoveCounter, moveCounter, 0ULL);
 	stateHistory.push(newState);
 	state = &stateHistory.back();
 	state->zobristHash = ZobristHash::hashBoard(this);
 	history.push(state->zobristHash, false);
 	loadBitBoards();
-	evaluator->initStaticVariables();
+
+	if (evaluator != nullptr) {
+		evaluator->initStaticVariables();
+	}
 }
 
 void Board::loadBitBoards() {

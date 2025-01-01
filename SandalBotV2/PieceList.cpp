@@ -17,7 +17,7 @@ PieceList::~PieceList() {
 
 void PieceList::addPiece(int square) {
 	if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
-	if (numPieces >= 16) throw std::out_of_range("Cannot add more than 16 pieces");
+	if (numPieces >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
 	occupiedSquares[numPieces] = square;
 	map[square] = numPieces;
 	numPieces++;

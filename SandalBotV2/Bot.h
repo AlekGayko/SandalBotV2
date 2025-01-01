@@ -26,6 +26,8 @@ public:
 	uint64_t perft(int depth);
 	void printBoard();
 	int chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs=0, int blackIncMs=0);
+	void changeHashSize(int sizeMB);
+	void clearHash();
 };
 
 #endif // !BOT_H

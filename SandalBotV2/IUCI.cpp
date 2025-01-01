@@ -14,6 +14,7 @@ using namespace StringUtil;
 
 const vector<string> IUCI::positionLabels = { "position", "fen", "moves" };
 const vector<string> IUCI::goLabels = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
+const vector<string> IUCI::optionLabels = { "name", "value" };
 const string IUCI::logPath = "logs.txt";
 
 void IUCI::beginningMessage() {
@@ -35,15 +36,17 @@ IUCI::IUCI() {
 	beginningMessage();
 	emptyLogs();
 	bot = new Bot();
+	optionHandler = new OptionHandler(bot);
 }
 
 IUCI::~IUCI() {
 	delete bot;
+	delete optionHandler;
 }
 
 void IUCI::processCommand(string command) {
 	try {
-		//logInfo("Command received: " + command);
+		logInfo("Command received: " + command);
 		command = trim(command);
 		const string commandType = toLower(splitString(command)[0]);
 
@@ -63,6 +66,8 @@ void IUCI::processCommand(string command) {
 			stop();
 		} else if (commandType == "quit") {
 			quit();
+		} else if (commandType == "setoption") {
+			processSetOption(command);
 		} else if (commandType == "d") {
 			bot->printBoard();
 		} else {
@@ -101,6 +106,8 @@ void IUCI::quit() {
 void IUCI::UCIok() {
 	respond("id name " + name);
 	respond("id author " + author);
+	cout << endl;
+	respond(optionHandler->getOptionsString());
 	cout << endl;
 	respond("uciok");
 }
@@ -171,6 +178,13 @@ void IUCI::processPositionCommand(string command) {
 
 		logInfo("Make moves after setting position: " + to_string(moveList.size()));
 	}
+}
+
+void IUCI::processSetOption(std::string command) {
+	string optionName = getLabelledValue(command, "name", optionLabels);
+	string optionValue = getLabelledValue(command, "value", optionLabels);
+
+	optionHandler->processOption(optionName, optionValue);
 }
 
 void IUCI::respond(string response) {

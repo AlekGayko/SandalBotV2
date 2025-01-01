@@ -21,7 +21,8 @@ class Board {
 private:
 	
 public:
-	
+	const std::string startPosFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 	int squares[64];
 
 	PieceList pieceLists[2][7]; // index [i][0] is redundant since 0 = empty

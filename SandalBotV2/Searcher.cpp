@@ -18,6 +18,10 @@ void Searcher::iterativeSearch() {
 	currentMove = Move();
 	searchStatistics temp;
 
+	if (isPositionIllegal()) {
+		return;
+	}
+
 	// Perform search for each depth until maximum depth
 	for (int depth = 1; depth < maxDeepening; depth++) {	
 		// Peform negamax search of position and time it
@@ -54,6 +58,7 @@ void Searcher::iterativeSearch() {
 		searchCompleted.store(true);
 		searchStop.notify_all();
 	}
+	cout << tTable->slotsFilled << ", " << tTable->size << endl;
 	// Update stats
 	stats = temp;
 }
@@ -321,7 +326,7 @@ Searcher::Searcher(Board* board) {
 	orderer = new MoveOrderer(board, moveGenerator, this);
 	evaluator = new Evaluator(board, moveGenerator->preComp);
 	evaluator->generator = moveGenerator;
-	this->tTable = new TranspositionTable(board, 1000);
+	this->tTable = new TranspositionTable(board, 128);
 	cancelSearch.store(false);
 	searchCompleted.store(false);
 
@@ -416,8 +421,46 @@ void Searcher::enactBestLine(Move& move, int depth) {
 	board->unMakeMove(move);
 }
 
+// Checks whether the board position is illegal, used to prevent malicious FEN inputs
+bool Searcher::isPositionIllegal() {
+	// If more or less than one king on each side, its an illegal position
+	if (board->pieceLists[Board::whiteIndex][Piece::king].numPieces != 1 || board->pieceLists[Board::blackIndex][Piece::king].numPieces != 1) {
+		return true;
+	}
+	
+	// If piece can take a king, its an illegal position
+	Move moves[218];
+
+	int numMoves = moveGenerator->generateMoves(moves);
+
+	for (int i = 0; i < numMoves; i++) {
+		if (Piece::type(board->squares[moves[i].getTargetSquare()]) == Piece::king) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 int Searcher::eval() {
 	return evaluator->Evaluate();
+}
+
+void Searcher::changeHashSize(int sizeMB) {
+	if (tTable == nullptr) {
+		return;
+	}
+
+	delete tTable;
+	tTable = new TranspositionTable(board, sizeMB);
+}
+
+void Searcher::clearHash() {
+	if (tTable == nullptr) {
+		return;
+	}
+
+	this->tTable->clear();
 }
 
 // Performs perft test
@@ -442,7 +485,7 @@ void Searcher::searchStatistics::print(Searcher* searcher) {
 	cout << "info depth " << to_string(depth) << " seldepth " << to_string(seldepth);
 	cout << " score " << prepareEval() << " nodes " << to_string(nNodes + qNodes);
 	cout << " nps " << to_string(u64(1000000000ULL * (nNodes + qNodes) / duration));
-	cout << " hashfull " << to_string((int) (10000 * (float) searcher->tTable->slotsFilled / (float) searcher->tTable->size));
+	cout << " hashfull " << to_string((int) (1000 * (float) searcher->tTable->slotsFilled / (float) searcher->tTable->size));
 	cout << " time " << to_string(duration / 1000000ULL);
 	if (pv.size() != 0) {
 		cout << " pv " << pv;
