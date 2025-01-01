@@ -126,7 +126,7 @@ bool Evaluator::isMateScore(int score) {
 int Evaluator::movesTilMate(int score) {
 	if (!isMateScore(score))
 		return 0;
-	return ((checkMateScore - abs(score)) / 2) + 1;
+	return max(1, ((checkMateScore - abs(score) - 1) / 2) + 1);
 }
 
 int Evaluator::kingSafety() {

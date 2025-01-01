@@ -428,8 +428,9 @@ uint64_t Searcher::perft(int depth) {
 
 std::string Searcher::searchStatistics::prepareEval() {
 	int movesRemaining = Evaluator::movesTilMate(eval);
+	string sign = eval >= 0 ? "" : "-";
 	if (movesRemaining != 0)
-		return "mate " + to_string(movesRemaining);
+		return "mate " + sign + to_string(movesRemaining);
 
 	return "cp " + to_string(eval);
 }
