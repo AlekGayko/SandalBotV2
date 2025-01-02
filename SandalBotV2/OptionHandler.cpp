@@ -19,7 +19,7 @@ void OptionHandler::initOptions() {
 
 	Option changeHashSize = {
 		"Hash",
-		"type spin default 1000 min 1 max 2000",
+		"type spin default 128 min 1 max 2000",
 		[this](std::string& value) {
 			int valueInt = std::stoi(value);
 			if (valueInt < 1 || valueInt > 2000) {
