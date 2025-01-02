@@ -138,7 +138,7 @@ void Board::makeMove(Move& move, bool hashBoard) {
 
 	newZobristHash ^= ZobristHash::whiteMoveHash;
 
-	if (Piece::type(takenPiece) == Piece::king) {
+	if (Piece::type(takenPiece) == Piece::king || piece == Piece::empty) {
 		cout << move << endl;
 		printBoard();
 		BitBoardUtility::printBB(allPieces);
