@@ -2,14 +2,12 @@
 #include <string>
 #include "IUCI.h"
 
-using namespace std;
-
 int main() {
-	IUCI engine;
+	SandalBot::IUCI engine;
 
-	string command = "";
+	std::string command = "";
 	while (command != "quit") {
-		getline(cin, command);
+		std::getline(std::cin, command);
 		engine.processCommand(command);
 	}
 

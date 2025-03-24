@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 
@@ -9,80 +7,84 @@
 #include "CoordHelper.h"
 #include "Piece.h"
 
-class MoveGen {
-	friend class MoveOrderer;
-	friend class MovePrecomputation;
-	friend class Searcher;
-private:
-	Board* board = nullptr;
+namespace SandalBot {
 
-	const int whitePawnDirection = -8;
-	const int blackPawnDirection = 8;
+	class MoveGen {
+		friend class MoveOrderer;
+		friend class MovePrecomputation;
+		friend class Searcher;
+	private:
+		Board* board = nullptr;
 
-	const int promotionFlags[4] = { Move::promoteToQueenFlag, Move::promoteToRookFlag, Move::promoteToKnightFlag, Move::promoteToBishopFlag };
+		const int whitePawnDirection{ -8 };
+		const int blackPawnDirection{ 8 };
 
-	uint64_t currentMoves;
-	int colorIndex;
-	int enemyColorIndex;
-	int currentColor;
-	int opposingColor;
-	bool doubleCheck;
-	bool generateCaptures;
-	int friendlyKingSquare;
-	int enemyKingSquare;
-	int* squares = nullptr;
+		const int promotionFlags[4] { Move::promoteToQueenFlag, Move::promoteToRookFlag, 
+			Move::promoteToKnightFlag, Move::promoteToBishopFlag };
 
-	bool whiteTurn;
-	int enPassantSquare;
-	int castlingRights;
-	int fiftyMoveCounter;
-	int moveCounter;
+		uint64_t currentMoves{};
+		int colorIndex{};
+		int enemyColorIndex{};
+		int currentColor{};
+		int opposingColor{};
+		bool doubleCheck{};
+		bool generateCaptures{};
+		int friendlyKingSquare{};
+		int enemyKingSquare{};
+		int* squares{ nullptr };
 
-	uint64_t opponentAttacks;
-	uint64_t checkBB;
-	uint64_t checkRayBB;
-	uint64_t friendlyBoard;
-	uint64_t enemyBoard;
+		bool whiteTurn{};
+		int enPassantSquare{};
+		int castlingRights{};
+		int fiftyMoveCounter{};
+		int moveCounter{};
 
-public:
-	MovePrecomputation* preComp;
-	static const int startingKingSquares[2];
-	static const int shortCastleKingSquares[2];
-	static const int longCastleKingSquares[2];
-	static const int shortCastleRookSquares[2];
-	static const int longCastleRookSquares[2];
-	static const int shortCastleRookSpawn[2];
-	static const int longCastleRookSpawn[2];
+		uint64_t opponentAttacks{};
+		uint64_t checkBB{};
+		uint64_t checkRayBB{};
+		uint64_t friendlyBoard{};
+		uint64_t enemyBoard{};
 
-	const int maxMoves = 218;
-	bool isCheck;
+	public:
+		MovePrecomputation* preComp{};
+		static constexpr int startingKingSquares[2] { 4, 60 };
+		static constexpr int shortCastleKingSquares[2] { 6, 62 };
+		static constexpr int longCastleKingSquares[2] { 2, 58 };
+		static constexpr int shortCastleRookSquares[2] { 7, 63 };
+		static constexpr int longCastleRookSquares[2] { 0, 56 };
+		static constexpr int shortCastleRookSpawn[2] { 5, 61 };
+		static constexpr int longCastleRookSpawn[2] { 3, 59 };
+		static constexpr int maxMoves{ 218 };
 
-	MoveGen();
-	MoveGen(Board* board);
-	~MoveGen();
-	int generateMoves(Move moves[], bool capturesOnly = false);
-	void initVariables(bool capturesOnly);
-	void generateSlideMoves(Move moves[]);
-	void generateOrthogonalMoves(Move moves[]);
-	void generateDiagonalMoves(Move moves[]);
-	void generateKnightMoves(Move moves[]);
-	void generateKingMoves(Move moves[]);
-	void generatePawnMoves(Move moves[]);
-	void enPassantMoves(Move moves[], int targetSquare, int startSquare);
-	void promotionMoves(Move moves[], int targetSquare, int startSquare);
-	void castlingMoves(Move moves[], int startSquare);
+		bool isCheck{};
 
-	uint64_t generateKnightAttackData(const uint64_t& enemyBoard);
-	uint64_t generatePawnAttackData(const uint64_t& enemyBoard, const int& opposingColor);
-	uint64_t generateKingAttackData(const int& enemyKingSquare);
-	uint64_t generateOrthogonalAttackData(const uint64_t& orthogonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare);
-	uint64_t generateDiagonalAttackData(const uint64_t& diagonalPieces, const uint64_t& enemyBoard, int& friendlyKingSquare);
-	void generateAttackData();
-	void generateCheckData();
+		MoveGen();
+		MoveGen(Board* board);
+		~MoveGen();
+		int generateMoves(Move moves[], bool capturesOnly = false);
+		void initVariables(bool capturesOnly);
+		void generateOrthogonalMoves(Move moves[]);
+		void generateDiagonalMoves(Move moves[]);
+		void generateKnightMoves(Move moves[]);
+		void generateKingMoves(Move moves[]);
+		void generatePawnMoves(Move moves[]);
+		void enPassantMoves(Move moves[], int targetSquare, int startSquare);
+		void promotionMoves(Move moves[], int targetSquare, int startSquare);
+		void castlingMoves(Move moves[], int startSquare);
 
-	bool enPassantPin(int friendlyPawnSquare, int enemyPawnSquare);
+		uint64_t generateKnightAttackData(const uint64_t enemyBoard);
+		uint64_t generatePawnAttackData(const uint64_t enemyBoard, const int opposingColor);
+		uint64_t generateKingAttackData(const int enemyKingSquare);
+		uint64_t generateOrthogonalAttackData(const uint64_t orthogonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
+		uint64_t generateDiagonalAttackData(const uint64_t diagonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
+		void generateAttackData();
+		void generateCheckData();
 
-	void updateResults(Move moves[]);
-};
+		bool enPassantPin(int friendlyPawnSquare, int enemyPawnSquare);
+
+		void updateResults(Move moves[]);
+	};
+
+}
 
 #endif

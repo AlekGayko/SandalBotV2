@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef MOVE_H
 #define MOVE_H
 
@@ -8,41 +6,56 @@
 #include "CoordHelper.h"
 #include "Piece.h"
 
-struct Move {
-	static constexpr short int startingSquareMask = 0b111111000000;
-	static constexpr short int targetSquareMask = 0b000000111111;
-	static constexpr short int flagMask = 0b1111 << 12;
+namespace SandalBot {
 
-	static constexpr short int noFlag = 0b0000;
-	static constexpr short int enPassantCaptureFlag = 0b0001;
-	static constexpr short int pawnTwoSquaresFlag = 0b0010;
-	static constexpr short int castleFlag = 0b0011;
-	
-	static constexpr short int promoteToQueenFlag = 0b0100;
-	static constexpr short int promoteToRookFlag = 0b0101;
-	static constexpr short int promoteToBishopFlag = 0b0110;
-	static constexpr short int promoteToKnightFlag = 0b0111;
+	struct Move {
+		static constexpr uint16_t startingSquareMask{ 0b111111000000 };
+		static constexpr uint16_t targetSquareMask{ 0b000000111111 };
+		static constexpr uint16_t flagMask{ 0b1111 << 12 };
 
-	unsigned short int moveValue = 0;
+		static constexpr uint16_t noFlag{ 0b0000 };
+		static constexpr uint16_t enPassantCaptureFlag{ 0b0001 };
+		static constexpr uint16_t pawnTwoSquaresFlag{ 0b0010 };
+		static constexpr uint16_t castleFlag{ 0b0011 };
 
-	Move();
-	Move(unsigned short int move);
-	Move(int startingSquare, int targetSquare);
-	Move(int startingSquare, int targetSquare, int flag);
+		static constexpr uint16_t promoteToQueenFlag{ 0b0100 };
+		static constexpr uint16_t promoteToRookFlag{ 0b0101 };
+		static constexpr uint16_t promoteToBishopFlag{ 0b0110 };
+		static constexpr uint16_t promoteToKnightFlag{ 0b0111 };
 
-	bool operator==(const Move& other);
-	Move& operator=(const Move& other);
-	bool operator!=(const Move& other);
-	bool isPromotion();
-	bool isEnPassant();
-	bool isCastle();
-	int promotionPieceType();
-	unsigned short int getStartSquare() const;
-	unsigned short int getTargetSquare() const;
-	unsigned short int getFlag() const;
-	std::string str() const;
-	std::string binStr() const;
-	friend std::ostream& operator<<(std::ostream& os, const Move& move);
-};
+		uint16_t moveValue {};
+
+		Move() {}
+		Move(uint16_t move) 
+			: moveValue(move) {}
+		Move(uint16_t startingSquare, uint16_t targetSquare) 
+			: moveValue((startingSquare << 6) | targetSquare) {}
+		Move(uint16_t startingSquare, uint16_t targetSquare, uint16_t flag) 
+			: moveValue((flag << 12) | (startingSquare << 6) | targetSquare) {}
+		Move(const Move& other)
+			: moveValue(other.moveValue) {}
+		Move(Move&& move) noexcept 
+			: moveValue(move.moveValue) {}
+
+		bool operator==(const Move& other) const { return moveValue == other.moveValue; }
+		Move& operator=(const Move& other) { this->moveValue = other.moveValue;	return *this; }
+		Move& operator=(Move&& other) noexcept { moveValue = other.moveValue; return *this; }
+		bool operator!=(const Move& other) const { return moveValue != other.moveValue; }
+
+		bool isPromotion() const { return getFlag() >= promoteToQueenFlag; }
+		bool isEnPassant() const { return getFlag() == enPassantCaptureFlag; }
+		bool isCastle() const { return getFlag() == castleFlag; }
+		int promotionPieceType();
+
+		uint16_t getStartSquare() const { return (moveValue & startingSquareMask) >> 6; }
+		uint16_t getTargetSquare() const { return moveValue & targetSquareMask; }
+		uint16_t getFlag() const { return (moveValue & flagMask) >> 12; }
+
+		std::string str() const;
+		std::string binStr() const;
+		friend std::ostream& operator<<(std::ostream& os, const Move& move);
+	};
+
+}
 
 #endif // !MOVE_H

@@ -1,28 +1,29 @@
-#pragma once
-
 #ifndef ZOBRISTHASH_H
 #define ZOBRISTHASH_H
 
 #include <cstdint>
 
-#define u64 uint64_t
+namespace SandalBot {
 
-class Board;
+	class Board;
 
-class ZobristHash {
-protected:
-	Board* board = nullptr;
-public:
-	static bool initialised;
-	static u64 pieceHashes[2][7][64];
-	static u64 enPassantHash[64];
-	static u64 castlingRightsHash[17];
-	static u64 whiteMoveHash;
-	ZobristHash();
-	ZobristHash(Board* board);
-	static void initHashes();
-	u64 hashBoard();
-	static u64 hashBoard(Board* board);
-};
+	class ZobristHash {
+	protected:
+		Board* board{ nullptr };
+	public:
+		static bool initialised;
+		static uint64_t pieceHashes[2][7][64];
+		static uint64_t enPassantHash[64];
+		static uint64_t castlingRightsHash[17];
+		static uint64_t whiteMoveHash;
+		ZobristHash();
+		ZobristHash(Board* board);
+		uint64_t hashBoard();
+
+		static void initHashes();
+		static uint64_t hashBoard(Board* board);
+	};
+
+}
 
 #endif // !ZOBRISTHASH_H

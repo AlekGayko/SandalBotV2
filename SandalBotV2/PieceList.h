@@ -1,22 +1,24 @@
-#pragma once
-
 #ifndef PIECELIST_H
 #define PIECELIST_H
 
-class PieceList {
-public:
-	int occupiedSquares[64]; // array of 16 is enough, but 64 for potential
-	int map[64];
-	int numPieces = 0;
+namespace SandalBot {
 
-	PieceList(int maxNumPieces = 64);
-	~PieceList();
+	class PieceList {
+	public:
+		int occupiedSquares[64]; // array of 16 is enough, but 64 for safety
+		int map[64];
+		int numPieces{ 0 };
 
-	void addPiece(int square);
-	void deletePiece(int square);
-	void movePiece(int startSquare, int targetSquare);
+		PieceList(int maxNumPieces = 64);
+		~PieceList();
 
-	int& operator[](int index);
-};
+		void addPiece(int square);
+		void deletePiece(int square);
+		void movePiece(int startSquare, int targetSquare);
+
+		int& operator[](int index);
+	};
+
+}
 
 #endif // !PIECELIST_H

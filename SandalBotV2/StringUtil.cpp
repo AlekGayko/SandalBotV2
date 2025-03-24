@@ -8,7 +8,8 @@
 
 using namespace std;
 
-namespace StringUtil {
+namespace SandalBot::StringUtil {
+
 	std::string StringUtil::trim(const std::string& str) {
 		size_t start = str.find_first_not_of(" \t\n\r\f\v");
 		size_t end = str.find_last_not_of(" \t\n\r\f\v");
@@ -76,4 +77,5 @@ namespace StringUtil {
 		}
 		return stringInt;
 	}
+
 }

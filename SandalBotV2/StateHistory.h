@@ -1,23 +1,27 @@
-#pragma once
 #ifndef STATEHISTORY_H
 #define STATEHISTORY_H
 
-class BoardState;
+#include "BoardState.h"
 
-class StateHistory {
-private:
-	const size_t defaultSize = 1024;
-	size_t size = 0;
-	size_t allocatedSize = 0;
-	BoardState* history = nullptr;
-public:
-	StateHistory();
-	~StateHistory();
-	void push(BoardState& state);
-	void pop();
-	void clear();
-	BoardState& getSecondLast();
-	BoardState& back();
-};
+namespace SandalBot {
+
+	class StateHistory {
+	private:
+		const size_t defaultSize{ 1024 };
+		size_t size{ 0 };
+		size_t allocatedSize{ 0 };
+		BoardState* history{ nullptr };
+	public:
+		StateHistory();
+		~StateHistory();
+
+		void push(BoardState& state);
+		void pop();
+		void clear() { size = 0; }
+		BoardState& getSecondLast();
+		BoardState& back();
+	};
+
+}
 
 #endif // !STATEHISTORY_H

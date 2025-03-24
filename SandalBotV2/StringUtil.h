@@ -1,12 +1,10 @@
-#pragma once
-
 #ifndef STRINGUTIL_H
 #define STRINGUTIL_H
 
 #include <string>
 #include <vector>
 
-namespace StringUtil {
+namespace SandalBot::StringUtil {
 	std::string trim(const std::string& str);
 	std::string toLower(const std::string& str);
 	std::vector<std::string> splitString(std::string& str);
