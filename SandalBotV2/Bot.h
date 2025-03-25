@@ -6,9 +6,12 @@
 
 namespace SandalBot {
 
+	// Bot class represents SandalBot, it encapsulates a board for game state,
+	// and a Searcher for generating optimal moves. Provides an interface for making 
+	// moves, and providing static evaluation.
 	class Bot {
 	private:
-		const int maxMoveTime{ 3000 };
+		const int maxMoveTime{ 3000 }; // Maximum move time
 
 		Board* board{ nullptr };
 		Searcher* searcher{ nullptr };

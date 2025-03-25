@@ -4,14 +4,16 @@
 
 namespace SandalBot {
 
+    // Returns corresponding integer piece from given character symbol
     int Piece::symbolToPiece(char symbol) {
         int color = black;
         int pieceType = 0;
-        if (std::isupper(symbol)) {
+        if (std::isupper(symbol)) { // Uppercase symbols are white
             color = white;
         }
 
-        switch (std::tolower(symbol)) {
+        // Get piece type
+        switch (std::tolower(symbol)) { // Convert to lower for white and black
         case 'k':
             pieceType = king;
             break;
@@ -36,10 +38,11 @@ namespace SandalBot {
         return makePiece(pieceType, color);
     }
 
+    // Returns corresponding character symbol from integer piece
     char Piece::pieceToSymbol(int piece) {
         char symbol = '_';
 
-        switch (piece & pieceMask) {
+        switch (piece & pieceMask) { // Get piece type
         case king:
             symbol = 'k';
             break;
@@ -61,7 +64,7 @@ namespace SandalBot {
         default:
             return symbol;
         }
-
+        // If piece is white, convert to uppercase character
         if (isColor(piece, white)) {
             symbol = std::toupper(symbol);
         }

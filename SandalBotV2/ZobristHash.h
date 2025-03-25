@@ -7,6 +7,10 @@ namespace SandalBot {
 
 	class Board;
 
+	// Base class Zobrist Hash implements zobrist hashing of 
+	// board position. Represents board position in 64 bit unsigned number
+	// by XOR'ing several state factors, associative property of XOR
+	// allows progressive changes to hash and ability to revert changes.
 	class ZobristHash {
 	protected:
 		Board* board{ nullptr };

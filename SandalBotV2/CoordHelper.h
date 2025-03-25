@@ -9,6 +9,7 @@
 
 namespace SandalBot {
 
+	// Coord encapsulates a coordinate
 	struct Coord {
 		int row{};
 		int col{};
@@ -20,7 +21,9 @@ namespace SandalBot {
 		friend std::ostream& operator<<(std::ostream& os, const Coord& coord);
 	};
 
+	// CoordHelper provides utility functions for dealing with coordinates in many forms
 	namespace CoordHelper {
+		// Human readable forms of rows and columns
 		const std::string charFiles{ "abcdefgh" };
 		const std::string charRanks{ "87654321" };
 
@@ -34,7 +37,6 @@ namespace SandalBot {
 		bool validCoordAddition(Coord coord, Coord direction);
 		bool validCoordAddition(Coord coord, Coord direction, int scalar);
 		bool validCoordAddition(int index, Coord direction);
-		bool validCoordAddition(int index, int move);
 	};
 
 }

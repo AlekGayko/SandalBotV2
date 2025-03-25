@@ -18,7 +18,10 @@ namespace SandalBot {
 		delete[] startSearchIndicies;
 	}
 
+	// Standard push function which adds new hash and start indice.
+	// Also dynamically adjusts size of arrays if needed
 	void BoardHistory::push(uint64_t value, bool reset) {
+		// Double size of arrays if memory has run out
 		if (numBoards >= historySize) {
 			historySize *= 2;
 			uint64_t* newHashHistory = new uint64_t[historySize];
@@ -36,11 +39,13 @@ namespace SandalBot {
 			hashHistory = newHashHistory;
 			startSearchIndicies = newSearchIndice;
 		}
+		// Push new values
 		hashHistory[numBoards] = value;
 		startSearchIndicies[numBoards + 1] = reset ? numBoards : startSearchIndicies[numBoards];
-		numBoards++;
+		numBoards++; // Increment index
 	}
 
+	// Returns a boolean, depending on whether a given hash causes a threefold-repetition
 	bool BoardHistory::contains(const uint64_t key) const {
 		if (numBoards <= 2) return false;
 
@@ -50,6 +55,12 @@ namespace SandalBot {
 			if (hashHistory[i] == key) return true;
 		}
 		return false;
+	}
+
+	// Resets history by resetting index
+	void BoardHistory::clear() {
+		numBoards = 0;
+		startSearchIndicies[0] = 0;
 	}
 
 }

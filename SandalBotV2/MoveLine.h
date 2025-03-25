@@ -6,10 +6,12 @@
 #include <string>
 
 namespace SandalBot {
-
+	
+	// MoveLine stores an array of moves in a dynamic array,
+	// used for storing a principal variation from a search
 	class MoveLine {
 	private:
-		Move* line{ nullptr };
+		Move* line{ nullptr }; // Array of moves
 		size_t capacity{ 0 };
 		size_t size{ 0 };
 	public:

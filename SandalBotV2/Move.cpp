@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace SandalBot {
-
+	// Returns the piece the move promotes to
 	int Move::promotionPieceType() {
 		switch (getFlag()) {
 		case promoteToQueenFlag:
@@ -19,7 +19,7 @@ namespace SandalBot {
 			return 0;
 		}
 	}
-
+	// Returns a string representing the move in UCI notation
 	std::string Move::str() const {
 		std::string str = "";
 		str += CoordHelper::indexToString(getStartSquare());
@@ -49,7 +49,7 @@ namespace SandalBot {
 
 		return str;
 	}
-
+	// Returns string representing the binary format of the 16 bit moveValue
 	std::string Move::binStr() const {
 		std::bitset<4> binFlag { getFlag() };
 		std::bitset<6> binStart { getStartSquare() };
@@ -58,7 +58,7 @@ namespace SandalBot {
 		return binFlag.to_string() + " " + 
 			binStart.to_string() + " " + binTarget.to_string();
 	}
-
+	// Override operator to print move
 	std::ostream& operator<<(std::ostream& os, const Move& move) {
 		os << move.str();
 		return os;

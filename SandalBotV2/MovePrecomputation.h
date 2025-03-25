@@ -9,47 +9,52 @@
 
 namespace SandalBot {
 
+	// MovePrecomputation provides utility data for move generation, evaluation and more.
+	// Data is computed on instantiation to avoid recomputation
 	class MovePrecomputation {
+		// Mask of single row and column
 		static constexpr uint64_t rowMask{ 0b11111111ULL };
 		static constexpr uint64_t columnMask{ 0x0101010101010101ULL };
-
+		// Mask for single row and column for blockers, but without edges (since edges cannot block behind them)
 		static constexpr uint64_t blockerRowMask{ 0b01111110ULL };
 		static constexpr uint64_t blockerColumnMask{ 0x0001010101010100ULL };
-
+		// Directions for diagonals and orthogonals
 		const int slideDirections[8] { -8, 1, 8, -1, -9, -7, 9, 7 };
+		// Knight directions
 		const int knightDirections[8] { -17, -15, -6, 10, 17, 15, 6, -10 };
-
+		// Indexes for above arrays
 		const int startOrthogonal{ 0 };
 		const int endOrthogonal{ 4 };
 		const int startDiagonal{ 4 };
 		const int endDiagonal{ 8 };
-
+		// Stores hashtable for magic bitboards
 		PrecomputedMagics magics{};
 
-		uint8_t distances[64][64];
-
+		uint8_t distances[64][64]; // Stores distance between any two coordinates
+		// King and knight movement bitboards
 		uint64_t knightMoves[64];
 		uint64_t kingMoves[64];
-
+		// Pawn shield bitboard masks for king
 		uint64_t whitePawnShieldMask[64];
 		uint64_t blackPawnShieldMask[64];
-
+		// Bitboards for attack zone around king
 		uint64_t whiteKingAttackZone[64];
 		uint64_t blackKingAttackZone[64];
-
+		// Bitboard attack zone for either white or black king
 		uint64_t kingUnbiasAttackZone[64];
-
+		// Movement bitboards for attack moves for white and black pawns
 		uint64_t whitePawnAttackMoves[64];
 		uint64_t blackPawnAttackMoves[64];
-
+		// Bitboard masks for white and black pawns for passed pawns.
+		// Masks pawn's column and adjacent columns in front of pawn
 		uint64_t whitePassedPawnMasks[64];
 		uint64_t blackPassedPawnMasks[64];
-
+		// Bitboard masks for each column for pawn islands. (adjacent column masks)
 		uint64_t pawnIslandMasks[8];
-
+		// Bitboard masks for all orthogonal and diagonal directions
 		uint64_t blockerOrthogonalMasks[64];
 		uint64_t blockerDiagonalMasks[64];
-
+		// Masks for all rows and columns
 		uint64_t rowMasks[8];
 		uint64_t columnMasks[8];
 		uint64_t forwardDiagonalMasks[15]; // 45 degree diagonals
@@ -97,7 +102,7 @@ namespace SandalBot {
 			dirDist(int top, int left, int right, int bottom);
 		};
 
-		dirDist directionDistances[64];
+		dirDist directionDistances[64]; // Provides distance to edges
 
 
 		MovePrecomputation();

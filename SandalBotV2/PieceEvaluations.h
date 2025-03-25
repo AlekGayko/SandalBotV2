@@ -5,8 +5,11 @@
 
 namespace SandalBot {
 
+    // PieceEvaluations is a utility class which contains weightings
+    // for piece values and piece positions
     class PieceEvaluations {
     public:
+        // Positional heuristic weighting for different pieces
         static constexpr int16_t pawnEval[64] {
              0,   0,   0,   0,   0,   0,   0,   0,
             50,  50,  50,  50,  50,  50,  50,  50,
@@ -94,8 +97,10 @@ namespace SandalBot {
             -30, -30,   0,   0,   0,   0, -30, -30,
             -50, -30, -30, -30, -30, -30, -30, -50
         };
+        // Array of positional arrays, can be indexed by piece types
         static constexpr const int16_t* const pieceEvals[7] { nullptr, pawnEval, knightEval, bishopEval, rookEval, queenEval, kingEval };
 
+        // Static piece values
         static constexpr int emptyVal = 0;
         static constexpr int pawnVal = 100;
         static constexpr int knightVal = 320;
@@ -103,6 +108,7 @@ namespace SandalBot {
         static constexpr int rookVal = 500;
         static constexpr int queenVal = 900;
         static constexpr int kingVal = 0;
+        // Array of piece values
         static constexpr int pieceVals[7] = { emptyVal, pawnVal, knightVal, bishopVal, rookVal, queenVal, kingVal };
     };
 

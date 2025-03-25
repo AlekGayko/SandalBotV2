@@ -16,45 +16,52 @@
 
 namespace SandalBot {
 
+	// Searcher is responsible for searching game tree of chess positions, and encapsulates
+	// the algorithmic design of the bot. Supports asynchronous searching, and synchronous
+	// searching.
 	class Searcher {
 	private:
-		friend struct searchStatistics;
-		struct searchStatistics {
-			Move bestMove{};
-			uint64_t qNodes{};
-			uint64_t nNodes{};
-			int depth{};
-			int seldepth{};
-			int eval{};
-			uint64_t duration{};
+		// SearchStatistics encapsulates the statistics from a search iteration
+		struct SearchStatistics {
+			Move bestMove{}; // Best found move
+			uint64_t qNodes{}; // Number of quiescence search nodes
+			uint64_t nNodes{}; // Number of Regular search nodes
+			int depth{}; // Standard depth of search
+			int seldepth{}; // Maximum selective depth of search
+			int eval{}; // Evaluation of position
+			uint64_t duration{}; // Duration of search
 
 			std::string prepareEval();
 			void printIteration();
 			void print(Searcher* searcher);
 		};
-		Move nullMove;
+		const Move nullMove{}; // 'Null' move, represents uninitialised move to compare to
 
-		searchStatistics stats;
+		SearchStatistics stats{}; // Statistics of most recent search
 
-		std::atomic<bool> cancelSearch;
-		std::atomic<bool> searchCompleted;
-		std::mutex searchMutex;
-		std::condition_variable searchStop;
-		int searchWaitPeriod{ 100 };
-		const int maxDeepening{ 256 };
-		const int reduceExtensionCutoff{ 3 };
-		const int maxExtensions{ 16 };
-		int bestLineSize{};
+		std::atomic<bool> cancelSearch{ false }; // Atomic boolean indicates if search has been cancelled
+		// Atomic boolean indicates if search has completed prematurely (checkmate)
+		std::atomic<bool> searchCompleted{ false };
+		std::mutex searchMutex; // Used to lock searchStop
+		std::condition_variable searchStop; // Conditional variable waits to synchronise class during search
+
+		static constexpr int searchWaitPeriod{ 100 }; // Sleep time for sleeping thread
+		static constexpr int maxDeepening{ 256 }; // Maximum iterative deepening depth
+		static constexpr int reduceExtensionCutoff{ 3 }; // Move array index where depth is reduced
+		static constexpr int maxExtensions{ 16 }; // Maximum number of extensions during search
+		static constexpr int bestLineSize{ maxDeepening + maxExtensions + 1 };
 
 		MoveLine* bestLine{ nullptr };
 
 		Board* board{ nullptr };
 
-		TranspositionTable* tTable{ nullptr };
+		TranspositionTable* tTable{ nullptr }; // Store previously evaluated positions
 
-		Move currentMove;
-		int defaultAlpha{ std::numeric_limits<int>::min() + 1 }; // Using min cannot be negated due to two complement range
-		int defaultBeta = { std::numeric_limits<int>::max() };
+		Move currentMove{};
+
+		// Using min cannot be negated due to two complement range
+		static constexpr int defaultAlpha{ std::numeric_limits<int>::min() + 1 };
+		static constexpr int defaultBeta{ std::numeric_limits<int>::max() };
 
 		void iterativeSearch();
 		int negaMax(int alpha, int beta, int depth, int maxDepth, int numExtensions);
@@ -70,9 +77,9 @@ namespace SandalBot {
 		MoveGen* moveGenerator{ nullptr };
 		MoveOrderer* orderer{ nullptr };
 		Move bestMove{};
-		int movesSince{ 0 };
+		int movesSince{ 0 }; // Tracks number of nodes found in perft
 
-		Searcher();
+		Searcher() {};
 		Searcher(Board* board);
 		~Searcher();
 		void startSearch(bool isTimed, int moveTimeMs = 0);

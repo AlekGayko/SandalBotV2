@@ -2,6 +2,7 @@
 
 namespace SandalBot {
 
+	// Initialise hashmaps but creating hashmap for each square of correct size
 	PrecomputedMagics::PrecomputedMagics() {
 		for (int square = 0; square < 64; square++) {
 			// Size is one greater than max index
@@ -10,6 +11,7 @@ namespace SandalBot {
 		}
 	}
 
+	// Delete hashmap for each square
 	PrecomputedMagics::~PrecomputedMagics() {
 		for (int square = 0; square < 64; square++) {
 			delete[] orthogonalMoves[square];
@@ -17,6 +19,7 @@ namespace SandalBot {
 		}
 	}
 
+	// Inserts orthogonal movement bitboards for each blocker
 	void PrecomputedMagics::addOrthogonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards) {
 		for (int i = 0; i < blockers.size(); i++) {
 			uint64_t index = (blockers[i] * orthogonalMagics[square]) >> orthogonalShifts[square];
@@ -24,6 +27,7 @@ namespace SandalBot {
 		}
 	}
 
+	// Inserts diagonal movement bitboards for each blocker
 	void PrecomputedMagics::addDiagonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards) {
 		for (int i = 0; i < blockers.size(); i++) {
 			uint64_t index = (blockers[i] * diagonalMagics[square]) >> diagonalShifts[square];

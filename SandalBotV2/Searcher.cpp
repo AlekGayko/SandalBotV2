@@ -12,13 +12,36 @@ using namespace std;
 
 namespace SandalBot {
 
-	// Perform iterative deepening
+	// Constructor initialised with board
+	Searcher::Searcher(Board* board)
+		: board(board) {
+		// Allocate member variables
+		this->moveGenerator = new MoveGen(board);
+		this->orderer = new MoveOrderer(board, moveGenerator, this);
+		this->evaluator = new Evaluator(board, moveGenerator->preComp);
+		this->evaluator->generator = moveGenerator;
+		this->tTable = new TranspositionTable(board);
+		this->bestLine = new MoveLine(bestLineSize);
+	}
+
+	Searcher::~Searcher() {
+		delete moveGenerator;
+		delete orderer;
+		delete tTable;
+		delete evaluator;
+		delete bestLine;
+	}
+
+	// Performs iterative deepening, iteratively searches deeper and deeper for more intelligent
+	// searches. Information gained and stored in transposition table aid further searches tremendously
+	// and allow timed search instead of fixed depth/time search
 	void Searcher::iterativeSearch() {
 		// Initialise moves and statistics of search
 		bestMove = Move();
 		currentMove = Move();
-		searchStatistics temp;
+		SearchStatistics temp;
 
+		// If board position is illegal, do not search
 		if (isPositionIllegal()) {
 			return;
 		}
@@ -27,7 +50,7 @@ namespace SandalBot {
 		for (int depth = 1; depth < maxDeepening; depth++) {
 			// Peform negamax search of position and time it
 			auto start = chrono::high_resolution_clock::now();
-			stats = searchStatistics();
+			stats = SearchStatistics();
 			int eval = negaMax(defaultAlpha, defaultBeta, 0, depth, 0);
 			auto end = chrono::high_resolution_clock::now();
 			chrono::duration<uint64_t, nano> duration = end - start;
@@ -44,17 +67,19 @@ namespace SandalBot {
 				temp.duration = duration.count();
 
 				temp.print(this);
-
 			}
 			// If search is cancelled, stop iterative deepening
 			if (cancelSearch.load()) {
 				break;
-			} else if (Evaluator::isMateScore(eval)) {
+			} 
+			// If checkmate has been found, stop search early
+			else if (Evaluator::isMateScore(eval)) {
 				searchCompleted.store(true);
 				searchStop.notify_all();
 				break;
 			}
 		}
+		// If search ended before it was cancelled, notify other threads
 		if (!cancelSearch.load() && !searchCompleted.load()) {
 			searchCompleted.store(true);
 			searchStop.notify_all();
@@ -64,9 +89,11 @@ namespace SandalBot {
 		stats = temp;
 	}
 
-	// Quienscence search searches position by only considering moves which take
+	// Quienscence search searches position by only considering moves which capture,
+	// reduces horizon effect by preventing incredibly inaccurate evaluations from capture
+	// sequences
 	int Searcher::quiescenceSearch(int alpha, int beta, int maxDepth) {
-		stats.qNodes++;
+		stats.qNodes++; // Update stats
 		if (cancelSearch) {
 			return Evaluator::cancelledScore;
 		}
@@ -74,7 +101,9 @@ namespace SandalBot {
 		// Check for threefold repetition
 		if (board->history.contains(board->state->zobristHash)) {
 			return Evaluator::drawScore;
-		} else if (evaluator->insufficientMaterial()) {
+		} 
+		// Check for draw by insufficient material
+		else if (evaluator->insufficientMaterial()) {
 			return Evaluator::drawScore;
 		}
 
@@ -84,7 +113,7 @@ namespace SandalBot {
 			return tTableEval;
 		}
 
-		int score = 0;
+		int score{ 0 };
 		// Evaluate board
 		score = evaluator->Evaluate();
 
@@ -315,32 +344,13 @@ namespace SandalBot {
 		return movesGenerated;
 	}
 
-	// Default Constructor
-	Searcher::Searcher() {
-
-	}
-
-	// Constructor initialised with board
-	Searcher::Searcher(Board* board) {
-		this->board = board;
-		moveGenerator = new MoveGen(board);
-		orderer = new MoveOrderer(board, moveGenerator, this);
-		evaluator = new Evaluator(board, moveGenerator->preComp);
-		evaluator->generator = moveGenerator;
-		this->tTable = new TranspositionTable(board, 128);
-		cancelSearch.store(false);
-		searchCompleted.store(false);
-
-		bestLineSize = maxDeepening + maxExtensions + 1;
-
-		bestLine = new MoveLine(bestLineSize);
-	}
-
+	// Sleeps recursively until search has completed or until moveTimeMs is up
 	void Searcher::moveSleep(int moveTimeMs) {
-		chrono::milliseconds runDurationMs(moveTimeMs);
+		chrono::milliseconds runDurationMs{ moveTimeMs };
 		auto stopTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
 		stopTime += runDurationMs.count();
 
+		// While search is ongoing, sleep until search completed or current time is exceeded stop time
 		while (!searchCompleted.load()) {
 			this_thread::sleep_for(chrono::milliseconds(searchWaitPeriod));
 			auto now = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
@@ -349,6 +359,7 @@ namespace SandalBot {
 			}
 		}
 
+		// Notify other threads that search is over
 		cancelSearch.store(true);
 		searchStop.notify_all();
 	}
@@ -357,23 +368,23 @@ namespace SandalBot {
 	void Searcher::startSearch(bool isTimed, int moveTimeMs) {
 		cancelSearch.store(false);
 		searchCompleted.store(false);
-		unique_lock<mutex> lock(searchMutex);
+		unique_lock<mutex> lock{ searchMutex }; // Lock for searchStop
 
-		thread searchThread(&Searcher::iterativeSearch, this);
+		thread searchThread(&Searcher::iterativeSearch, this); // Begin search
 		thread timerThread;
-
+		// If search is timed, create thread which interrupts upon time limit
 		if (isTimed) {
 			timerThread = thread(&Searcher::moveSleep, this, moveTimeMs);
 		}
-
+		// Wait until search has completed (notified by either previous thread)
 		searchStop.wait(lock, [this] { return this->cancelSearch.load(); });
 
+		// Join previous threads
 		if (isTimed) {
 			timerThread.join();
 		}
 
 		searchThread.join();
-
 	}
 
 	// Cancels search
@@ -383,57 +394,54 @@ namespace SandalBot {
 		searchStop.notify_all();
 	}
 
-	// Destructor
-	Searcher::~Searcher() {
-		delete moveGenerator;
-		delete orderer;
-		delete tTable;
-		delete evaluator;
-		delete bestLine;
-	}
-
 	// Determines whether move is worth extending search for
 	bool Searcher::worthSearching(Move move, const bool isCheck, const int numExtensions) {
 		return (move.getFlag() >= Move::promoteToQueenFlag || isCheck) && numExtensions < maxExtensions;
 	}
 
+	// Generates best line
 	void Searcher::generateBestLine(Move bestMove) {
 		int depth = 0;
-		enactBestLine(bestMove, depth);
+		enactBestLine(bestMove, depth); // Begin recursively generating
 	}
 
+	// Recursively searches the transposition table for best moves found (principal variation)
+	// of current position
 	void Searcher::enactBestLine(Move move, int depth) {
 		if (move.moveValue == 0) {
 			return;
 		}
 
-		bestLine->add(move);
+		bestLine->add(move); // Add move to bestline list
 
+		// If threefold repetition, stop searching
 		if (board->history.contains(board->state->zobristHash)) {
 			return;
 		}
-
+		// Apply move to board
 		board->makeMove(move);
-
+		// Acquire next move from transposition table
 		Move nextMove = tTable->getBestMove(board->state->zobristHash);
 
 		enactBestLine(nextMove, depth + 1);
 
-		board->unMakeMove(move);
+		board->unMakeMove(move); // Rollback changes to board
 	}
 
 	// Checks whether the board position is illegal, used to prevent malicious FEN inputs
 	bool Searcher::isPositionIllegal() {
 		// If more or less than one king on each side, its an illegal position
-		if (board->pieceLists[Board::whiteIndex][Piece::king].numPieces != 1 || board->pieceLists[Board::blackIndex][Piece::king].numPieces != 1) {
+		if (board->pieceLists[Board::whiteIndex][Piece::king].numPieces != 1 
+			|| board->pieceLists[Board::blackIndex][Piece::king].numPieces != 1) {
 			return true;
 		}
 
 		// If piece can take a king, its an illegal position
 		Move moves[218];
 
-		int numMoves = moveGenerator->generateMoves(moves);
+		int numMoves = moveGenerator->generateMoves(moves); // Generate all legal moves
 
+		// If any move attack king, it is illegal
 		for (int i = 0; i < numMoves; i++) {
 			if (Piece::type(board->squares[moves[i].getTargetSquare()]) == Piece::king) {
 				return true;
@@ -443,10 +451,12 @@ namespace SandalBot {
 		return false;
 	}
 
+	// Returns static evaluation of position
 	int Searcher::eval() {
 		return evaluator->Evaluate();
 	}
 
+	// Deletes old transposition table and creates new one of different size
 	void Searcher::changeHashSize(int sizeMB) {
 		if (tTable == nullptr) {
 			return;
@@ -456,12 +466,13 @@ namespace SandalBot {
 		tTable = new TranspositionTable(board, sizeMB);
 	}
 
+	// Clears all transposition table entries
 	void Searcher::clearHash() {
 		if (tTable == nullptr) {
 			return;
 		}
 
-		this->tTable->clear();
+		tTable->clear();
 	}
 
 	// Performs perft test
@@ -470,26 +481,31 @@ namespace SandalBot {
 		return moveSearch(board->state->whiteTurn, 0, depth);
 	}
 
-	std::string Searcher::searchStatistics::prepareEval() {
+	// Formats evaluation to string, accounting for checkmate scores as well
+	std::string Searcher::SearchStatistics::prepareEval() {
 		int movesRemaining = Evaluator::movesTilMate(eval);
 		string sign = eval >= 0 ? "" : "-";
+		// If checkmate
 		if (movesRemaining != 0)
 			return "mate " + sign + to_string(movesRemaining);
 
-		return "cp " + to_string(eval);
+		return "cp " + to_string(eval); // centipawn eval
 	}
 
-	void Searcher::searchStatistics::print(Searcher* searcher) {
+	// Prints statistics of search. Prints in standard UCI format
+	void Searcher::SearchStatistics::print(Searcher* searcher) {
+		// Prevent division by zero
 		if (duration == 0)
 			duration = 1;
 
-		string pv = searcher->bestLine->str();
+		string pv = searcher->bestLine->str(); // Principal variation
 		cout << "info depth " << to_string(depth) << " seldepth " << to_string(seldepth);
 		cout << " score " << prepareEval() << " nodes " << to_string(nNodes + qNodes);
 		cout << " nps " << to_string(uint64_t(1000000000ULL * (nNodes + qNodes) / duration));
 		cout << " hashfull " << to_string((int)(1000 * (float)searcher->tTable->slotsFilled / (float)searcher->tTable->size));
 		cout << " time " << to_string(duration / 1000000ULL);
 
+		// If principal variation exists, print it
 		if (pv.size() != 0) {
 			cout << " pv " << pv;
 		}

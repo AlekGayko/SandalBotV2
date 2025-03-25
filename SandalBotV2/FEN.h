@@ -11,9 +11,10 @@ namespace SandalBot {
 
 	class Board;
 
-	// Utility class for FEN strings
+	// Utility class for FEN strings, can parse FEN strings and generate them
 	class FEN {
 	public:
+		// PositionInfo stores information that can be extracted from FEN string
 		struct PositionInfo {
 			std::string FEN{};
 			int squares[64] = { 0 };
@@ -29,8 +30,6 @@ namespace SandalBot {
 		};
 		static const std::string startpos;
 		static std::string generateFEN(Board* board, bool includeEPSquare = true);
-		static bool enPassantCapturable(Board* board, int epFileIndex, int epRankIndex);
-		static std::string flipFEN(std::string FEN);
 		static PositionInfo fenToPosition(std::string FEN);
 	};
 

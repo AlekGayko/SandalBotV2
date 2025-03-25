@@ -4,12 +4,14 @@
 #include <cstdint>
 #include <iostream>
 
+// BitBoardUtility provides utility functions for bitboards
 namespace SandalBot::BitBoardUtility {
 
 	inline uint64_t getBit(uint64_t bitboard, int index) {
 		return bitboard & (1ULL << index);
 	}
-
+	// Prints the individual bits of the bitboard
+	// the printed output is in form of 8x8 board
 	inline void printBB(uint64_t bitboard) {
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
@@ -52,11 +54,11 @@ namespace SandalBot::BitBoardUtility {
 		bitboard &= ~(1ULL << index);
 		sideBoard &= ~(1ULL << index);
 	}
-
+	// 'pops' the least significant bit from a bitboard and returns the index of that bit
 	inline int popLSB(uint64_t& bitBoard) {
-		int trailingZeroes = static_cast<int>(_tzcnt_u64(bitBoard));
+		int trailingZeroes = static_cast<int>(_tzcnt_u64(bitBoard)); // index of LSB
 
-		bitBoard &= bitBoard - 1ULL;
+		bitBoard &= bitBoard - 1ULL; // Use bit manipulation to remove LSB
 		return trailingZeroes;
 	}
 

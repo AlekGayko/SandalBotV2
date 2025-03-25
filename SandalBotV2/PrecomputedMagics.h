@@ -6,6 +6,8 @@
 
 namespace SandalBot {
 
+	// PrecomputedMagics stores hashtable to orthogonal and diagonal moves via indexing by blocker bitboards.
+	// Hashtables are indexed by: (blockerboard * magic number) >> right shift number
 	class PrecomputedMagics {
 	private:
 		// Magic Numbers

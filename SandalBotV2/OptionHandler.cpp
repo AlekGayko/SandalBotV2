@@ -8,17 +8,20 @@ namespace SandalBot {
 		initOptions();
 	}
 
+	// Initialise options in map
 	void OptionHandler::initOptions() {
+		// Clears entire transposition table of values
 		Option clearHash = {
 			"Clear Hash",
-			"type buttton",
+			"type button",
 			[this]([[maybe_unused]] std::string& value) {
 				this->bot->clearHash();
 			}
 		};
 
-		options[clearHash.name] = clearHash;
+		options[clearHash.name] = clearHash; // Add to map
 
+		// Changes size of hash table (deletes contents as well)
 		Option changeHashSize = {
 			"Hash",
 			"type spin default 128 min 1 max 2000",
@@ -31,17 +34,19 @@ namespace SandalBot {
 			}
 		};
 
-		options[changeHashSize.name] = changeHashSize;
+		options[changeHashSize.name] = changeHashSize; // Add to map of options
 	}
 
+	// Invoke option action function
 	void OptionHandler::processOption(std::string optionName, std::string value) {
-		if (options.find(optionName) == options.end()) {
+		if (options.find(optionName) == options.end()) { // Find option
 			return;
 		}
 
 		options[optionName].changeSettings(value);
 	}
 
+	// Returns display string of options, for user interface
 	std::string OptionHandler::getOptionsString() {
 		std::string optionsString = "";
 		for (auto& pair : options) {

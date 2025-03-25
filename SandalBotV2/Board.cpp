@@ -18,18 +18,26 @@ namespace SandalBot {
 		loadPosition(startPosFEN);
 	}
 
+	// Assigns an evaluator to member variable and initialises static variables in the evaluator
 	void Board::setEvaluator(Evaluator* evaluator) {
+		if (!evaluator) {
+			throw runtime_error("Nullptr evaluator passed into Board");
+		}
+
 		this->evaluator = evaluator;
 		this->evaluator->initStaticVariables();
 	}
 
+	// Uses the squares[] to map the positions of every piece into pieceLists
 	void Board::loadPieceLists() {
+		// Init all numPieces to zero
 		for (int color = 0; color < 2; color++) {
 			for (int piece = 0; piece < 7; piece++) {
 				pieceLists[color][piece].numPieces = 0;
 			}
 		}
 
+		// Place pieces into their list
 		for (int square = 0; square < 64; square++) {
 			int piece = squares[square];
 			int colorIndex = Piece::isColor(piece, Piece::white) ? whiteIndex : blackIndex;
@@ -39,11 +47,13 @@ namespace SandalBot {
 		}
 	}
 
-	void Board::loadPosition(std::string fen) {
-		FEN::PositionInfo newPos = FEN::fenToPosition(fen);
-		std::copy(std::begin(newPos.squares), std::end(newPos.squares), squares);
+	// Parses a given FEN string and initialises position accordingly
+	void Board::loadPosition(const std::string& fen) {
+		FEN::PositionInfo newPos = FEN::fenToPosition(fen); // Extract info from FEN string
+		std::copy(std::begin(newPos.squares), std::end(newPos.squares), squares); // Overwrite board squares
 
 		stateHistory.clear();
+		history.clear();
 
 		int enPassantSquare = newPos.enPassantSquare;
 		bool whiteTurn = newPos.whiteTurn;
@@ -56,25 +66,29 @@ namespace SandalBot {
 		if (newPos.blackShortCastle) castlingRights |= BoardState::blackShortCastleMask;
 		if (newPos.blackLongCastle) castlingRights |= BoardState::blackLongCastleMask;
 
-		loadPieceLists();
+		loadPieceLists(); // Load piece lists from new squares
 
+		// If number of kings of either side isn't one, illegal board position
 		if (pieceLists[whiteIndex][Piece::king].numPieces != 1 || pieceLists[blackIndex][Piece::king].numPieces != 1) {
 			loadPosition(startPosFEN);
 			return;
 		}
 
+		// Init the histories and state of the board
 		BoardState newState = BoardState(whiteTurn, Piece::empty, enPassantSquare, castlingRights, fiftyMoveCounter, moveCounter, 0ULL);
 		stateHistory.push(newState);
 		state = &stateHistory.back();
 		state->zobristHash = ZobristHash::hashBoard(this);
 		history.push(state->zobristHash, false);
-		loadBitBoards();
+
+		loadBitBoards(); // Init bitboards
 
 		if (evaluator != nullptr) {
 			evaluator->initStaticVariables();
 		}
 	}
 
+	// Synchronise the board position with the bitboards
 	void Board::loadBitBoards() {
 		whitePieces = 0ULL;
 		blackPieces = 0ULL;
@@ -120,6 +134,7 @@ namespace SandalBot {
 		allPieces = whitePieces | blackPieces;
 	}
 
+	// Enact a move on the board
 	void Board::makeMove(Move move, bool hashBoard) {
 		int startSquare = move.getStartSquare();
 		int targetSquare = move.getTargetSquare();
@@ -134,8 +149,9 @@ namespace SandalBot {
 		int castlingRights = state->castlingRights;
 		uint64_t newZobristHash = state->zobristHash;
 
-		newZobristHash ^= ZobristHash::whiteMoveHash;
+		newZobristHash ^= ZobristHash::whiteMoveHash; // Change hash move side
 
+		// Check for illegal move, prints diagnostic information before throwing error
 		if (Piece::type(takenPiece) == Piece::king || piece == Piece::empty) {
 			cout << move << endl;
 			printBoard();
@@ -150,9 +166,11 @@ namespace SandalBot {
 			throw exception();
 		}
 
+		// Update board, progressively update hash and evaluator static evaluation
 		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][piece][startSquare];
 
 		if (flag >= Move::promoteToQueenFlag) {
+			// Make special changes for promotions
 			promotedPiece = makePromotionChanges(move, piece, colorIndex);
 			newZobristHash ^= ZobristHash::pieceHashes[colorIndex][promotedPiece][targetSquare];
 		} else {
@@ -172,27 +190,32 @@ namespace SandalBot {
 
 		castlingRights = updateCastlingRights(piece, colorIndex, startSquare, castlingRights);
 
-		flagMoveChanges(move, newZobristHash, enPassantSquare, colorIndex, oppositeIndex);
+		flagMoveChanges(move, newZobristHash, enPassantSquare, colorIndex, oppositeIndex); // Make special changes for certain moves
 
+		// Previous en passant square no longer available, remove it from hash
 		if (state->enPassantSquare != -1)
 			newZobristHash ^= ZobristHash::enPassantHash[state->enPassantSquare];
 
+		// Remove previous hash castling rights and replace with new rights
 		newZobristHash ^= ZobristHash::castlingRightsHash[state->castlingRights];
 		newZobristHash ^= ZobristHash::castlingRightsHash[castlingRights];
 
+		// Update bitboards and states
 		updateBitBoards(move, piece, Piece::type(takenPiece));
 		BoardState newState = BoardState(!(state->whiteTurn), takenPiece, enPassantSquare, castlingRights, fiftyMoveCounter, state->moveCounter + 1, newZobristHash);
 		stateHistory.push(newState);
 		state = &stateHistory.back();
 
-		bool reset = takenPiece != Piece::empty || piece == Piece::pawn;
+		bool reset = (takenPiece != Piece::empty) || (piece == Piece::pawn);
 
 		history.push(state->zobristHash, reset);
 	}
 
+	// Enacts changes to the board based on move's flag
 	void Board::flagMoveChanges(Move move, uint64_t& newZobristHash, int& enPassantSquare, int colorIndex, int oppositeIndex) {
 		switch (move.getFlag()) {
 		case Move::pawnTwoSquaresFlag:
+			// If pawn moves two squares, enpassant is possible next
 			enPassantSquare = move.getTargetSquare() + (state->whiteTurn ? 8 : -8);
 			newZobristHash ^= ZobristHash::enPassantHash[enPassantSquare];
 			break;
@@ -205,15 +228,23 @@ namespace SandalBot {
 		}
 	}
 
+	// Returns the new castling rights, depending on which piece has moved
 	int Board::updateCastlingRights(const int piece, const int colorIndex, const int startSquare, int castlingRights) {
+		// If castlingRights is 0, nothing can change it
+		if (!castlingRights) {
+			return castlingRights;
+		}
+
 		int castleMask;
 
 		switch (piece) {
+		// If king has moved, that side can no longer castle
 		case Piece::king:
 			castleMask = 0b0011;
 			castleMask = state->whiteTurn ? castleMask : castleMask << 2;
 			castlingRights &= ~castleMask & 0b1111;
 			break;
+		// If rook has moved, remove that side's castling rights (either short or long)
 		case Piece::rook:
 			castleMask = 0b0001;
 			castleMask = state->whiteTurn ? castleMask : castleMask << 2;
@@ -229,6 +260,7 @@ namespace SandalBot {
 		return castlingRights;
 	}
 
+	// Roll back state of board from move
 	void Board::unMakeMove(Move move) {
 		const int colorIndex = !state->whiteTurn ? whiteIndex : blackIndex;
 		const int oppositeIndex = state->whiteTurn ? whiteIndex : blackIndex;
@@ -238,6 +270,8 @@ namespace SandalBot {
 		const int takenPiece = state->capturedPiece;
 		const int flag = move.getFlag();
 		const int pawn = !(state->whiteTurn) ? Piece::whitePawn : Piece::blackPawn;
+
+		// If last move was promotion, reverse changes
 		if (flag >= Move::promoteToQueenFlag) {
 			pieceLists[colorIndex][piece].deletePiece(targetSquare);
 			evaluator->staticPieceDelete(piece, targetSquare, !state->whiteTurn);
@@ -246,13 +280,16 @@ namespace SandalBot {
 			pieceLists[colorIndex][piece].addPiece(startSquare);
 			squares[startSquare] = pawn;
 			squares[targetSquare] = takenPiece;
-		} else {
+		} 
+		// Otherwise, apply regular reverse changes
+		else {
 			pieceLists[colorIndex][piece].movePiece(targetSquare, startSquare);
 			evaluator->staticPieceMove(piece, targetSquare, startSquare, !state->whiteTurn);
 			squares[startSquare] = squares[targetSquare];
 			squares[targetSquare] = takenPiece;
 		}
 
+		// Restore captured piece
 		if (takenPiece != Piece::empty) {
 			int type = Piece::type(takenPiece);
 			pieceLists[oppositeIndex][type].addPiece(targetSquare);
@@ -262,6 +299,7 @@ namespace SandalBot {
 		int pawnToBeDeleted;
 		int rookOffset;
 		int rookSquareOffset;
+		// Apply reverse changes to enpassant and castle moves
 		switch (flag) {
 		case Move::enPassantCaptureFlag:
 			undoEnPassantChanges(move);
@@ -276,26 +314,33 @@ namespace SandalBot {
 			break;
 		}
 
+		// Restore bitboards
 		undoBitBoards(move, piece, Piece::type(takenPiece));
+		// Rollback states
 		history.pop();
 		stateHistory.pop();
 		state = &stateHistory.back();
 	}
 
+	// Enact changes to board and hash for en passant moves
 	void Board::makeEnPassantChanges(Move move, uint64_t& newZobristHash, int oppositeIndex) {
+		// Calculate position of pawn to be removed
 		int pawnToBeDeleted = move.getTargetSquare() + (state->whiteTurn ? 8 : -8);
-
+		// Delete pawn from piecelist, squares, static evaluation and hash
 		pieceLists[oppositeIndex][Piece::pawn].deletePiece(pawnToBeDeleted);
 		newZobristHash ^= ZobristHash::pieceHashes[oppositeIndex][Piece::pawn][pawnToBeDeleted];
 		squares[pawnToBeDeleted] = Piece::empty;
 		evaluator->staticPieceDelete(Piece::pawn, pawnToBeDeleted, !state->whiteTurn);
 	}
-
+	
+	// Enact rook changes to board and hash from a castle move
 	void Board::makeCastlingChanges(Move move, uint64_t& newZobristHash, int colorIndex) {
+		// Calculate start and target square for rook to move
 		const int startSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -4 : 3);
 		const int targetSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -1 : 1);
 		const int friendlyRook = state->whiteTurn ? Piece::whiteRook : Piece::blackRook;
 
+		// Move rook
 		squares[startSquare] = Piece::empty;
 		squares[targetSquare] = friendlyRook;
 		pieceLists[colorIndex][Piece::rook].movePiece(startSquare, targetSquare);
@@ -303,7 +348,8 @@ namespace SandalBot {
 		newZobristHash ^= ZobristHash::pieceHashes[colorIndex][Piece::rook][targetSquare];
 		evaluator->staticPieceMove(Piece::rook, startSquare, targetSquare, state->whiteTurn);
 	}
-
+	
+	// Make changes to board and hash for promotion moves
 	int Board::makePromotionChanges(Move move, int piece, int colorIndex) {
 		int promotedPiece = piece;
 		const int ownColor = state->whiteTurn ? Piece::white : Piece::black;
@@ -323,6 +369,7 @@ namespace SandalBot {
 			break;
 		}
 
+		// Delete pawn and spawn promoted piece
 		squares[move.getStartSquare()] = Piece::empty;
 		squares[move.getTargetSquare()] = promotedPiece | ownColor;
 		pieceLists[colorIndex][piece].deletePiece(move.getStartSquare());
@@ -333,6 +380,7 @@ namespace SandalBot {
 		return promotedPiece;
 	}
 
+	// Spawn back the taken pawn
 	void Board::undoEnPassantChanges(Move move) {
 		const int enemyPawn = state->whiteTurn ? Piece::whitePawn : Piece::blackPawn;
 		int pawnToBeDeleted = move.getTargetSquare() + (state->whiteTurn ? -8 : 8);;
@@ -340,6 +388,7 @@ namespace SandalBot {
 		evaluator->staticPieceSpawn(Piece::pawn, pawnToBeDeleted, state->whiteTurn);
 	}
 
+	// Roll back castling changes
 	void Board::undoCastlingChanges(Move move) {
 		const int startSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -4 : 3);
 		const int targetSquare = move.getStartSquare() + (move.getTargetSquare() < move.getStartSquare() ? -1 : 1);
@@ -350,6 +399,7 @@ namespace SandalBot {
 		evaluator->staticPieceMove(Piece::rook, targetSquare, startSquare, !state->whiteTurn);
 	}
 
+	// Prints the formatted board position, FEN representation, and the zobrist hash
 	void Board::printBoard() {
 		string result = "";
 

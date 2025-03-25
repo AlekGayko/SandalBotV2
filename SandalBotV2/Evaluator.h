@@ -8,12 +8,17 @@
 
 namespace SandalBot {
 
+	// Evaluator is capable of evaluating a static board position based
+	// on several factors including piece value, position value, passed pawns,
+	// king safety, and open files/diagonals
 	class Evaluator {
 	private:
-		MovePrecomputation* precomputation;
-		Board* board;
-		static constexpr float endgameRequiredPieces{ 7.f };
-		static constexpr int startRow[2] { 0, 7 };
+		// Contains useful data which can be calculated on instantiation
+		MovePrecomputation* precomputation{ nullptr }; 
+		Board* board{ nullptr };
+
+		static constexpr float endgameRequiredPieces{ 7.f }; // Number of pieces which define start of endgame phase
+		static constexpr int startRow[2] { 0, 7 }; // Start rows of [black, white]
 		// Center manhattan-distance from https://www.chessprogramming.org/Center_Manhattan-Distance
 		static constexpr uint8_t arrCenterManhattanDistance[64] {
 			6, 5, 4, 3, 3, 4, 5, 6,
@@ -39,6 +44,7 @@ namespace SandalBot {
 			  500, 500, 500, 500, 500, 500, 500, 500, 500, 500
 		};
 
+		// Weightings of evaluation criteria
 		static constexpr unsigned char passedPawnBonus[7] { 0, 90, 60, 40, 25, 15, 15 };
 		static constexpr float tropismWeightings[7] { 0.f, 0.2f, 0.5f, 0.5f, 1.f, 2.f, 0.f };
 		static constexpr float attackUnitScores[7] { 0, 0.5f, 2, 2, 3, 5, 0 };
@@ -88,16 +94,16 @@ namespace SandalBot {
 		int kingDist();
 		int kingSafety();
 		int kingTropismEvaluations();
-		int kingTropism(const int& kingSquare, PieceList* enemyList);
+		int kingTropism(const int kingSquare, PieceList* enemyList);
 		int pawnShieldEvaluations();
-		int pawnShieldEvaluation(const int& square, uint64_t& pawns);
+		int pawnShieldEvaluation(const int square, uint64_t& pawns);
 		int passedPawnEvaluations();
-		int passedPawnEvaluation(PieceList& pieceList, uint64_t& pawns, uint64_t& opposingPawns, const int& color);
+		int passedPawnEvaluation(PieceList& pieceList, uint64_t opposingPawns, const int color);
 		int pawnIslandEvaluations();
-		int pawnIslandEvaluation(PieceList& pieceList, uint64_t& pawns);
+		int pawnIslandEvaluation(PieceList& pieceList, uint64_t pawns);
 		int kingAttackZones();
-		int kingAttackZone(uint64_t& attackZone, uint64_t& friendlyPieces, int& enemyKingSquare, int& opposingColor);
-		int incrementAttackZoneEval(uint64_t& attackZone, uint64_t& moves, const int& piece);
+		int kingAttackZone(uint64_t attackZone, uint64_t friendlyPieces, int enemyKingSquare, int opposingColor);
+		int incrementAttackZoneEval(uint64_t attackZone, uint64_t moves, const int piece);
 
 		int openFilesEvaluation();
 		int evaluateOpenFile(uint64_t column, int pawnCounter);
@@ -107,20 +113,22 @@ namespace SandalBot {
 
 		bool openDiagFileNearKing(uint64_t mask, int kingSquare);
 
-		int evalKnightMoves(uint64_t& attackZone, uint64_t& knights);
-		int evalPawnMoves(uint64_t& attackZone, uint64_t& pawns, const int& opposingColor);
-		int evalOrthMoves(uint64_t& attackZone, uint64_t& orths, int& enemyKingSquare);
-		int evalDiagMoves(uint64_t& attackZone, uint64_t& diags, int& enemyKingSquare);
-		int evalQueenMoves(uint64_t& attackZone, uint64_t& queens, int& enemyKingSquare);
+		int evalKnightMoves(uint64_t attackZone, uint64_t knights);
+		int evalPawnMoves(uint64_t attackZone, uint64_t pawns, const int opposingColor);
+		int evalOrthMoves(uint64_t attackZone, uint64_t orths, int enemyKingSquare);
+		int evalDiagMoves(uint64_t attackZone, uint64_t diags, int enemyKingSquare);
+		int evalQueenMoves(uint64_t attackZone, uint64_t queens, int enemyKingSquare);
 
 		bool insufficientMateMaterial(int material);
 	public:
-		static int blackEvalSquare[64];
-		static int colorStart[2];
-		static const int checkMateScore{ 100000 };
-		static const int drawScore{ 0 };
-		static const int cancelledScore{ 0 };
-		MoveGen* generator{};
+		static int blackEvalSquare[64]; // Maps squares for black side, for positional evaluations
+		static constexpr int colorStart[2]{ 63, 0 };
+		static constexpr int checkMateScore{ 100000 };
+		static constexpr int drawScore{ 0 };
+		static constexpr int cancelledScore{ 0 };
+
+		MoveGen* generator{ nullptr };
+
 		Evaluator();
 		Evaluator(Board* board, MovePrecomputation* precomputation);
 		int Evaluate();

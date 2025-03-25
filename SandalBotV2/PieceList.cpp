@@ -1,44 +1,45 @@
 #include "PieceList.h"
 
+#include <algorithm>
+#include <cassert>
 #include <stdexcept>
 
 namespace SandalBot {
 
+	// Fill arrays with sentinel value empty
 	PieceList::PieceList(int maxNumPieces) {
-		for (int i = 0; i < maxNumPieces; i++) {
-			occupiedSquares[i] = -1;
-		}
-		for (int i = 0; i < 64; i++) {
-			map[i] = -1;
-		}
+		std::fill(occupiedSquares, occupiedSquares + occupiedSize, empty);
+		std::fill(map, map + 64, empty);
 	}
 
-	PieceList::~PieceList() {
-
-	}
-
+	// Add piece to the list from a given square
 	void PieceList::addPiece(int square) {
-		if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
-		if (numPieces >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
-		occupiedSquares[numPieces] = square;
-		map[square] = numPieces;
-		numPieces++;
+		assert(square >= 0 && square < 64);
+		assert(numPieces < 64);
+
+		occupiedSquares[numPieces] = square; // Add to list of squares of pieces
+		map[square] = numPieces; // Map square to index
+		++numPieces;
 	}
 
+	// Remove piece from list from a given square
 	void PieceList::deletePiece(int square) {
-		if (square < 0 || square >= 64) throw std::out_of_range("Cannot add more than 16 pieces");
-		if (numPieces <= 0) throw std::out_of_range("Can't delete piece");
-		const int occupiedIndex = map[square];
+		assert(square >= 0 && square < 64);
+		assert(numPieces > 0);
+
+		const int occupiedIndex = map[square]; // Get index mapped from square
 		const int lastOccupiedIndex = numPieces - 1;
 		const int lastSquare = occupiedSquares[lastOccupiedIndex];
-
+		// Replace to be deleted piece with piece at end of list
 		occupiedSquares[occupiedIndex] = occupiedSquares[lastOccupiedIndex];
+		// Update map
 		map[lastSquare] = occupiedIndex;
 		map[square] = -1;
 
-		numPieces--;
+		--numPieces;
 	}
 
+	// Move piece from one square to another
 	void PieceList::movePiece(int startSquare, int targetSquare) {
 		const int occupiedStartIndex = map[startSquare];
 
@@ -47,9 +48,10 @@ namespace SandalBot {
 		map[startSquare] = -1;
 	}
 
-
+	// Access occupiedSquares via indexing to get squares of pieces
 	int& PieceList::operator[](int index) {
-		if (index < 0 || index >= numPieces) throw std::out_of_range("Index out of range.");
+		assert(index >= 0 && index < numPieces);
+
 		return occupiedSquares[index];
 	}
 

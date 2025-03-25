@@ -12,8 +12,11 @@ namespace SandalBot {
 
 	using ConfigValue = std::variant<int, float, std::string, bool>;
 
+	// OptionHandler handles the setting of options from the users
+	// to change the current configuration of the bot
 	class OptionHandler {
 	private:
+		// Option represents option with name, description, and action function
 		struct Option {
 			std::string name{};
 			std::string description{};

@@ -11,6 +11,7 @@ namespace SandalBot {
 		}
 	}
 
+	// Standard push function
 	void MoveLine::add(Move move) {
 		if (line == nullptr)
 			return;
@@ -22,10 +23,12 @@ namespace SandalBot {
 		size++;
 	}
 
+	// Reset array
 	void MoveLine::reset() {
 		size = 0;
 	}
 
+	// Return human-readable string for line of moves
 	std::string MoveLine::str() {
 		std::string lineStr = "";
 

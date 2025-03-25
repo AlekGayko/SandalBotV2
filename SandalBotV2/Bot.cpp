@@ -8,10 +8,12 @@ using namespace std;
 
 namespace SandalBot {
 
+    // Validates a move on the current board position
     int Bot::validateUserMove(Move moves[218], int startSquare, int targetSquare, int flag) {
+        // Generate all possible moves in position
         int numMoves = searcher->moveGenerator->generateMoves(moves);
         int moveIndex = -1;
-
+        // If proposed move is in possible moves, it is a valid move
         for (int i = 0; i < numMoves; i++) {
             if (moves[i].getStartSquare() == startSquare && moves[i].getTargetSquare() == targetSquare &&
                 (moves[i].getFlag() < Move::promoteToQueenFlag || moves[i].getFlag() == flag)) {
@@ -26,7 +28,7 @@ namespace SandalBot {
     Bot::Bot() {
         board = new Board();
         searcher = new Searcher(board);
-        board->setEvaluator(searcher->evaluator);
+        board->setEvaluator(searcher->evaluator); // Connect evaluator and board
     }
 
     Bot::~Bot() {
@@ -34,17 +36,23 @@ namespace SandalBot {
         delete searcher;
     }
 
+    // Set new board position
     void Bot::setPosition(std::string FEN) {
         board->loadPosition(FEN);
     }
 
+    // Make a move from provided string. String must be in pure algebraic coordinate notation (per UCI)
     void Bot::makeMove(std::string movestr) {
+        // UCI notation does not permit moves with length outside [3, 5]
         if (movestr.size() < 3 || movestr.size() > 5) {
             return;
         }
+        // These variables define all moves
         int startSquare;
         int targetSquare;
         int flag;
+
+        // Castle notation are edge cases
         if (movestr == "O-O") {
             startSquare = board->state->whiteTurn ? 60 : 4;
             targetSquare = board->state->whiteTurn ? 62 : 6;
@@ -54,9 +62,12 @@ namespace SandalBot {
             targetSquare = board->state->whiteTurn ? 58 : 2;
             flag = Move::castleFlag;
         } else {
+            // Extract start and target square
             startSquare = CoordHelper::stringToIndex(movestr.substr(0, 2));
             targetSquare = CoordHelper::stringToIndex(movestr.substr(2, 2));
             flag = 0;
+
+            // Promotion moves have an extra character for promotion piece
             if (movestr.size() == 5) {
                 switch (movestr[4]) {
                 case 'q':
@@ -75,21 +86,26 @@ namespace SandalBot {
             }
         }
 
+        // Validate move
         Move positionMoves[218];
         int moveIndex = validateUserMove(positionMoves, startSquare, targetSquare, flag);
 
         if (moveIndex == -1) return;
 
+        // If move is valid, enact move
         board->makeMove(positionMoves[moveIndex]);
     }
 
+    // Generate move within allotted time in milliseconds
     string Bot::generateMove(int moveTimeMs) {
-        searcher->startSearch(true, moveTimeMs);
+        searcher->startSearch(true, moveTimeMs); // Generate move
 
+        // If move is essentially null, either error, illegal position, or could not find move in time frame
         if (searcher->bestMove == Move()) {
             return "";
         }
 
+        // Generate UCI notation from generated move
         string startSquare = CoordHelper::indexToString(searcher->bestMove.getStartSquare());
         string targetSquare = CoordHelper::indexToString(searcher->bestMove.getTargetSquare());
         string flag = "";
@@ -113,28 +129,39 @@ namespace SandalBot {
         return startSquare + targetSquare;
     }
 
+    // Search position asynchronously
     void Bot::go() {
         searcher->startSearch(false);
     }
 
+    // Generate static evaluation from position
     int Bot::eval() {
         return searcher->eval();
     }
 
+    // End asynchronous search
     void Bot::stopSearching() {
         searcher->endSearch();
     }
 
+    // Perft stands for 'performance test', it returns the number of possible positions
+    // at a given depth. Useful command to debug move generation issues.
     uint64_t Bot::perft(int depth) {
+        if (depth <= 0) {
+            return 1;
+        }
+
         uint64_t movesgenerated = searcher->perft(depth);
 
         return movesgenerated;
     }
 
+    // Print the board position, FEN string, and zobrist hash
     void Bot::printBoard() {
         board->printBoard();
     }
 
+    // Returns the amount of thinking time the bot wishes to spend while generating a move
     int Bot::chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs, int blackIncMs) {
         int timeRemaining = board->state->whiteTurn ? whiteTimeMs : blackTimeMs;
         int incMs = board->state->whiteTurn ? whiteIncMs : blackIncMs;
@@ -152,10 +179,12 @@ namespace SandalBot {
         return int(ceil(min(a, maxMoveTime)));
     }
 
+    // Change the size of the transposition table
     void Bot::changeHashSize(int sizeMB) {
         searcher->changeHashSize(sizeMB);
     }
 
+    // Clear the transposition table
     void Bot::clearHash() {
         searcher->clearHash();
     }

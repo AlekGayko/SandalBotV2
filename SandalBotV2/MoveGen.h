@@ -8,7 +8,7 @@
 #include "Piece.h"
 
 namespace SandalBot {
-
+	// MoveGen class generates all possible legalmoves in a given position
 	class MoveGen {
 		friend class MoveOrderer;
 		friend class MovePrecomputation;
@@ -39,6 +39,7 @@ namespace SandalBot {
 		int fiftyMoveCounter{};
 		int moveCounter{};
 
+		// Utility bitboards
 		uint64_t opponentAttacks{};
 		uint64_t checkBB{};
 		uint64_t checkRayBB{};
@@ -46,7 +47,9 @@ namespace SandalBot {
 		uint64_t enemyBoard{};
 
 	public:
-		MovePrecomputation* preComp{};
+		MovePrecomputation* preComp{ nullptr };
+
+		// Castling information
 		static constexpr int startingKingSquares[2] { 4, 60 };
 		static constexpr int shortCastleKingSquares[2] { 6, 62 };
 		static constexpr int longCastleKingSquares[2] { 2, 58 };
@@ -56,7 +59,7 @@ namespace SandalBot {
 		static constexpr int longCastleRookSpawn[2] { 3, 59 };
 		static constexpr int maxMoves{ 218 };
 
-		bool isCheck{};
+		bool isCheck{}; // Tracks whether there is check in position
 
 		MoveGen();
 		MoveGen(Board* board);
