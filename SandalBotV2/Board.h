@@ -7,10 +7,11 @@
 #include "PieceList.h"
 #include "StateHistory.h"
 
+#include <string_view>
+
 namespace SandalBot {
 
 	struct BoardState;
-	class FEN;
 	class Evaluator;
 
 	// Board class encapsulates the current and previous states of the board
@@ -30,8 +31,6 @@ namespace SandalBot {
 		void updateBitBoards(Move move, int pieceType, int takenPiece);
 		void undoBitBoards(Move move, int pieceType, int takenPiece);
 	public:
-		const std::string startPosFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
-
 		int squares[64]; // Represents the pieces on each board square
 
 		PieceList pieceLists[2][7]; // index [i][0] is redundant since 0 = empty
@@ -57,8 +56,8 @@ namespace SandalBot {
 
 		void setEvaluator(Evaluator* evaluator);
 		
-		void loadPosition(const std::string& fen);
-		void makeMove(Move move, bool hashBoard = true);
+		void loadPosition(std::string_view fen);
+		void makeMove(Move move);
 		void unMakeMove(Move move);
 		void printBoard();
 		std::vector<uint64_t> getBitBoards();

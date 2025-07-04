@@ -5,8 +5,6 @@
 #include "MoveGen.h"
 #include "ZobristHash.h"
 
-#include <intrin.h>
-
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -16,7 +14,7 @@ using namespace std;
 namespace SandalBot {
 
 	Board::Board() {
-		loadPosition(startPosFEN);
+		loadPosition(FEN::startpos);
 	}
 
 	// Assigns an evaluator to member variable and initialises static variables in the evaluator
@@ -49,8 +47,8 @@ namespace SandalBot {
 	}
 
 	// Parses a given FEN string and initialises position accordingly
-	void Board::loadPosition(const std::string& fen) {
-		FEN::PositionInfo newPos = FEN::fenToPosition(fen); // Extract info from FEN string
+	void Board::loadPosition(std::string_view fen) {
+		PositionInfo newPos { FEN::fenToPosition(fen) }; // Extract info from FEN string
 		std::copy(std::begin(newPos.squares), std::end(newPos.squares), squares); // Overwrite board squares
 
 		stateHistory.clear();
@@ -71,7 +69,7 @@ namespace SandalBot {
 
 		// If number of kings of either side isn't one, illegal board position
 		if (pieceLists[whiteIndex][Piece::king].numPieces != 1 || pieceLists[blackIndex][Piece::king].numPieces != 1) {
-			loadPosition(startPosFEN);
+			loadPosition(FEN::startpos);
 			return;
 		}
 
@@ -136,7 +134,7 @@ namespace SandalBot {
 	}
 
 	// Enact a move on the board
-	void Board::makeMove(Move move, bool hashBoard) {
+	void Board::makeMove(Move move) {
 		int startSquare = move.getStartSquare();
 		int targetSquare = move.getTargetSquare();
 		int piece = Piece::type(squares[startSquare]);
@@ -151,7 +149,7 @@ namespace SandalBot {
 		uint64_t newZobristHash = state->zobristHash;
 
 		newZobristHash ^= ZobristHash::whiteMoveHash; // Change hash move side
-
+			
 		// Check for illegal move, prints diagnostic information before throwing error
 		if (Piece::type(takenPiece) == Piece::king || piece == Piece::empty) {
 			cout << move << endl;

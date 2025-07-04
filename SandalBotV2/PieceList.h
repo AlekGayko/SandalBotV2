@@ -14,7 +14,7 @@ namespace SandalBot {
 		int map[64]; // Maps squares to position in occupied squares
 		int numPieces{ 0 }; // Tracks number of pieces in list
 
-		PieceList(int maxNumPieces = 64);
+		PieceList();
 
 		void addPiece(int square);
 		void deletePiece(int square);

@@ -6,7 +6,7 @@ namespace SandalBot {
 		this->line = new Move[capacity];
 		this->size = 0;
 
-		for (int i = 0; i < capacity; i++) {
+		for (std::size_t i = 0; i < capacity; i++) {
 			line[i] = Move();
 		}
 	}
@@ -38,7 +38,7 @@ namespace SandalBot {
 		if (size >= capacity)
 			return lineStr;
 
-		for (size_t i = 0; i < size; i++) {
+		for (std::size_t i = 0; i < size; i++) {
 			lineStr += line[i].str();
 			if (i != size - 1) {
 				lineStr += " ";

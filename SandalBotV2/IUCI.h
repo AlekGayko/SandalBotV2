@@ -1,7 +1,9 @@
 #ifndef IUCI_H
 #define IUCI_H
 
+#include <array>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -21,15 +23,14 @@ namespace SandalBot {
 		OptionHandler* optionHandler{ nullptr };
 		std::thread goThread{}; // Thread for asynchronous searching
 		// Label vectors contain key words for specific commands to aid parsing commands
-		static const std::vector<std::string> positionLabels;
-		static const std::vector<std::string> goLabels;
-		static const std::vector<std::string> optionLabels;
+		const std::array<std::string_view, 3> positionLabels { "position", "fen", "moves" };
+		const std::array<std::string_view, 8> goLabels { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
+		const std::array<std::string_view, 2> optionLabels { "name", "value" };
 
-		static const std::string logPath; // filePath for log file
+		const std::string_view logPath { "logs.txt" }; // filePath for log file
 		// Data for starting message
-		const std::string name{ "SandalBotV2" };
-		const std::string author{ "DirtySandals" };
-		const std::string startingMessage{ name + " by " + author + "." };
+		const char* name { "SandalBotV2" };
+		const char* author { "DirtySandals" };
 
 		void beginningMessage();
 		void emptyLogs();
@@ -47,8 +48,10 @@ namespace SandalBot {
 		void processPositionCommand(std::string command);
 		void processSetOption(std::string command);
 		void respond(std::string response);
-		int getLabelledValueInt(std::string text, std::string label, const std::vector<std::string> allLabels);
-		std::string getLabelledValue(std::string text, std::string label, const std::vector<std::string> allLabels);
+		template <typename T, std::size_t N>
+		int getLabelledValueInt(std::string text, std::string label, const std::array<T, N> allLabels);
+		template <typename T, std::size_t N>
+		std::string getLabelledValue(std::string text, std::string label, const std::array<T, N> allLabels);
 		void logInfo(std::string text);
 	};
 

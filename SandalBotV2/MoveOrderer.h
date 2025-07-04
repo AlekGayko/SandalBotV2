@@ -59,7 +59,7 @@ namespace SandalBot {
 	public:
 		MoveOrderer() {};
 		MoveOrderer(Board* board, MoveGen* gen, Searcher* searcher);
-		void order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool firstMove = false, bool qSearch = false);
+		void order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch = false);
 		void addKiller(int depth, Move move);
 
 		static void quickSort(MovePoint moves[], int start, int end);

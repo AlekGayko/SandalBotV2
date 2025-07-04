@@ -4,6 +4,8 @@
 #include "Board.h"
 #include "Searcher.h"
 
+#include <string_view>
+
 namespace SandalBot {
 
 	// Bot class represents SandalBot, it encapsulates a board for game state,
@@ -21,7 +23,7 @@ namespace SandalBot {
 		Bot();
 		~Bot();
 
-		void setPosition(std::string FEN);
+		void setPosition(std::string_view FEN);
 		void makeMove(std::string movestr);
 		std::string generateMove(int moveTimeMs);
 		void go();

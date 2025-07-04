@@ -1,5 +1,6 @@
 #include "Bot.h"
 
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -37,7 +38,7 @@ namespace SandalBot {
     }
 
     // Set new board position
-    void Bot::setPosition(std::string FEN) {
+    void Bot::setPosition(std::string_view FEN) {
         board->loadPosition(FEN);
     }
 

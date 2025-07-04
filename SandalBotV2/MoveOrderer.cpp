@@ -13,12 +13,11 @@ namespace SandalBot {
 
 	// Assigns each move in decayed c array a heuristic value depending on its effectiveness.
 	// Sorts array based on list point values
-	void MoveOrderer::order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool firstMove, bool qSearch) {
+	void MoveOrderer::order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch) {
 		// No need to sort one move
 		if (numMoves <= 1) return;
 
 		int colorIndex = board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
-		int dir = board->state->whiteTurn ? 1 : -1;
 		int evalStart = Evaluator::colorStart[colorIndex];
 		// For each move
 		for (int it = 0; it < numMoves; ++it) {

@@ -1,4 +1,4 @@
-#include "stateHistory.h"
+#include "StateHistory.h"
 #include "BoardState.h"
 
 #include <algorithm>

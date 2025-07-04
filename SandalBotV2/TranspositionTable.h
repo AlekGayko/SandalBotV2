@@ -26,7 +26,7 @@ namespace SandalBot {
 				: hash(hash), eval(eval), depth(depth), nodeType(nodeType), move(move) {}
 			Entry(Entry&& other) noexcept
 				: hash(other.hash), eval(other.eval), depth(other.depth), 
-				nodeType(other.nodeType), move(move) {}
+				nodeType(other.nodeType), move(other.move) {}
 
 			Entry& operator=(const Entry& other) {
 				this->hash = other.hash;

@@ -134,12 +134,12 @@ namespace SandalBot {
 
 		// Order the moves
 		if (numMoves > 1) {
-			orderer->order(moves, bestMove, numMoves, 0, false, true);
+			orderer->order(moves, bestMove, numMoves, 0, true);
 		}
 
 		for (int i = 0; i < numMoves; i++) {
 			// Make move
-			board->makeMove(moves[i].move, false);
+			board->makeMove(moves[i].move);
 			// Recursively search
 			score = -quiescenceSearch(-beta, -alpha, maxDepth + 1);
 			// Undo move
@@ -230,9 +230,12 @@ namespace SandalBot {
 		// Get best move (whether it be bestMove from iterative deepening or previous transpositions)
 		Move currentBestMove = depth == 0 ? std::move(this->bestMove) : tTable->getBestMove(board->state->zobristHash);
 		// Order moves to heuristically narrow search
-		orderer->order(moves, currentBestMove, numMoves, depth, depth == 0, false);
+		orderer->order(moves, currentBestMove, numMoves, depth, false);
 
 		for (int i = 0; i < numMoves; i++) {
+			if (board->squares[moves[i].move.getStartSquare()] == Piece::empty) {
+				
+			}
 			// Make move
 			board->makeMove(moves[i].move);
 			bool fullSearch = true;
@@ -244,7 +247,7 @@ namespace SandalBot {
 				score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 2, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;
-			} else */if (i >= reduceExtensionCutoff && maxDepth - depth >= 2 && !worthExtension) {
+			} else */if (i >= reduceExtensionCutoff && (maxDepth - depth) >= 2 && !worthExtension) {
 				score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 1, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;

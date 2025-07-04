@@ -11,7 +11,7 @@ using namespace std;
 namespace SandalBot::StringUtil {
 
 	// Removes leading and ending whitespace from a string
-	std::string StringUtil::trim(const std::string& str) {
+	std::string trim(const std::string& str) {
 		// Find start and end index of string that does not contain whitespace
 		size_t start = str.find_first_not_of(" \t\n\r\f\v");
 		size_t end = str.find_last_not_of(" \t\n\r\f\v");
@@ -27,7 +27,7 @@ namespace SandalBot::StringUtil {
 	}
 
 	// Converts string to all lowercase characters
-	std::string StringUtil::toLower(const std::string& str) {
+	std::string toLower(const std::string& str) {
 		std::string lowerStr = str;
 		// Transform every character to lowercase
 		std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), 
@@ -36,9 +36,9 @@ namespace SandalBot::StringUtil {
 	}
 
 	// Splits string str by whitespace, returns split strings via vector<string>
-	vector<string> StringUtil::splitString(string& str) {
+	vector<string> splitString(std::string_view str) {
 		vector<string> words; // Vector for storing strings
-		stringstream ss(str); // Init stringstream
+		stringstream ss(str.data()); // Init stringstream
 		string word;
 
 		while (ss >> word) { // Extract string from stream
@@ -53,18 +53,18 @@ namespace SandalBot::StringUtil {
 	}
 
 	// Returns true if str contains char ch
-	bool StringUtil::contains(const std::string& str, char ch) {
+	bool contains(const std::string& str, char ch) {
 		return str.find(ch) != std::string::npos;
 	}
 
 	// Returns true if str2 is in str1
-	bool StringUtil::contains(const std::string& str1, const std::string& str2) {
+	bool contains(const std::string& str1, const std::string& str2) {
 		return str1.find(str2) != std::string::npos;
 	}
 
 	// Returns index of substring str2 in str1
-	int StringUtil::indexOf(const std::string& str1, const std::string& str2) {
-		int index = str1.find(str2);
+	int indexOf(const std::string& str1, const std::string& str2) {
+		std::size_t index = str1.find(str2);
 		if (index == std::string::npos) {
 			return -1; // Sentinel value
 		}
@@ -72,7 +72,7 @@ namespace SandalBot::StringUtil {
 	}
 
 	// Returns true if string str is a number
-	bool StringUtil::isDigitString(const std::string& str) {
+	bool isDigitString(const std::string& str) {
 		if (!str.size()) {
 			return false;
 		}
@@ -86,10 +86,10 @@ namespace SandalBot::StringUtil {
 	}
 
 	// Returns string representation of integer, with commas separating every 3 digits
-	string StringUtil::commaSeparator(int integer) {
-		string stringInt = to_string(integer);
-		size_t size = stringInt.size();
-		for (int i = 0; i < size; i++) {
+	string commaSeparator(int integer) {
+		std::string stringInt = to_string(integer);
+		std::size_t size = stringInt.size();
+		for (std::size_t i = 0; i < size; i++) {
 			if (i != 0 && i != size - 1 && (i + 1) % 3 == 0 && stringInt[size - 1 - i] != '-') {
 				stringInt.insert(size - 1 - i, 1, ',');
 			}

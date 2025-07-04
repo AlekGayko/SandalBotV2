@@ -7,7 +7,7 @@
 namespace SandalBot {
 
 	// Fill arrays with sentinel value empty
-	PieceList::PieceList(int maxNumPieces) {
+	PieceList::PieceList() {
 		std::fill(occupiedSquares, occupiedSquares + occupiedSize, empty);
 		std::fill(map, map + 64, empty);
 	}

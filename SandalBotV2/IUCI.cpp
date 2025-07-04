@@ -1,5 +1,6 @@
 #include "IUCI.h"
 
+#include <cstring>
 #include <cctype>
 #include <chrono>
 #include <fstream>
@@ -12,27 +13,21 @@ using namespace std;
 using namespace chrono;
 
 namespace SandalBot {
-	// Label vectors containing keywords for respective commands
-	const vector<string> IUCI::positionLabels = { "position", "fen", "moves" };
-	const vector<string> IUCI::goLabels = { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
-	const vector<string> IUCI::optionLabels = { "name", "value" };
-	const string IUCI::logPath = "logs.txt";
-
 	// Opening message presented to user
 	void IUCI::beginningMessage() {
-		cout << startingMessage << endl;
+		cout << name << " by " << author << "." << endl;
 	}
 	// Clears log file
 	void IUCI::emptyLogs() {
-		ofstream logs(logPath, ios::trunc);
+		ofstream logs(logPath.data(), ios::trunc);
 
 		if (!logs.is_open()) {
+			cout << "hi" << endl;
 			cerr << "Couldn't empty logs" << endl;
 		}
 		logs.close();
-
-		return;
 	}
+	
 	// Init members
 	IUCI::IUCI() {
 		beginningMessage();
@@ -108,8 +103,8 @@ namespace SandalBot {
 	}
 	// Processes 'uci' command. Responds to user with available options
 	void IUCI::UCIok() {
-		respond("id name " + name);
-		respond("id author " + author);
+		respond(std::string("id name ") + name);
+		respond(std::string("id author ") + author);
 		cout << endl;
 		respond(optionHandler->getOptionsString());
 		cout << endl;
@@ -211,8 +206,10 @@ namespace SandalBot {
 		logInfo("Response: " + response);
 		cout.flush();
 	}
+
+	template <typename T, std::size_t N>
 	// Extracts integer accompanying a given label from a command
-	int IUCI::getLabelledValueInt(string text, string label, const vector<string> allLabels) {
+	int IUCI::getLabelledValueInt(string text, string label, const array<T, N> allLabels) {
 		string valueString = getLabelledValue(text, label, allLabels); // Extract string integer
 		string resultString = StringUtil::splitString(valueString)[0]; // Get first part
 
@@ -228,8 +225,10 @@ namespace SandalBot {
 
 		return value;
 	}
+
+	template <typename T, std::size_t N>
 	// Extracts string accompanying a given label from a command
-	string IUCI::getLabelledValue(string text, string label, const vector<string> allLabels) {
+	string IUCI::getLabelledValue(string text, string label, const array<T, N> allLabels) {
 		text = StringUtil::trim(text); // Delete leading and ending whitespace
 		// If command does not contain given label, throw error
 		if (!StringUtil::contains(text, label)) {
@@ -240,11 +239,11 @@ namespace SandalBot {
 		int valueEnd = text.size();
 
 		// Iterate over all labels and narrow start and end of value
-		for (int i = 0; i < allLabels.size(); i++) {
-			if (allLabels[i] != label && StringUtil::contains(text, allLabels[i])) {
+		for (T label : allLabels) {
+			if (label != label && StringUtil::contains(text, label.data())) {
 				// If start of label is after valueStart and before valueEnd, 
 				// it can narrow window for value
-				int otherIDStartIndex = StringUtil::indexOf(text, allLabels[i]);
+				int otherIDStartIndex = StringUtil::indexOf(text, label.data());
 				if (otherIDStartIndex > valueStart && otherIDStartIndex < valueEnd) {
 					valueEnd = otherIDStartIndex;
 				}
@@ -256,7 +255,7 @@ namespace SandalBot {
 
 	// Append text parameter to log file
 	void IUCI::logInfo(string text) {
-		ofstream outFile(logPath, ios::app);
+		ofstream outFile(logPath.data(), ios::app);
 		if (!outFile.is_open()) {
 			cerr << "Could not write to " << logPath << endl;
 			outFile.close();
