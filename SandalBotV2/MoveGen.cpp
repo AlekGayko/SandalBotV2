@@ -1,4 +1,5 @@
 #include "MoveGen.h"
+#include "MoveOrderer.h"
 
 #include <iostream>
 #include <limits>
@@ -26,7 +27,7 @@ namespace SandalBot {
 	// Generates all legal moves on the board. Returns the number of legalmoves
 	// and populates the decayed moves array (Must be minimum length of 218 - maximum possible moves).
 	// capturesOnly determines whether only capture moves are considered
-	int MoveGen::generateMoves(Move moves[], bool capturesOnly) {
+	int MoveGen::generateMoves(MovePoint moves[], bool capturesOnly) {
 		initVariables(capturesOnly); // Setup variables for current board
 		generateCheckData(); // Determine pins and check
 		generateKingMoves(moves);
@@ -75,7 +76,7 @@ namespace SandalBot {
 
 	// Generate all possible moves for orthogonal moving pieces (rooks and queens).
 	// Populates decayed moves array with new moves
-	void MoveGen::generateOrthogonalMoves(Move moves[]) {
+	void MoveGen::generateOrthogonalMoves(MovePoint moves[]) {
 		int startSquare;
 		int targetSquare;
 		bool isPinned;
@@ -122,14 +123,14 @@ namespace SandalBot {
 			while (moveBitboard != 0ULL) {
 				targetSquare = BitBoardUtility::popLSB(moveBitboard);
 
-				moves[currentMoves++] = Move(startSquare, targetSquare);
+				moves[currentMoves++].move = Move(startSquare, targetSquare);
 			}
 
 		}
 	}
 	// Generate all possible moves for diagonal moving pieces (bishops and queens).
 	// Populates decayed moves array with new moves
-	void MoveGen::generateDiagonalMoves(Move moves[]) {
+	void MoveGen::generateDiagonalMoves(MovePoint moves[]) {
 		int startSquare;
 		int targetSquare;
 		bool isPinned;
@@ -175,14 +176,14 @@ namespace SandalBot {
 			while (moveBitboard != 0ULL) {
 				targetSquare = BitBoardUtility::popLSB(moveBitboard);
 
-				moves[currentMoves++] = Move(startSquare, targetSquare);
+				moves[currentMoves++].move = Move(startSquare, targetSquare);
 			}
 
 		}
 	}
 	// Generate all possible moves for knights.
 	// Populates decayed moves array with new moves
-	void MoveGen::generateKnightMoves(Move moves[]) {
+	void MoveGen::generateKnightMoves(MovePoint moves[]) {
 		int startSquare;
 		int targetSquare;
 		bool isPinned;
@@ -207,13 +208,13 @@ namespace SandalBot {
 			while (moveBitboard != 0) {
 				targetSquare = BitBoardUtility::popLSB(moveBitboard);
 
-				moves[currentMoves++] = Move(startSquare, targetSquare);
+				moves[currentMoves++].move = Move(startSquare, targetSquare);
 			}
 		}
 	}
 	// Generate all possible moves for king.
 	// Populates decayed moves array with new moves
-	void MoveGen::generateKingMoves(Move moves[]) {
+	void MoveGen::generateKingMoves(MovePoint moves[]) {
 		int targetSquare;
 		const int castleMask = whiteTurn ? BoardState::whiteCastleMask : BoardState::blackCastleMask;
 		const int colorIndex = whiteTurn ? board->whiteIndex : board->blackIndex;
@@ -232,12 +233,12 @@ namespace SandalBot {
 		while (moveBitboard != 0ULL) {
 			targetSquare = BitBoardUtility::popLSB(moveBitboard);
 
-			moves[currentMoves++] = Move(friendlyKingSquare, targetSquare);
+			moves[currentMoves++].move = Move(friendlyKingSquare, targetSquare);
 		}
 	}
 	// Generate all possible moves for pawns, including the many odd moves pawns can make.
 	// Populates decayed moves array with new moves
-	void MoveGen::generatePawnMoves(Move moves[]) {
+	void MoveGen::generatePawnMoves(MovePoint moves[]) {
 		int direction = whiteTurn ? whitePawnDirection : blackPawnDirection;
 		const int startRow = whiteTurn ? 6 : 1;
 		const int promotionRow = whiteTurn ? 1 : 6;
@@ -300,22 +301,22 @@ namespace SandalBot {
 				// Promotion moves
 				if (startSquare / 8 == promotionRow) {
 					for (int i = 0; i < 4; i++) {
-						moves[currentMoves++] = Move(startSquare, targetSquare, promotionFlags[i]);
+						moves[currentMoves++].move = Move(startSquare, targetSquare, promotionFlags[i]);
 					}
 				} 
 				// Regular pawn moves
 				else if (abs(targetSquare - startSquare) < 10) {
-					moves[currentMoves++] = Move(startSquare, targetSquare);
+					moves[currentMoves++].move = Move(startSquare, targetSquare);
 				} 
 				// Two squares forward
 				else {
-					moves[currentMoves++] = Move(startSquare, targetSquare, Move::pawnTwoSquaresFlag);
+					moves[currentMoves++].move = Move(startSquare, targetSquare, Move::pawnTwoSquaresFlag);
 				}
 			}
 		}
 	}
 	// Generate en passant move
-	void MoveGen::enPassantMoves(Move moves[], int targetSquare, int startSquare) {
+	void MoveGen::enPassantMoves(MovePoint moves[], int targetSquare, int startSquare) {
 		const int enemyPawnOffset = whiteTurn ? 8 : -8;
 		const int enemyPawnSquare = targetSquare + enemyPawnOffset;
 		// If in check, and own pawn does not block check and enemy pawn being taken isnt the checking piece, 
@@ -324,7 +325,7 @@ namespace SandalBot {
 		// If rare edge case occurs, cannot en passant
 		if (enPassantPin(startSquare, enemyPawnSquare)) return;
 
-		moves[currentMoves++] = Move(startSquare, targetSquare, Move::enPassantCaptureFlag);
+		moves[currentMoves++].move = Move(startSquare, targetSquare, Move::enPassantCaptureFlag);
 	}
 	// Checks rare edge case where orthogonal piece can pin through two pawns
 	// and cause check upon en passant. Example case: 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 
@@ -348,7 +349,7 @@ namespace SandalBot {
 		return movementBitboard != 0ULL;
 	}
 	// Generates castling moves for king
-	void MoveGen::castlingMoves(Move moves[], int startSquare) {
+	void MoveGen::castlingMoves(MovePoint moves[], int startSquare) {
 		// Castling rights
 		const int shortMask = whiteTurn ? BoardState::whiteShortCastleMask : BoardState::blackShortCastleMask;
 		const int longMask = whiteTurn ? BoardState::whiteLongCastleMask : BoardState::blackLongCastleMask;
@@ -363,14 +364,14 @@ namespace SandalBot {
 		if (!(opponentAttacks & (1ULL << shortCastleKingSquares[colorIndex])) 
 			&& !shortAttacked && castlingRights & shortMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook 
 			&& squares[startSquare + 1] == Piece::empty && squares[startSquare + 2] == Piece::empty) {
-			moves[currentMoves++] = std::move(Move(startingKingSquares[colorIndex], shortCastleKingSquares[colorIndex], Move::castleFlag));
+			moves[currentMoves++].move = std::move(Move(startingKingSquares[colorIndex], shortCastleKingSquares[colorIndex], Move::castleFlag));
 		}
 		// Long castling
 		if (!(opponentAttacks & (1ULL << longCastleKingSquares[colorIndex])) 
 			&& !longAttacked && castlingRights & longMask && squares[longCastleRookSquares[colorIndex]] == friendlyRook 
 			&& squares[startSquare - 1] == Piece::empty && squares[startSquare - 2] == Piece::empty 
 			&& squares[startSquare - 3] == Piece::empty) {
-			moves[currentMoves++] = std::move(Move(startingKingSquares[colorIndex], longCastleKingSquares[colorIndex], Move::castleFlag));
+			moves[currentMoves++].move = std::move(Move(startingKingSquares[colorIndex], longCastleKingSquares[colorIndex], Move::castleFlag));
 		}
 	}
 	// Generate all squares 'attacked' by orthogonal pieces, return them in a bitboard

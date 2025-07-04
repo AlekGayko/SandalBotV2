@@ -101,15 +101,15 @@ namespace SandalBot {
         static constexpr const int16_t* const pieceEvals[7] { nullptr, pawnEval, knightEval, bishopEval, rookEval, queenEval, kingEval };
 
         // Static piece values
-        static constexpr int emptyVal = 0;
-        static constexpr int pawnVal = 100;
-        static constexpr int knightVal = 320;
-        static constexpr int bishopVal = 330;
-        static constexpr int rookVal = 500;
-        static constexpr int queenVal = 900;
-        static constexpr int kingVal = 0;
+        static constexpr int16_t emptyVal = 0;
+        static constexpr int16_t pawnVal = 100;
+        static constexpr int16_t knightVal = 320;
+        static constexpr int16_t bishopVal = 330;
+        static constexpr int16_t rookVal = 500;
+        static constexpr int16_t queenVal = 900;
+        static constexpr int16_t kingVal = 0;
         // Array of piece values
-        static constexpr int pieceVals[7] = { emptyVal, pawnVal, knightVal, bishopVal, rookVal, queenVal, kingVal };
+        static constexpr int16_t pieceVals[7] = { emptyVal, pawnVal, knightVal, bishopVal, rookVal, queenVal, kingVal };
     };
 
 }

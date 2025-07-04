@@ -51,6 +51,8 @@ namespace SandalBot {
 		static constexpr size_t defaultSizeMB = 128; // Default size of table in MB
 		Entry* table{ nullptr };
 		Move nullMove{};
+
+		size_t getIndex(uint64_t hash) const { return hash % size; }
 	public:
 		// Sentinel value for evaluation
 		static constexpr int notFound{ std::numeric_limits<int>::min() };

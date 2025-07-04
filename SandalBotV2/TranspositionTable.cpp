@@ -10,31 +10,31 @@ namespace SandalBot {
 
 	TranspositionTable::TranspositionTable(Board* board, int sizeMB) : ZobristHash(board) {
 		this->board = board;
-		this->size = (float(sizeMB) / float(sizeof(Entry))) * 1024 * 1024;
+		this->size = (sizeMB * 1024ULL * 1024ULL) / sizeof(Entry);
 		this->table = new Entry[size];
 		this->slotsFilled = 0ULL;
 	}
 
 	// Get best move found from indexed hashkey
 	Move TranspositionTable::getBestMove(uint64_t hashKey) {
-		if (table[hashKey % size].hash != hashKey)
+		if (table[getIndex(hashKey)].hash != hashKey)
 			return std::move(nullMove); // Return null move if no entry found
 
-		return std::move(table[hashKey % size].move);
+		return std::move(table[getIndex(hashKey)].move);
 	}
 
 	// Return depth of entry from given hashkey
 	int TranspositionTable::getDepth(uint64_t hashKey) {
 		// If entry doesn't exist, return invalid depth
-		if (table[hashKey % size].hash != hashKey)
+		if (table[getIndex(hashKey)].hash != hashKey)
 			return -1;
 
-		return table[hashKey % size].depth;
+		return table[getIndex(hashKey)].depth;
 	}
 
 	// Store position entry
 	void TranspositionTable::store(int eval, int16_t remainingDepth, int16_t currentDepth, uint8_t nodeType, Move move, uint64_t hashKey) {
-		size_t index = hashKey % size;
+		size_t index = getIndex(hashKey);
 		if (table[index].hash == 0ULL && slotsFilled < size) {
 			slotsFilled++; // Update slots filled
 		}
@@ -44,7 +44,7 @@ namespace SandalBot {
 
 	// Retrieve evaluation, if entry has same hashkey, greater or equal depth, and valid node type
 	int TranspositionTable::lookup(int16_t remainingDepth, int16_t currentDepth, int alpha, int beta, uint64_t hashKey) {
-		size_t index = hashKey % size;
+		size_t index = getIndex(hashKey);
 		Entry& entry = table[index]; // Retrieve index
 
 

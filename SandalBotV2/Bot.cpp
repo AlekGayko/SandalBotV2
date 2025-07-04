@@ -9,14 +9,14 @@ using namespace std;
 namespace SandalBot {
 
     // Validates a move on the current board position
-    int Bot::validateUserMove(Move moves[218], int startSquare, int targetSquare, int flag) {
+    int Bot::validateUserMove(MovePoint moves[218], int startSquare, int targetSquare, int flag) {
         // Generate all possible moves in position
         int numMoves = searcher->moveGenerator->generateMoves(moves);
         int moveIndex = -1;
         // If proposed move is in possible moves, it is a valid move
         for (int i = 0; i < numMoves; i++) {
-            if (moves[i].getStartSquare() == startSquare && moves[i].getTargetSquare() == targetSquare &&
-                (moves[i].getFlag() < Move::promoteToQueenFlag || moves[i].getFlag() == flag)) {
+            if (moves[i].move.getStartSquare() == startSquare && moves[i].move.getTargetSquare() == targetSquare &&
+                (moves[i].move.getFlag() < Move::promoteToQueenFlag || moves[i].move.getFlag() == flag)) {
                 moveIndex = i;
                 break;
             }
@@ -87,13 +87,13 @@ namespace SandalBot {
         }
 
         // Validate move
-        Move positionMoves[218];
+        MovePoint positionMoves[218];
         int moveIndex = validateUserMove(positionMoves, startSquare, targetSquare, flag);
 
         if (moveIndex == -1) return;
 
         // If move is valid, enact move
-        board->makeMove(positionMoves[moveIndex]);
+        board->makeMove(positionMoves[moveIndex].move);
     }
 
     // Generate move within allotted time in milliseconds

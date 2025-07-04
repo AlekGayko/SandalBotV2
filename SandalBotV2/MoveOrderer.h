@@ -5,9 +5,19 @@
 #include "PieceEvaluations.h"
 #include "MoveGen.h"
 
+#include <limits>
+
 namespace SandalBot {
 
 	class Searcher;
+
+	using PointValue = int16_t;
+
+	// Struct holds a move and corresponding heuristic value
+	struct MovePoint {
+		PointValue value{};
+		Move move{};
+	};
 
 	// MoveOrderer heuristically orders and array of moves from best to worst.
 	// Uses a scoring system to order moves, and also employs 'killer' moves,
@@ -30,18 +40,33 @@ namespace SandalBot {
 			}
 		};
 
+		static constexpr PointValue bestMoveValue{ std::numeric_limits<PointValue>::max() };
+		static constexpr PointValue killerValue{ 10000 };
+		static constexpr PointValue undefendedTargetSquareValue{ -200 };
+		static constexpr PointValue enPassantValue{ 300 };
+		static constexpr PointValue castleValue{ 300 };
+		static constexpr PointValue pawnTwoSquareValue{ 100 };
+		static constexpr PointValue queenPromotionValue{ 600 };
+		static constexpr PointValue rookPromotionValue{ 400 };
+		static constexpr PointValue bishopPromotionValue{ 300 };
+		static constexpr PointValue knightPromotionValue{ 300 };
+
 		Board* board{ nullptr };
 		MoveGen* generator{ nullptr };
 		Searcher* searcher{ nullptr };
 
-		const int killerValue{ 1000 }; // Heuristic value of a killer move
 		Killer killerMoves[32]; // Array of killer moves where index is depth of killer move
 	public:
 		MoveOrderer() {};
 		MoveOrderer(Board* board, MoveGen* gen, Searcher* searcher);
-		void order(Move moves[], Move bestMove, int numMoves, int depth, bool firstMove = false, bool qSearch = false);
-		static void quickSort(Move moves[], int moveVals[], int start, int end);
+		void order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool firstMove = false, bool qSearch = false);
 		void addKiller(int depth, Move move);
+
+		static void quickSort(MovePoint moves[], int start, int end);
+		static void bubbleSort(MovePoint moves[], int numMoves);
+		static void insertionSort(MovePoint moves[], int numMoves);
+		static void selectionSort(MovePoint moves[], int numMoves);
+		static void mergeSort(MovePoint moves[], int start, int end);
 	};
 
 }

@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "BoardState.h"
 #include "Evaluator.h"
 #include "FEN.h"
 #include "MoveGen.h"

@@ -1,6 +1,7 @@
 #include "MoveOrderer.h"
 #include "Searcher.h"
 
+#include <algorithm>
 #include <iostream>
 
 using namespace std;
@@ -12,38 +13,38 @@ namespace SandalBot {
 
 	// Assigns each move in decayed c array a heuristic value depending on its effectiveness.
 	// Sorts array based on list point values
-	void MoveOrderer::order(Move moves[], Move bestMove, int numMoves, int depth, bool firstMove, bool qSearch) {
+	void MoveOrderer::order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool firstMove, bool qSearch) {
 		// No need to sort one move
 		if (numMoves <= 1) return;
-		// 218 is maximum number of moves
-		int moveVals[218];
+
 		int colorIndex = board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
 		int dir = board->state->whiteTurn ? 1 : -1;
 		int evalStart = Evaluator::colorStart[colorIndex];
 		// For each move
-		for (int it = 0; it < numMoves; it++) {
+		for (int it = 0; it < numMoves; ++it) {
 			// If not in quiescence search and found move is a previusly found best move, most likely best move
-			if (!qSearch && moves[it] == bestMove) {
-				moveVals[it] = 1000000;
+			if (!qSearch && moves[it].move == bestMove) {
+				moves[it].value = bestMoveValue;
 				continue;
 			}
 			// If not quienscence search and found move is a killer move, most likely a good move
-			if (!qSearch && killerMoves[depth].match(moves[it])) {
-				moveVals[it] += killerValue;
+			if (!qSearch && killerMoves[depth].match(moves[it].move)) {
+				moves[it].value = killerValue;
+				continue;
 			}
-			int moveValue = 0;
-			const int startSquare = moves[it].getStartSquare();
-			const int targetSquare = moves[it].getTargetSquare();
-			const int flag = moves[it].getFlag();
+			PointValue moveValue = 0;
+			const int startSquare = moves[it].move.getStartSquare();
+			const int targetSquare = moves[it].move.getTargetSquare();
+			const int flag = moves[it].move.getFlag();
 			int ownPiece = Piece::type(board->squares[startSquare]);
 			int enemyPiece = Piece::type(board->squares[targetSquare]);
 			bool targetSquareDefended = generator->opponentAttacks & (1ULL << targetSquare);
 
 			// If taking an opponent's piece
 			if (enemyPiece != Piece::empty) {
-				int enemyValue = PieceEvaluations::pieceVals[enemyPiece];
-				int ownValue = PieceEvaluations::pieceVals[ownPiece];
-				int diffVal = enemyValue - ownValue;
+				PointValue enemyValue = PieceEvaluations::pieceVals[enemyPiece];
+				PointValue ownValue = PieceEvaluations::pieceVals[ownPiece];
+				PointValue diffVal = enemyValue - ownValue;
 				// If taking a piece worth less than our piece's value
 				if (enemyValue < ownValue) {
 					// If piece is defended
@@ -67,7 +68,7 @@ namespace SandalBot {
 			// If we're not taking a piece
 			else {
 				if (targetSquareDefended) {
-					moveValue += -200;
+					moveValue += undefendedTargetSquareValue;
 				}
 			}
 
@@ -85,55 +86,145 @@ namespace SandalBot {
 			case Move::noFlag:
 				break;
 			case Move::enPassantCaptureFlag:
-				moveValue += 300;
+				moveValue += enPassantValue;
 				break;
 			case Move::castleFlag:
-				moveValue += 300;
+				moveValue += castleValue;
 				break;
 			case Move::pawnTwoSquaresFlag:
-				moveValue += 100;
+				moveValue += pawnTwoSquareValue;
 				break;
 			case Move::promoteToQueenFlag:
-				moveValue += 600;
+				moveValue += queenPromotionValue;
 				break;
 			case Move::promoteToRookFlag:
-				moveValue += 400;
+				moveValue += rookPromotionValue;
 				break;
 			case Move::promoteToBishopFlag:
-				moveValue += 300;
+				moveValue += bishopPromotionValue;
 				break;
 			case Move::promoteToKnightFlag:
-				moveValue += 300;
+				moveValue += knightPromotionValue;
 				break;
 			}
-			moveVals[it] = moveValue;
+
+			moves[it].value = moveValue;
 		}
-		quickSort(moves, moveVals, 0, numMoves); // Sort array
+		//mergeSort(moves, 0, numMoves);
+		//insertionSort(moves, numMoves);
+		//selectionSort(moves, numMoves);
+		//bubbleSort(moves, numMoves);
+		std::sort(moves, moves + numMoves, [](MovePoint& mp1, MovePoint& mp2) { return mp1.value > mp2.value; });
+		//quickSort(moves, 0, numMoves); // Sort array
 	}
 
 	// Quicksort implementation which sorts moves array based on moveVals point system
-	void MoveOrderer::quickSort(Move moves[], int moveVals[], int start, int end) {
+	void MoveOrderer::quickSort(MovePoint moves[], int start, int end) {
 		if (start >= end) return;
-		int pivotSpot = end - 1;
-		int pivot = moveVals[pivotSpot];
-		Move& movePivot = moves[pivotSpot];
-		int pivotIndex = start;
 
-		for (int i = start; i < end; i++) {
-			if (moveVals[i] > pivot) {
-				swap(moveVals[i], moveVals[pivotIndex]);
-				swap(moves[i], moves[pivotIndex]);
+		int pivotSpot{ end - 1 };
+		int pivotValue = moves[pivotSpot].value;
+		int pivotIndex{ start };
+
+		for (int i{ start }; i < end; ++i) {
+			if (i == pivotSpot)
+				continue;
+
+			if (moves[i].value > pivotValue) {
+				std::swap(moves[i], moves[pivotIndex]);
 
 				pivotIndex++;
 			}
 		}
 
-		swap(moveVals[pivotSpot], moveVals[pivotIndex]);
-		swap(moves[pivotSpot], moves[pivotIndex]);
+		std::swap(moves[pivotSpot], moves[pivotIndex]);
 
-		quickSort(moves, moveVals, start, pivotIndex);
-		quickSort(moves, moveVals, pivotIndex + 1, end);
+		quickSort(moves, start, pivotIndex);
+		quickSort(moves, pivotIndex + 1, end);
 	}
+
+	void MoveOrderer::bubbleSort(MovePoint moves[], int numMoves) {
+		if (numMoves <= 1) return;
+
+		bool swapped{};
+		for (int i{ 0 }; i < numMoves - 1; ++i) {
+			swapped = false;
+			for (int j{ 0 }; j < numMoves - i - 1; ++j) {
+				if (moves[j].value < moves[j + 1].value) {
+					std::swap(moves[j], moves[j + 1]);
+					swapped = true;
+				}
+			}
+
+			if (!swapped) 
+				break;
+		}
+	}
+
+	void MoveOrderer::insertionSort(MovePoint moves[], int numMoves) {
+		if (numMoves <= 1) return;
+
+		for (int i{ 1 }; i < numMoves; ++i) {
+			for (int j{ i }; j > 0; --j) {
+				if (moves[j].value > moves[j - 1].value) {
+					std::swap(moves[j], moves[j - 1]);
+				} else {
+					break;
+				}
+			}
+		}
+	}
+
+	void MoveOrderer::selectionSort(MovePoint moves[], int numMoves) {
+		if (numMoves <= 1) return;
+
+		int maxIndex{};
+
+		for (int i{ 0 }; i < numMoves - 1; ++i) {
+			maxIndex = i;
+			for (int j{ i + 1 }; j < numMoves; ++j) {
+				if (moves[j].value > moves[maxIndex].value) {
+					maxIndex = j;
+				}
+			}
+			if (i != maxIndex)
+				std::swap(moves[i], moves[maxIndex]);
+		}
+	}
+
+	void MoveOrderer::mergeSort(MovePoint moves[], int start, int end) {
+		if (start >= end) return;
+
+		int mid = start + ((end - start) / 2);
+
+		mergeSort(moves, start, mid);
+		mergeSort(moves, mid, end);
+
+		int l{ 0 };
+		int r{ 0 };
+		int idx{ start };
+		while (l < (mid - start) && r < (end - mid)) {
+			if (moves[l].value > moves[r].value) {
+				std::swap(moves[idx], moves[start + l]);
+				++l;
+			} else {
+				std::swap(moves[idx], moves[mid + r]);
+				++r;
+			}
+			++idx;
+		}
+
+		while (l < (mid - start)) {
+			moves[idx++] = moves[start + l];
+			++l;
+		}
+
+		while (r < (end - mid)) {
+			moves[idx++] = moves[mid + r];
+			++r;
+		}
+	}
+
 	// Add move to killer moves
 	void MoveOrderer::addKiller(int depth, Move move) {
 		if (depth >= 32)

@@ -2,7 +2,6 @@
 #define BOARD_H
 
 #include "BoardHistory.h"
-#include "BoardState.h"
 #include "CoordHelper.h"
 #include "Move.h"
 #include "PieceList.h"
@@ -10,6 +9,7 @@
 
 namespace SandalBot {
 
+	struct BoardState;
 	class FEN;
 	class Evaluator;
 

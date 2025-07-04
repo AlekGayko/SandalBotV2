@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef BOARDSTATE_H
 #define BOARDSTATE_H
 
@@ -28,17 +30,17 @@ namespace SandalBot {
 		int moveCounter{};
 		uint64_t zobristHash{};
 
-		BoardState() {}
+		inline BoardState() {}
 
-		BoardState(bool whiteTurn, int capturedPiece, int enPassantSquare, int castlingRights, int fiftyMoveCounter, int moveCounter, uint64_t zobristHash)
+		inline BoardState(bool whiteTurn, int capturedPiece, int enPassantSquare, int castlingRights, int fiftyMoveCounter, int moveCounter, uint64_t zobristHash)
 			: whiteTurn(whiteTurn), capturedPiece(capturedPiece), enPassantSquare(enPassantSquare), castlingRights(castlingRights), 
 			fiftyMoveCounter(fiftyMoveCounter), moveCounter(moveCounter), zobristHash(zobristHash) {}
 
-		BoardState(BoardState&& other) noexcept
+		inline BoardState(BoardState&& other) noexcept
 			: whiteTurn(other.whiteTurn), capturedPiece(other.capturedPiece), enPassantSquare(other.enPassantSquare), castlingRights(other.castlingRights),
 			fiftyMoveCounter(other.fiftyMoveCounter), moveCounter(other.moveCounter), zobristHash(other.zobristHash) {}
 	
-		BoardState& operator=(const BoardState& other) {
+		inline BoardState& operator=(const BoardState& other) {
 			this->whiteTurn = other.whiteTurn;
 			this->capturedPiece = other.capturedPiece;
 			this->enPassantSquare = other.enPassantSquare;
@@ -48,7 +50,7 @@ namespace SandalBot {
 			this->zobristHash = other.zobristHash;
 			return *this;
 		}
-		BoardState& operator=(BoardState&& other) noexcept {
+		inline BoardState& operator=(BoardState&& other) noexcept {
 			this->whiteTurn = other.whiteTurn;
 			this->capturedPiece = other.capturedPiece;
 			this->enPassantSquare = other.enPassantSquare;
@@ -60,11 +62,11 @@ namespace SandalBot {
 		}
 
 		// Determine whether side can short castle
-		constexpr bool canShortCastle(bool isWhite) const { 
+		inline constexpr bool canShortCastle(bool isWhite) const {
 			return isWhite ? castlingRights & whiteShortCastleMask : castlingRights & blackShortCastleMask; 
 		}
 		// Determine whether side can long castle
-		constexpr bool canLongCastle(bool isWhite) const { 
+		inline constexpr bool canLongCastle(bool isWhite) const {
 			return isWhite ? castlingRights & whiteLongCastleMask : castlingRights & blackLongCastleMask; 
 		}
 	};

@@ -8,6 +8,9 @@
 #include "Piece.h"
 
 namespace SandalBot {
+
+	struct MovePoint;
+
 	// MoveGen class generates all possible legalmoves in a given position
 	class MoveGen {
 		friend class MoveOrderer;
@@ -64,16 +67,16 @@ namespace SandalBot {
 		MoveGen();
 		MoveGen(Board* board);
 		~MoveGen();
-		int generateMoves(Move moves[], bool capturesOnly = false);
+		int generateMoves(MovePoint moves[], bool capturesOnly = false);
 		void initVariables(bool capturesOnly);
-		void generateOrthogonalMoves(Move moves[]);
-		void generateDiagonalMoves(Move moves[]);
-		void generateKnightMoves(Move moves[]);
-		void generateKingMoves(Move moves[]);
-		void generatePawnMoves(Move moves[]);
-		void enPassantMoves(Move moves[], int targetSquare, int startSquare);
-		void promotionMoves(Move moves[], int targetSquare, int startSquare);
-		void castlingMoves(Move moves[], int startSquare);
+		void generateOrthogonalMoves(MovePoint moves[]);
+		void generateDiagonalMoves(MovePoint moves[]);
+		void generateKnightMoves(MovePoint moves[]);
+		void generateKingMoves(MovePoint moves[]);
+		void generatePawnMoves(MovePoint moves[]);
+		void enPassantMoves(MovePoint moves[], int targetSquare, int startSquare);
+		void promotionMoves(MovePoint moves[], int targetSquare, int startSquare);
+		void castlingMoves(MovePoint moves[], int startSquare);
 
 		uint64_t generateKnightAttackData(const uint64_t enemyBoard);
 		uint64_t generatePawnAttackData(const uint64_t enemyBoard, const int opposingColor);

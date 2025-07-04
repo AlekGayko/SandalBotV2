@@ -16,7 +16,7 @@ namespace SandalBot {
 		Board* board{ nullptr };
 		Searcher* searcher{ nullptr };
 
-		int validateUserMove(Move moves[218], int startSquare, int targetSquare, int flag);
+		int validateUserMove(MovePoint moves[218], int startSquare, int targetSquare, int flag);
 	public:
 		Bot();
 		~Bot();

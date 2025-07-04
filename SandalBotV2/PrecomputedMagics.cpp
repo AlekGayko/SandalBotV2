@@ -22,7 +22,7 @@ namespace SandalBot {
 	// Inserts orthogonal movement bitboards for each blocker
 	void PrecomputedMagics::addOrthogonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards) {
 		for (int i = 0; i < blockers.size(); i++) {
-			uint64_t index = (blockers[i] * orthogonalMagics[square]) >> orthogonalShifts[square];
+			uint64_t index = (blockers[i] * orthogonalMagics[square].magic) >> orthogonalMagics[square].rightShift;
 			orthogonalMoves[square][index] = movementBoards[i];
 		}
 	}
@@ -30,7 +30,7 @@ namespace SandalBot {
 	// Inserts diagonal movement bitboards for each blocker
 	void PrecomputedMagics::addDiagonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards) {
 		for (int i = 0; i < blockers.size(); i++) {
-			uint64_t index = (blockers[i] * diagonalMagics[square]) >> diagonalShifts[square];
+			uint64_t index = (blockers[i] * diagonalMagics[square].magic) >> diagonalMagics[square].rightShift;
 			diagonalMoves[square][index] = movementBoards[i];
 		}
 	}
