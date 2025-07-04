@@ -158,7 +158,7 @@ namespace SandalBot {
 		evaluation += pawnShieldEvaluations();
 		//evaluation += kingTropismEvaluations();
 
-		evaluation *= kingSafetyCoefficient;
+		evaluation = static_cast<int>(evaluation * kingSafetyCoefficient);
 
 		//evaluation += kingAttackZones();
 

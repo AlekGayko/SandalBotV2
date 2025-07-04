@@ -161,7 +161,7 @@ namespace SandalBot {
 			BitBoardUtility::printBB(diagonalPieces);
 			BitBoardUtility::printBB(knights);
 			BitBoardUtility::printBB(pawns);
-			cout << stateHistory.getSecondLast().zobristHash << endl;
+			cout << static_cast<uint64_t>(stateHistory.getSecondLast().zobristHash) << endl;
 			throw exception();
 		}
 

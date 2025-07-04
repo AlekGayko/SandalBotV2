@@ -171,11 +171,11 @@ namespace SandalBot {
 
         if (timeRemaining > incMs * 2 && moveTimeMs > 50) moveTimeMs += timeRemaining * 0.1;
 
-        if (timeRemaining > 45000) return maxMoveTime + 0.5 * incMs;
+        if (timeRemaining > 45000) return maxMoveTime + static_cast<int>(0.5 * static_cast<double>(incMs));
 
 
 
-        int a = max(minTimeMs, moveTimeMs);
+        int a = static_cast<int>(max(minTimeMs, moveTimeMs));
 
         return int(ceil(min(a, maxMoveTime)));
     }

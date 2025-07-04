@@ -5,11 +5,13 @@
 #include <cstdint>
 #include <iostream>
 
-#if defined(__BMI__) && defined(__GNUC__)
-    #include <x86intrin.h>  // covers both GCC with BMI
-    #define USE_CTZLL
-#elif defined(_MSC_VER)
+#if defined(__GNUC__)
+    #include <x86intrin.h>
+#elif defined(_MSC_VER) 
 	#include <intrin.h>
+#endif
+
+#if defined(__BMI__)
 	#define USE_TZCNT
 #endif
 
@@ -67,9 +69,7 @@ namespace SandalBot::BitBoardUtility {
 	inline int popLSB(uint64_t& bitBoard) {
 		int trailingZeroes;
 		// index of LSB
-		#if defined(USE_CTZLL)
-			trailingZeroes = static_cast<int>(__builtin_ctzll(bitBoard));
-		#elif defined(USE_TZCNT)
+		#if defined(USE_TZCNT)
 			trailingZeroes = static_cast<int>(_tzcnt_u64(bitBoard));
 		#else
 			assert(false);

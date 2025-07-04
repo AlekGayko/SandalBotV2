@@ -4,7 +4,9 @@
 
 #include <iostream>
 #include <functional>
+#include <random>
 #include <unordered_map>
+#include <set>
 
 
 using namespace std;
@@ -32,26 +34,27 @@ namespace SandalBot {
 
 	// Initialises hash member values
 	void ZobristHash::initHashes() {
-		hash<uint64_t> hash;
+		std::mt19937_64 rng(0x1234);
+
 		// Iterate over every color, piece and square to produce unique hash values
 		for (uint64_t colorIndex = 0; colorIndex < 2; ++colorIndex) {
 			for (uint64_t piece = Piece::pawn; piece <= Piece::king; ++piece) {
 				for (uint64_t square = 0; square < 64; ++square) {
-					pieceHashes[colorIndex][piece][square] = hash(1000000ULL * colorIndex + 10000ULL * piece + square);
+					pieceHashes[colorIndex][piece][square] = rng();
 				}
 			}
 		}
 
 		// Init en passant hashes
 		for (int square = 0; square < 64; square++) {
-			enPassantHash[square] = hash(square);
+			enPassantHash[square] = rng();
 		}
 		// Init castling hashes
 		for (int right = 0; right < 17; right++) {
-			castlingRightsHash[right] = hash(right);
+			castlingRightsHash[right] = rng();
 		}
 
-		whiteMoveHash = hash(true);
+		whiteMoveHash = rng();
 	}
 
 	// Returns hash from member board

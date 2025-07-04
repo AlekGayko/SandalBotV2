@@ -234,7 +234,9 @@ namespace SandalBot {
 
 		for (int i = 0; i < numMoves; i++) {
 			if (board->squares[moves[i].move.getStartSquare()] == Piece::empty) {
-				
+				cout << "depth: " << depth << endl;
+				cout << "maxdepth: " << maxDepth << endl;
+				cout << "extensions: " << numExtensions << endl;
 			}
 			// Make move
 			board->makeMove(moves[i].move);
