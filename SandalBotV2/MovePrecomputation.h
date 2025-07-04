@@ -109,8 +109,8 @@ namespace SandalBot {
 
 		uint64_t getForwardMask(const int square) const { return forwardDiagonalMasks[(square / 8) + (square % 8)]; }
 		uint64_t getBackwardMask(const int square) const { return backwardDiagonalMasks[7 + (square / 8) - (square % 8)]; }
-		uint64_t getRowMask(const int square) const { return rowMasks[square / 8]; }
-		uint64_t getColMask(const int square) const { return columnMasks[square % 8]; }
+		uint64_t getRowMask(const int square) const { return rowMask << (square / 8); }
+		uint64_t getColMask(const int square) const { return columnMask << (square % 8); }
 		uint64_t getBlockerOrthogonalMask(const int square) const { return blockerOrthogonalMasks[square]; }
 		uint64_t getBlockerDiagonalMask(const int square) const { return blockerDiagonalMasks[square]; }
 		uint64_t getOrthMovementBoard(const int square, const uint64_t blockerBoard) const { return magics.getOrthogonalMovement(square, blockerBoard); }

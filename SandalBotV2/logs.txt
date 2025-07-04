@@ -1,4 +1,2 @@
 Command received: go movetime 10000
-Command received: ucinewgame
-Command received: go movetime 10000
 Command received: quit

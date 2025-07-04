@@ -69,6 +69,9 @@ namespace SandalBot::BitBoardUtility {
 		return trailingZeroes;
 	}
 
+	inline int LSB(uint64_t bitBoard) {
+		return static_cast<int>(_tzcnt_u64(bitBoard));
+	}
 }
 
 #endif // !BITBOARDUTILITY_H

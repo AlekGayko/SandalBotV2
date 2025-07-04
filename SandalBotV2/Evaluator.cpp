@@ -93,24 +93,8 @@ namespace SandalBot {
 	// Initialise variables
 	void Evaluator::initVariables() {
 		evaluation = 0;
-		maximisingSide = board->state->whiteTurn ? 1 : -1;
-
-		friendlyColor = board->state->whiteTurn ? Piece::white : Piece::black;
-		enemyColor = !board->state->whiteTurn ? Piece::white : Piece::black;
-		maximisingIndex = board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
-		minimisingIndex = !board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
-
-		friendlyKingSquare = board->pieceLists[maximisingIndex][Piece::king][0];
-		enemyKingSquare = board->pieceLists[minimisingIndex][Piece::king][0];
-
-		friendlyBoard = board->state->whiteTurn ? board->whitePieces : board->blackPieces;
-		enemyBoard = !board->state->whiteTurn ? board->whitePieces : board->blackPieces;
-
-		friendlyMaterial = board->state->whiteTurn ? whiteMaterial : blackMaterial;
-		enemyMaterial = !board->state->whiteTurn ? whiteMaterial : blackMaterial;
-
-		friendlyMajorMinorPieces = board->state->whiteTurn ? whiteMMPieces : blackMMPieces;
-		enemyMajorMinorPieces = !board->state->whiteTurn ? whiteMMPieces : blackMMPieces;
+		whiteKingSquare = board->pieceLists[Board::whiteIndex][Piece::king][0];
+		blackKingSquare = board->pieceLists[Board::blackIndex][Piece::king][0];
 	}
 
 	// Returns an integer representing the static evaluation of the board's position
@@ -131,7 +115,7 @@ namespace SandalBot {
 		evaluation += openDiagEvaluation();
 		evaluation += kingDist();
 
-		return evaluation;
+		return board->state->whiteTurn ? evaluation : -evaluation;
 	}
 
 	// Returns true if score is a checkmate score
@@ -151,14 +135,14 @@ namespace SandalBot {
 		int evaluation = 0;
 
 		// If no major minor pieces, king safety is not too much of a factor
-		if (enemyMajorMinorPieces == 0 || friendlyMajorMinorPieces == 0) {
+		if (whiteMMPieces == 0 || blackMMPieces == 0) {
 			return evaluation;
 		}
 
 		evaluation += pawnShieldEvaluations();
 		//evaluation += kingTropismEvaluations();
 
-		evaluation = static_cast<int>(evaluation * kingSafetyCoefficient);
+		evaluation = evaluation * kingSafetyCoefficient;
 
 		//evaluation += kingAttackZones();
 
@@ -167,8 +151,8 @@ namespace SandalBot {
 
 	// Returns the evaluation for king tropism
 	int Evaluator::kingTropismEvaluations() {
-		int evaluation = enemyMaterial * kingTropism(friendlyKingSquare, board->pieceLists[maximisingIndex]);
-		evaluation -= friendlyMaterial * kingTropism(enemyKingSquare, board->pieceLists[minimisingIndex]);
+		int evaluation = blackMaterial * kingTropism(whiteKingSquare, board->pieceLists[Board::whiteIndex]);
+		evaluation -= whiteMaterial * kingTropism(blackKingSquare, board->pieceLists[Board::blackIndex]);
 		return evaluation;
 	}
 
@@ -197,14 +181,14 @@ namespace SandalBot {
 		}
 
 		// Mask to identify pawns near king
-		uint64_t friendlyShield = precomputation->getShieldMask(friendlyKingSquare, friendlyColor);
-		uint64_t enemyShield = precomputation->getShieldMask(enemyKingSquare, enemyColor);
+		uint64_t whiteShield = precomputation->getShieldMask(whiteKingSquare, Piece::white);
+		uint64_t blackShield = precomputation->getShieldMask(blackKingSquare, Piece::black);
 
-		friendlyShield &= board->pawns & friendlyBoard;
-		enemyShield &= board->pawns & enemyBoard;
+		whiteShield &= board->pawns & board->whitePieces;
+		blackShield &= board->pawns & board->blackPieces;
 
-		int evaluation = (enemyMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(friendlyKingSquare, friendlyShield);
-		evaluation -= (friendlyMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(enemyKingSquare, enemyShield);
+		int evaluation = (blackMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(whiteKingSquare, whiteShield);
+		evaluation -= (whiteMaterial / PieceEvaluations::pawnVal) * pawnShieldEvaluation(blackKingSquare, blackShield);
 
 		evaluation *= (1 - endGameWeight); // Make pawn shields linearly less important as game approaches end game
 
@@ -264,11 +248,11 @@ namespace SandalBot {
 
 	// Returns evaluation of passed pawns
 	int Evaluator::passedPawnEvaluations() {
-		uint64_t friendlyPawns = board->pawns & friendlyBoard;
-		uint64_t enemyPawns = board->pawns & enemyBoard;
+		uint64_t whitePawns = board->pawns & board->whitePieces;
+		uint64_t blackPawns = board->pawns & board->blackPieces;
 
-		int evaluation = passedPawnEvaluation(board->pieceLists[maximisingIndex][Piece::pawn], enemyPawns, friendlyColor);
-		evaluation -= passedPawnEvaluation(board->pieceLists[minimisingIndex][Piece::pawn], friendlyPawns, enemyColor);
+		int evaluation = passedPawnEvaluation(board->pieceLists[Board::whiteIndex][Piece::pawn], blackPawns, Piece::white);
+		evaluation -= passedPawnEvaluation(board->pieceLists[Board::blackIndex][Piece::pawn], whitePawns, Piece::black);
 
 		return evaluation;
 	}
@@ -300,11 +284,11 @@ namespace SandalBot {
 
 	// Returns evaluation of pawn islands
 	int Evaluator::pawnIslandEvaluations() {
-		uint64_t friendlyPawns = board->pawns & friendlyBoard;
-		uint64_t enemyPawns = board->pawns & enemyBoard;
+		uint64_t whitePawns = board->pawns & board->whitePieces;
+		uint64_t blackPawns = board->pawns & ~whitePawns;
 
-		int evaluation = pawnIslandEvaluation(board->pieceLists[maximisingIndex][Piece::pawn], friendlyPawns);
-		evaluation -= pawnIslandEvaluation(board->pieceLists[minimisingIndex][Piece::pawn], enemyPawns);
+		int evaluation = pawnIslandEvaluation(board->pieceLists[Board::whiteIndex][Piece::pawn], whitePawns);
+		evaluation -= pawnIslandEvaluation(board->pieceLists[Board::blackIndex][Piece::pawn], blackPawns);
 
 		return evaluation;
 	}
@@ -336,20 +320,20 @@ namespace SandalBot {
 		uint64_t enemyKingZone;
 
 		// Choose king zone depending on whether it is an endgame or king is away from starting row
-		if (abs(friendlyKingSquare / 8 - startRow[maximisingIndex]) >= 2 || endGameWeight >= 0.2f) {
-			friendlyKingZone = precomputation->getUnbiasKingAttackZone(friendlyKingSquare);
+		if (abs(whiteKingSquare / 8 - startRow[Board::whiteIndex]) >= 2 || endGameWeight >= 0.2f) {
+			friendlyKingZone = precomputation->getUnbiasKingAttackZone(whiteKingSquare);
 		} else {
-			friendlyKingZone = precomputation->getKingAttackSquare(friendlyKingSquare, friendlyColor);
+			friendlyKingZone = precomputation->getKingAttackSquare(whiteKingSquare, Piece::white);
 		}
 		// Choose king zone depending on whether it is an endgame or king is away from starting row
-		if (abs(enemyKingSquare / 8 - startRow[minimisingIndex]) >= 2 || endGameWeight >= 0.2f) {
-			enemyKingZone = precomputation->getUnbiasKingAttackZone(enemyKingSquare);
+		if (abs(blackKingSquare / 8 - startRow[Board::blackIndex]) >= 2 || endGameWeight >= 0.2f) {
+			enemyKingZone = precomputation->getUnbiasKingAttackZone(blackKingSquare);
 		} else {
-			enemyKingZone = precomputation->getKingAttackSquare(enemyKingSquare, enemyColor);
+			enemyKingZone = precomputation->getKingAttackSquare(blackKingSquare, Piece::black);
 		}
 
-		int evaluation = kingAttackZone(friendlyKingZone, friendlyBoard, enemyKingSquare, enemyColor);
-		evaluation -= kingAttackZone(enemyKingZone, enemyBoard, friendlyKingSquare, friendlyColor);
+		int evaluation = kingAttackZone(friendlyKingZone, board->whitePieces, blackKingSquare, Piece::black);
+		evaluation -= kingAttackZone(enemyKingZone, board->blackPieces, whiteKingSquare, Piece::white);
 
 		return evaluation;
 	}
@@ -474,62 +458,64 @@ namespace SandalBot {
 	// Return evaluation for open files
 	int Evaluator::openFilesEvaluation() {
 		// Endgame is less likely to require open files
-		if (endGameWeight >= 0.3)
+		if (endGameWeight >= 0.3f)
 			return 0;
-		// If no orthogonal pieces, no use of open file
-		if (board->orthogonalPieces == 0ULL) {
-			return 0;
-		}
 
 		int evaluation = 0;
-		uint64_t colMask;
-		uint64_t filePieces;
-		int pawnCounter;
-		// Iterate over each column to check for open file
-		for (int col = 0; col < 8; col++) {
-			colMask = precomputation->getColMask(col);
-			filePieces = board->pawns & colMask;
-			pawnCounter = 0;
 
-			while (filePieces != 0ULL) {
-				BitBoardUtility::popLSB(filePieces);
+		// Iterate over each column to check for open file
+
+		uint64_t orthogonalPieces = board->orthogonalPieces;
+
+		while (orthogonalPieces != 0ULL) {
+			int square = BitBoardUtility::LSB(orthogonalPieces);
+			uint64_t colMask = precomputation->getColMask(square);
+
+			if ((orthogonalPieces & colMask) == 0ULL)
+				continue;
+
+			uint64_t filePawns = board->pawns & colMask;
+			int pawnCounter = 0;
+
+			while (filePawns != 0ULL) {
+				BitBoardUtility::popLSB(filePawns);
 				pawnCounter++;
 				if (pawnCounter > 1) {
 					break;
 				}
 			}
 			if (pawnCounter > 1) {
+				orthogonalPieces &= ~colMask;
 				continue;
 			}
 			evaluation += evaluateOpenFile(colMask, pawnCounter);
+
+			orthogonalPieces &= ~colMask;
 		}
 
 		return evaluation;
 	}
 	// Evaluate an open file, returns evaluation of open file
 	int Evaluator::evaluateOpenFile(uint64_t column, int pawnCounter) {
-		// If open/semi-open file has no orthogonal pieces, unlikely to be advantageous
-		if ((column & board->orthogonalPieces) == 0ULL)
-			return 0;
 		int evaluation = 0;
 		int square;
 		// Start by analysing queens on file
 		uint64_t OrthFile = column & board->orthogonalPieces & board->diagonalPieces;
 
-		int friendlyOrths = 0;
-		int enemyOrths = 0;
+		int whiteOrths = 0;
+		int blackOrths = 0;
 
 		while (OrthFile != 0ULL) {
 			square = BitBoardUtility::popLSB(OrthFile);
-			// Friendly Queen
-			if (friendlyBoard & (1ULL << square)) {
+			// White Queen
+			if (board->whitePieces & (1ULL << square)) {
 				evaluation += 0.7f * openFileBonus;
-				friendlyOrths += 1;
+				whiteOrths += 1;
 			}
-			// Enemy Queen
+			// Black Queen
 			else {
 				evaluation -= 0.7f * openFileBonus;
-				enemyOrths += 1;
+				blackOrths += 1;
 			}
 		}
 		// Only rooks
@@ -537,26 +523,26 @@ namespace SandalBot {
 
 		while (OrthFile != 0ULL) {
 			square = BitBoardUtility::popLSB(OrthFile);
-			// Friendly Rook
-			if (friendlyBoard & (1ULL << square)) {
+			// White Rook
+			if (board->whitePieces & (1ULL << square)) {
 				evaluation += openFileBonus;
-				friendlyOrths += 1;
+				whiteOrths += 1;
 			}
-			// Enemy Rook
+			// Black Rook
 			else {
 				evaluation -= openFileBonus;
-				enemyOrths += 1;
+				blackOrths += 1;
 			}
 		}
 
 		evaluation = pawnCounter == 0 ? evaluation : 0.2f * evaluation;
 
-		if (openDiagFileNearKing(column, friendlyKingSquare) && enemyOrths != 0) {
-			evaluation -= openFileNearKingBonus * enemyOrths;
+		if (openDiagFileNearKing(column, whiteKingSquare) && blackOrths != 0) {
+			evaluation -= openFileNearKingBonus * blackOrths;
 		}
 
-		if (openDiagFileNearKing(column, enemyKingSquare) && friendlyOrths != 0) {
-			evaluation += openFileNearKingBonus * friendlyOrths;
+		if (openDiagFileNearKing(column, blackKingSquare) && whiteOrths != 0) {
+			evaluation += openFileNearKingBonus * whiteOrths;
 		}
 
 		return evaluation;
@@ -566,10 +552,9 @@ namespace SandalBot {
 		// Endgame is less likely to require open diags
 		if (endGameWeight >= 0.3)
 			return 0;
-		// If no diagonal pieces, no use of open diag
-		if (board->orthogonalPieces == 0ULL) {
+		// If open/semi-open diagonal has no diagonal pieces, unlikely to be advantageous
+		if (board->diagonalPieces == 0ULL)
 			return 0;
-		}
 
 		int evaluation = 0;
 		uint64_t forwardDiagMask;
@@ -638,20 +623,20 @@ namespace SandalBot {
 		// Start by analysing queens on file
 		uint64_t diagPieces = diag & board->orthogonalPieces & board->diagonalPieces;
 
-		int friendlyDiags = 0;
-		int enemyDiags = 0;
+		int whiteDiags = 0;
+		int blackDiags = 0;
 
 		while (diagPieces != 0ULL) {
 			square = BitBoardUtility::popLSB(diagPieces);
-			// Friendly Queen
-			if (friendlyBoard & (1ULL << square)) {
+			// White Queen
+			if (board->whitePieces & (1ULL << square)) {
 				evaluation += 0.7f * openDiagBonus;
-				friendlyDiags += 1;
+				whiteDiags += 1;
 			}
-			// Enemy Queen
+			// Black Queen
 			else {
 				evaluation -= 0.7f * openDiagBonus;
-				enemyDiags += 1;
+				blackDiags += 1;
 			}
 		}
 		// Only bishops
@@ -659,26 +644,26 @@ namespace SandalBot {
 
 		while (diagPieces != 0ULL) {
 			square = BitBoardUtility::popLSB(diagPieces);
-			// Friendly bishop
-			if (friendlyBoard & (1ULL << square)) {
+			// White bishop
+			if (board->whitePieces & (1ULL << square)) {
 				evaluation += openDiagBonus;
-				friendlyDiags += 1;
+				whiteDiags += 1;
 			}
-			// Enemy bishop
+			// Black bishop
 			else {
 				evaluation -= openDiagBonus;
-				enemyDiags += 1;
+				blackDiags += 1;
 			}
 		}
 
 		evaluation = pawnCounter == 0 ? evaluation : 0.2f * evaluation;
 		// Evaluate whether open diagonal is near a king - impacts king safety
-		if (openDiagFileNearKing(diag, friendlyKingSquare) && enemyDiags != 0) {
-			evaluation -= openDiagNearKingBonus * enemyDiags;
+		if (openDiagFileNearKing(diag, whiteKingSquare) && blackDiags != 0) {
+			evaluation -= openDiagNearKingBonus * blackDiags;
 		}
 
-		if (openDiagFileNearKing(diag, enemyKingSquare) && friendlyDiags != 0) {
-			evaluation += openDiagNearKingBonus * friendlyDiags;
+		if (openDiagFileNearKing(diag, blackKingSquare) && whiteDiags != 0) {
+			evaluation += openDiagNearKingBonus * whiteDiags;
 		}
 
 		return evaluation;
@@ -732,7 +717,7 @@ namespace SandalBot {
 			blackEval += (1 - endGameWeight) * PieceEvaluations::kingEval[blackKingSquare] + endGameWeight * PieceEvaluations::kingEndgameEval[blackKingSquare];
 		}
 
-		return maximisingSide * (whiteStaticEval + whiteEval - (blackStaticEval + blackEval));
+		return whiteStaticEval + whiteEval - (blackStaticEval + blackEval);
 	}
 	// Calculate static evaluation of a certain side. Returns static evaluation of a side.
 	int Evaluator::staticPieceEvaluation(PieceList* pieceList, int& material, bool useBlackSquares) {
@@ -770,18 +755,18 @@ namespace SandalBot {
 
 		int mopUpScore = 0;
 
-		int losingKingSquare = evaluation > 0 ? enemyKingSquare : friendlyKingSquare;
+		int losingKingSquare = evaluation > 0 ? blackKingSquare : whiteKingSquare;
 
 		int losingKingCMD = arrCenterManhattanDistance[losingKingSquare];
 
-		int kingsMD = abs((friendlyKingSquare / 8) - (enemyKingSquare / 8)) + abs((friendlyKingSquare % 8) - (enemyKingSquare % 8));
+		int kingsMD = abs((whiteKingSquare / 8) - (blackKingSquare / 8)) + abs((whiteKingSquare % 8) - (blackKingSquare % 8));
 
 		// From Chess 4.x
 		mopUpScore = 4.7f * losingKingCMD + 1.6f * (14 - kingsMD);
 		mopUpScore *= endGameWeight;
 
 		// Discourage moving to outer edge of board if losing
-		if (evaluation < 0) {
+		if (!board->state->whiteTurn) {
 			mopUpScore *= -1;
 		}
 

@@ -61,28 +61,16 @@ namespace SandalBot {
 
 		float endGameWeight{};
 
-		int friendlyColor{};
-		int enemyColor{};
-		int friendlyMaterial{};
-		int enemyMaterial{};
-		int friendlyMajorMinorPieces{};
-		int enemyMajorMinorPieces{};
-		int friendlyKingSquare{};
-		int enemyKingSquare{};
-		int maximisingIndex{};
-		int minimisingIndex{};
-		int maximisingSide{};
 		int evaluation{};
 
+		int whiteKingSquare{};
+		int blackKingSquare{};
 		int whiteStaticEval{};
 		int blackStaticEval{};
 		int whiteMaterial{};
 		int blackMaterial{};
 		int whiteMMPieces{};
 		int blackMMPieces{};
-
-		uint64_t friendlyBoard{};
-		uint64_t enemyBoard{};
 
 		void initBlackSquares();
 		void initVariables();

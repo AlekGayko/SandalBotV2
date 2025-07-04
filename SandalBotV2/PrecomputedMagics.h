@@ -31,13 +31,15 @@ namespace SandalBot {
 	public:
 		PrecomputedMagics();
 		~PrecomputedMagics();
+		std::size_t getOrthIndex(const uint64_t blockers, const int square) const { return (blockers * orthogonalMagics[square].magic) >> orthogonalMagics[square].rightShift; }
+		std::size_t getDiagIndex(const uint64_t blockers, const int square) const { return (blockers * diagonalMagics[square].magic) >> diagonalMagics[square].rightShift; }
 		void addOrthogonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards);
 		void addDiagonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards);
 		uint64_t getOrthogonalMovement(const int square, const uint64_t blockers) const {
-			return orthogonalMoves[square][(blockers * orthogonalMagics[square].magic) >> orthogonalMagics[square].rightShift];
+			return orthogonalMoves[square][getOrthIndex(blockers, square)];
 		}
 		uint64_t getDiagonalMovement(const int square, const uint64_t blockers) const {
-			return diagonalMoves[square][(blockers * diagonalMagics[square].magic) >> diagonalMagics[square].rightShift];
+			return diagonalMoves[square][getDiagIndex(blockers, square)];
 		}
 	};
 
