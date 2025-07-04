@@ -1,18 +1,13 @@
 #ifndef BITBOARDUTILITY_H
 #define BITBOARDUTILITY_H
 
-#include <cassert>
 #include <cstdint>
 #include <iostream>
 
 #if defined(__GNUC__)
-    #include <x86intrin.h>
+	#include <x86intrin.h>
 #elif defined(_MSC_VER) 
 	#include <intrin.h>
-#endif
-
-#if defined(__BMI__)
-	#define USE_TZCNT
 #endif
 
 // BitBoardUtility provides utility functions for bitboards
@@ -67,13 +62,8 @@ namespace SandalBot::BitBoardUtility {
 	}
 	// 'pops' the least significant bit from a bitboard and returns the index of that bit
 	inline int popLSB(uint64_t& bitBoard) {
-		int trailingZeroes;
 		// index of LSB
-		#if defined(USE_TZCNT)
-			trailingZeroes = static_cast<int>(_tzcnt_u64(bitBoard));
-		#else
-			assert(false);
-		#endif
+		int trailingZeroes = static_cast<int>(_tzcnt_u64(bitBoard));
 
 		bitBoard &= bitBoard - 1ULL; // Use bit manipulation to remove LSB
 		return trailingZeroes;

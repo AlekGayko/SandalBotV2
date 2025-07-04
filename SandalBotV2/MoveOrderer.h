@@ -14,11 +14,12 @@ namespace SandalBot {
 	using PointValue = int16_t;
 
 	// Struct holds a move and corresponding heuristic value
+	#pragma pack(push, 1)
 	struct MovePoint {
 		PointValue value{};
 		Move move{};
 	};
-
+	#pragma pack(pop)
 	// MoveOrderer heuristically orders and array of moves from best to worst.
 	// Uses a scoring system to order moves, and also employs 'killer' moves,
 	// which are previously found moves which have been historically good
