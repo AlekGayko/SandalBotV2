@@ -5,7 +5,7 @@
 #include "CoordHelper.h"
 #include "Move.h"
 #include "PieceList.h"
-#include "stateHistory.h"
+#include "StateHistory.h"
 
 namespace SandalBot {
 
