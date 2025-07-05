@@ -1,6 +1,7 @@
 #include "Evaluator.h"
 #include "BitBoardUtility.h"
 
+#include <cassert>
 #include <iostream>
 
 using namespace std;
@@ -680,6 +681,7 @@ namespace SandalBot {
 		whiteStaticEval = staticPieceEvaluation(board->pieceLists[Board::whiteIndex], whiteMaterial);
 		blackStaticEval = staticPieceEvaluation(board->pieceLists[Board::blackIndex], blackMaterial, true);
 	}
+	
 	// Returns evaluation from static piece values. Need to do calculations for kings and pawns since
 	// they are affected by endgame weight (which cannot be progressively applied like others)
 	int Evaluator::staticPieceEvaluations() {
@@ -798,6 +800,54 @@ namespace SandalBot {
 		endGameWeight = min(1.f, (whiteMMPieces + blackMMPieces) / endgameRequiredPieces);
 		endGameWeight *= endGameWeight;
 		endGameWeight = 1.f - endGameWeight;
+	}
+
+	// When applying a move to the board, compute the difference in static evaluation before the move is made
+	void Evaluator::updateStaticEval(Board* board, Move move) {
+		assert(board != nullptr);
+
+		uint16_t startSquare = move.getStartSquare();
+		uint16_t targetSquare = move.getTargetSquare();
+
+		int piece = Piece::type(board->squares[startSquare]);
+		staticPieceMove(piece, startSquare, targetSquare, board->state->whiteTurn);
+
+		if (board->squares[targetSquare] != Piece::empty) {
+			int deletedPiece = Piece::type(board->squares[targetSquare]);
+			staticPieceDelete(deletedPiece, targetSquare, board->state->whiteTurn);
+		}
+
+		switch (move.getFlag()) {
+			case Move::noFlag:
+				return;
+			case Move::enPassantCaptureFlag:
+				break;
+			case Move::castleFlag:
+				break;
+			default: // Promotion Moves
+				staticPieceDelete(Piece::pawn, targetSquare, board->state->whiteTurn); // !whiteTurn?????????? see abt it
+				switch (move.getFlag()) {
+				case Move::promoteToBishopFlag:
+					staticPieceSpawn(Piece::bishop, targetSquare, board->state->whiteTurn);
+					break;
+				case Move::promoteToKnightFlag:
+					staticPieceSpawn(Piece::knight, targetSquare, board->state->whiteTurn);
+					break;
+				case Move::promoteToQueenFlag:
+					staticPieceSpawn(Piece::queen, targetSquare, board->state->whiteTurn);
+					break;
+				case Move::promoteToRookFlag:
+					staticPieceSpawn(Piece::rook, targetSquare, board->state->whiteTurn);
+					break;
+				}
+				break;
+		}
+	}
+
+	// When undoing a move on the board, compute the difference in static evaluation before the move is made
+	void Evaluator::undoStaticEval(Board* board, Move move) {
+		assert(board != nullptr);
+		staticPieceMove()
 	}
 
 	// Adjusts the static evaluation for when a piece moves on the board

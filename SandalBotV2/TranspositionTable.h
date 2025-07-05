@@ -48,11 +48,11 @@ namespace SandalBot {
 			}
 		};
 		
-		static constexpr size_t defaultSizeMB = 128; // Default size of table in MB
+		static constexpr std::size_t defaultSizeMB = 128; // Default size of table in MB
 		Entry* table{ nullptr };
 		Move nullMove{};
 
-		size_t getIndex(uint64_t hash) const { return hash % size; }
+		std::size_t getIndex(uint64_t hash) const { return hash % size; }
 	public:
 		// Sentinel value for evaluation
 		static constexpr int notFound{ std::numeric_limits<int>::min() };
@@ -61,8 +61,8 @@ namespace SandalBot {
 		static constexpr uint8_t lowerBound{ 1 };
 		static constexpr uint8_t upperBound{ 2 };
 		// Size of table and number of slots filled
-		size_t size{};
-		size_t slotsFilled{};
+		std::size_t size{};
+		std::size_t slotsFilled{};
 
 		TranspositionTable() : size(0) {}
 		TranspositionTable(Board* board, int sizeMB=defaultSizeMB);

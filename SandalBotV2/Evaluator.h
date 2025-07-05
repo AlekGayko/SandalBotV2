@@ -120,9 +120,10 @@ namespace SandalBot {
 		Evaluator();
 		Evaluator(Board* board, MovePrecomputation* precomputation);
 		int Evaluate();
-		void updateMoveEval(Move& move);
 		void initStaticVariables();
 		void initPieceEvaluations();
+		void updateStaticEval(Board* board, Move move);
+		void undoStaticEval(Board* board, Move move);
 		void staticPieceMove(const int piece, int startSquare, int targetSquare, const bool whiteTurn);
 		void staticPieceDelete(const int piece, int square, const bool whiteTurn);
 		void staticPieceSpawn(const int piece, int square, const bool whiteTurn);
