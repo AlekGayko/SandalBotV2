@@ -845,10 +845,10 @@ namespace SandalBot {
 	}
 
 	// When undoing a move on the board, compute the difference in static evaluation before the move is made
-	void Evaluator::undoStaticEval(Board* board, Move move) {
-		assert(board != nullptr);
-		staticPieceMove()
-	}
+	// void Evaluator::undoStaticEval(Board* board, Move move) {
+	// 	assert(board != nullptr);
+	// 	staticPieceMove()
+	// }
 
 	// Adjusts the static evaluation for when a piece moves on the board
 	void Evaluator::staticPieceMove(const int piece, int startSquare, int targetSquare, const bool whiteTurn) {

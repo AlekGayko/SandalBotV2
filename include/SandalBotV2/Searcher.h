@@ -65,7 +65,7 @@ namespace SandalBot {
 
 		void iterativeSearch();
 		int negaMax(int alpha, int beta, int depth, int maxDepth, int numExtensions);
-		uint64_t moveSearch(bool isMaximising, int depth, int maxDepth);
+		uint64_t moveSearch(int depth, int maxDepth);
 		int quiescenceSearch(int alpha, int beta, int maxDepth);
 		bool worthSearching(Move move, const bool isCheck, const int numExtensions);
 		void moveSleep(int moveTimeMs);
@@ -77,7 +77,6 @@ namespace SandalBot {
 		MoveGen* moveGenerator{ nullptr };
 		MoveOrderer* orderer{ nullptr };
 		Move bestMove{};
-		int movesSince{ 0 }; // Tracks number of nodes found in perft
 
 		Searcher() {};
 		Searcher(Board* board);

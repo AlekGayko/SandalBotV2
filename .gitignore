@@ -418,6 +418,8 @@ $RECYCLE.BIN/
 # Package files
 *.nupkg
 *.snupkg
+vcpkg/
+vcpkg_installed/
 
 # Ignore Visual Studio project files
 *.vcxproj
@@ -426,4 +428,7 @@ $RECYCLE.BIN/
 
 SandalBotTests/*
 
-SandalBotV2/logs.txt
+src/logs.txt
+
+build/
+

@@ -1,22 +1,146 @@
 # SandalBotV2
-SandalBotV2 is a chess bot written in C++. Unlike the original, this project aims to achieve modularity, clean code and follow object-oriented principles.
-The bot follows standard UCI protocols and uses various techniques to achieve optimal play.
-# Features
-- Iterative Deepening
-- Negamax Search
-- Quiescence Search
-- Move Ordering
-- Depth Reduction and Extension
-- Transposition Table
-- Move Pre-Computation
-- Bitboards
-- Magic Bitboards
-- Piece-Square Tables
-- Open File/Diagonal Evaluation
-- Pawn Shield Evaluation
-- Passed-Pawn Evaluation
-- Pawn Island Evaluation
 
-# Lichess Account
-SandalBotV2 can be found playing on the 'SandalBot' account.
-https://lichess.org/@/SandalBot
+**SandalBotV2** is a high-performance chess engine written in modern C++.  
+It implements the Universal Chess Interface (UCI) protocol, allowing it to communicate seamlessly with popular chess GUIs and tools. SandalBotV2 integrates several advanced search and evaluation techniques designed to deliver strong, efficient gameplay while maintaining extensibility for further improvements.
+
+At its core, SandalBotV2 features an iterative deepening negamax search enhanced with alpha-beta pruning, quiescence search to avoid horizon effects, sophisticated move ordering, and transposition tables for efficient state reuse. The engine uses bitboards and magic bitboards for fast move generation and position evaluation. Additionally, it incorporates heuristic evaluation features like piece-square tables, pawn structure evaluation (including pawn islands and passed pawns), open file and diagonal control, and king safety via pawn shield analysis.
+
+This combination allows SandalBotV2 to effectively balance search depth and evaluation accuracy, making it a competitive and insightful chess engine.
+
+---
+
+## Setup
+
+### 1. (Optional) Clone and Build vcpkg
+
+To build and run **unit tests** and **benchmarking**, the project depends on Google Test (GTest) and Google Benchmark libraries, which are managed via [vcpkg](https://github.com/microsoft/vcpkg).
+
+To automate downloading and bootstrapping vcpkg, run the provided script:
+
+#### Linux / WSL
+
+```bash
+chmod +x scripts/setup_vcpkg.sh
+./scripts/setup_vcpkg.sh
+```
+
+#### Windows (PowerShell)
+
+```powershell
+.\scripts\setup_vcpkg.ps1
+```
+
+*Note:*  
+Make sure you have Git, CMake, and a compatible compiler installed before running these scripts.
+
+---
+
+### 2. Generate Build Files
+
+Use CMake to configure the project and generate platform-appropriate build files.
+
+#### Linux
+
+```bash
+cmake -S . -B build -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Release
+```
+
+- Replace `ON` with `OFF` as needed.
+- Replace 'Release' with 'Debug' as needed.
+
+*Note:*
+- Setting 'ON' to either `BUILD_TESTING` or `BUILD_BENCHMARKS` will generate a static library for the src files.
+
+#### Windows (Visual Studio 2022 example)
+
+```powershell
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON
+```
+
+*Note:*  
+- The `-S .` flag specifies the source directory (current directory).  
+- The `-B build` flag specifies the output build directory.
+
+---
+
+### 3. Build
+
+#### Linux
+
+Build the project with:
+
+```bash
+cmake --build build --config Release
+```
+
+*You can replace `Release` with `Debug` or other build types as configured.*
+
+#### Windows
+
+- Open the generated `.sln` file located in `build/` with Visual Studio.  
+
+---
+
+## Testing
+
+Unit and integration tests are managed via CTest.
+
+#### Linux / WSL / Command Line
+
+Navigate to the build directory:
+
+```bash
+cd build
+```
+
+List available tests without running them:
+
+```bash
+ctest -N
+```
+
+Run the full test suite:
+
+```bash
+ctest --output-on-failure
+```
+
+Run a specific subset or test by name pattern:
+
+```bash
+ctest -R <TEST_NAME>
+```
+
+---
+
+## Benchmarking
+
+*Benchmarking support is under development and will be documented here soon.*
+
+---
+
+## Features
+
+- **Iterative Deepening**: Gradually increases search depth for anytime move results.  
+- **Negamax Search**: Simplifies minimax logic using negamax formulation.  
+- **Quiescence Search**: Extends search in tactical positions to avoid horizon effect.  
+- **Move Ordering**: Heuristics to search promising moves first (captures, promotions, killer moves).  
+- **Depth Reduction and Extension**: Adjusts search depth dynamically for efficiency and accuracy.  
+- **Transposition Table**: Caches evaluated positions to avoid redundant calculations.  
+- **Move Pre-Computation**: Precalculates moves for efficiency.  
+- **Bitboards and Magic Bitboards**: Efficient board representation and move generation.  
+- **Piece-Square Tables**: Position-dependent piece valuation.  
+- **Open File / Diagonal Evaluation**: Considers control over open lines.  
+- **Pawn Shield Evaluation**: Evaluates king safety based on pawn structure.  
+- **Passed-Pawn and Pawn Island Evaluation**: Analyzes pawn structure weaknesses and strengths.
+
+---
+
+## Lichess Account
+
+Watch SandalBotV2 in action on Lichess:  
+[https://lichess.org/@/SandalBot](https://lichess.org/@/SandalBot)
+
+---
+
+*Licensed under the MIT License.*

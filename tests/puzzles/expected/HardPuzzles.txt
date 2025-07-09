@@ -1,0 +1,37 @@
+b7e4 M2
+c7d6 M2
+e4b7 M2
+c8h8 M3
+d7h3 M3
+f2a2 M3
+b5d3 M3
+c3b1 M4
+b7a6 M4
+h3f5 M4
+e1c3 M5
+c8d6 M4
+b7g7 M6
+a5a8 Material Advantage
+d3h7 M3
+h2d6 M2
+d7d8 M3
+a6a2 M2
+d6f7 Knight Fork
+e4f6 M4
+h6c1 M3
+a2a6 M2
+h4h3 M5
+f3e5 Material Advantage
+d6d8 M5
+g5g7 M5
+g2g4 Material Advantage
+f4e2 M5
+h6g7 M3
+h8g8 M6
+e5g6 Material Advantage / Defense
+a8g8 M3
+f7g7 M4
+e5f7 M4
+b3h3 M4
+h5g3 M3
+f4h6 M3

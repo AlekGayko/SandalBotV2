@@ -99,14 +99,17 @@ namespace SandalBot {
 			uint64_t moveBitboard = preComp->getOrthMovementBoard(startSquare, blockers);
 
 			moveBitboard &= ~(friendlyBoard); // Disallow taking friendly pieces
+
 			// If in check, only allow taking checking piece or blocking check
 			if (isCheck) {
 				moveBitboard &= checkBB;
 			}
+
 			// If pinned, only allow movement along pinned direction
 			if (isPinned) {
 				moveBitboard &= checkRayBB;
 			}
+
 			// If only captures, only consider moves that take enemy pieces
 			if (generateCaptures) {
 				moveBitboard &= enemyBoard;
@@ -119,6 +122,7 @@ namespace SandalBot {
 			if (isPinned && abs(friendlyKingSquare - startSquare) % 8 == 0) {
 				moveBitboard &= preComp->getColMask(startSquare);
 			}
+
 			// For every available move, add to moves array
 			while (moveBitboard != 0ULL) {
 				targetSquare = BitBoardUtility::popLSB(moveBitboard);

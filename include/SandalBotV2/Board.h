@@ -13,6 +13,7 @@ namespace SandalBot {
 
 	struct BoardState;
 	class Evaluator;
+	;
 
 	// Board class encapsulates the current and previous states of the board
 	// including piece positions, and previous positions

@@ -308,19 +308,22 @@ namespace SandalBot {
 	}
 
 	// Movesearch purely searches using recursion. Used for perft command to test move generation
-	uint64_t Searcher::moveSearch(bool isMaximising, int depth, int maxDepth) {
+	uint64_t Searcher::moveSearch(int depth, int maxDepth) {
 		if (depth == maxDepth) {
-			return 1;
+			return 1ULL;
 		}
 
 		// Generate moves
-		uint64_t movesGenerated = 0;
+		uint64_t movesGenerated = 0ULL;
+
 		MovePoint moves[218];
+
 		int numMoves = moveGenerator->generateMoves(moves);
 		for (int i = 0; i < numMoves; i++) {
+			uint64_t numMoves{ 0ULL }; // Tracks number of nodes found in perft
 			// Simulate move
 			board->makeMove(moves[i].move);
-			movesGenerated += moveSearch(!isMaximising, depth + 1, maxDepth);
+			numMoves += moveSearch(depth + 1, maxDepth);
 			board->unMakeMove(moves[i].move);
 
 			// If at depth 0, print number of moves from branch, incredibly useful for debugging and
@@ -341,10 +344,11 @@ namespace SandalBot {
 					promotionpiece = "n";
 					break;
 				}
-				cout << CoordHelper::indexToString(moves[i].move.getStartSquare()) << CoordHelper::indexToString(moves[i].move.getTargetSquare()) << promotionpiece << ": " << movesGenerated - movesSince << endl;
-				movesSince = movesGenerated;
+				cout << CoordHelper::indexToString(moves[i].move.getStartSquare()) 
+				<< CoordHelper::indexToString(moves[i].move.getTargetSquare()) 
+				<< promotionpiece << ": " << numMoves << endl;
 			}
-
+			movesGenerated += numMoves;
 		}
 		return movesGenerated;
 	}
@@ -482,8 +486,7 @@ namespace SandalBot {
 
 	// Performs perft test
 	uint64_t Searcher::perft(int depth) {
-		movesSince = 0;
-		return moveSearch(board->state->whiteTurn, 0, depth);
+		return moveSearch(0, depth);
 	}
 
 	// Formats evaluation to string, accounting for checkmate scores as well

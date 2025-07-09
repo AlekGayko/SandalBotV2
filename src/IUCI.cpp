@@ -22,7 +22,6 @@ namespace SandalBot {
 		ofstream logs(logPath.data(), ios::trunc);
 
 		if (!logs.is_open()) {
-			cout << "hi" << endl;
 			cerr << "Couldn't empty logs" << endl;
 		}
 		logs.close();
@@ -31,7 +30,7 @@ namespace SandalBot {
 	// Init members
 	IUCI::IUCI() {
 		beginningMessage();
-		emptyLogs();
+
 		bot = new Bot();
 		optionHandler = new OptionHandler(bot);
 	}
@@ -43,7 +42,6 @@ namespace SandalBot {
 	// Processes command string and parses it.
 	void IUCI::processCommand(string command) {
 		try {
-			logInfo("Command received: " + command);
 			command = StringUtil::trim(command); // Strip leading and end spaces
 			// Acquire first word
 			const string commandType = StringUtil::toLower(StringUtil::splitString(command)[0]);
@@ -68,11 +66,9 @@ namespace SandalBot {
 				processSetOption(command);
 			} else if (commandType == "d") {
 				bot->printBoard();
-			} else {
-				logInfo("Unknown Command: " + commandType);
 			}
 		} catch (exception& e) {
-			logInfo(e.what());
+
 		}
 	}
 	// 'ucinewgame' command, deletes bot and instantiates new one
@@ -189,8 +185,6 @@ namespace SandalBot {
 			for (string move : moveList) {
 				bot->makeMove(move);
 			}
-
-			logInfo("Make moves after setting position: " + to_string(moveList.size()));
 		}
 	}
 	// Set an option from user input
@@ -203,7 +197,6 @@ namespace SandalBot {
 	// Prints response parameter and logs it to file
 	void IUCI::respond(string response) {
 		cout << response << endl;
-		logInfo("Response: " + response);
 		cout.flush();
 	}
 
