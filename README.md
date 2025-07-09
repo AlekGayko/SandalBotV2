@@ -81,6 +81,22 @@ cmake --build build --config Release
 
 ---
 
+## Run Executable
+
+#### Linux
+
+Run engine with command:
+
+```bash
+./build/src/SandalBotV2
+```
+
+#### Windows
+
+- Click the 'run' button in Visual Studio.
+
+---
+
 ## Testing
 
 Unit and integration tests are managed via CTest.
