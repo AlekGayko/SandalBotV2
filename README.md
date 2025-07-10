@@ -17,7 +17,7 @@ To build and run **unit tests** and **benchmarking**, the project depends on Goo
 
 To automate downloading and bootstrapping vcpkg, run the provided script:
 
-#### Linux / WSL
+#### Linux
 
 ```bash
 chmod +x scripts/setup_vcpkg.sh
