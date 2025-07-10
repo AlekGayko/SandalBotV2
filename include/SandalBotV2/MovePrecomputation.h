@@ -12,6 +12,45 @@ namespace SandalBot {
 	// MovePrecomputation provides utility data for move generation, evaluation and more.
 	// Data is computed on instantiation to avoid recomputation
 	class MovePrecomputation {
+		public:
+		struct dirDist {
+			// Distances between piece and sides of board
+			int top{};
+			int left{};
+			int right{};
+			int bottom{};
+			int direction[8]{};
+			bool knightSquares[8]{};
+			int minVertical{};
+			int minHorizontal{};
+			dirDist() {}
+			dirDist(int top, int left, int right, int bottom);
+		};
+
+		dirDist directionDistances[64]; // Provides distance to edges
+
+
+		MovePrecomputation();
+
+		uint64_t getForwardMask(const int square) const { return forwardDiagonalMasks[(square / 8) + (square % 8)]; }
+		uint64_t getBackwardMask(const int square) const { return backwardDiagonalMasks[7 + (square / 8) - (square % 8)]; }
+		uint64_t getRowMask(const int square) const { return rowMask << ((square / 8) * 8); }
+		uint64_t getColMask(const int square) const { return columnMask << (square % 8); }
+		uint64_t getBlockerOrthogonalMask(const int square) const { return blockerOrthogonalMasks[square]; }
+		uint64_t getBlockerDiagonalMask(const int square) const { return blockerDiagonalMasks[square]; }
+		uint64_t getOrthMovementBoard(const int square, const uint64_t blockerBoard) const { return magics.getOrthogonalMovement(square, blockerBoard); }
+		uint64_t getDiagMovementBoard(const int square, const uint64_t blockerBoard) const { return magics.getDiagonalMovement(square, blockerBoard); }
+		uint64_t getKnightBoard(const int square) const { return knightMoves[square]; }
+		uint64_t getKingMoves(const int square) const { return kingMoves[square]; }
+		uint64_t getPawnAttackMoves(const int square, const int color) const { return color == Piece::white ? whitePawnAttackMoves[square] : blackPawnAttackMoves[square]; }
+		uint64_t getPassedPawnMask(const int square, const int color) const { return color == Piece::white ? whitePassedPawnMasks[square] : blackPassedPawnMasks[square]; }
+		uint64_t getPawnIslandMask(const int column) const { return pawnIslandMasks[column]; }
+		uint64_t getShieldMask(const int square, const int color) const { return color == Piece::white ? whitePawnShieldMask[square] : blackPawnShieldMask[square]; }
+		uint64_t getDirectionMask(const int square1, const int square2);
+		uint8_t getDistance(const int square1, const int square2) const { return distances[square1][square2]; }
+		uint64_t getKingAttackSquare(const int square, const int color) const { return color == Piece::white ? whiteKingAttackZone[square] : blackKingAttackZone[square]; }
+		uint64_t getUnbiasKingAttackZone(const int square) const { return kingUnbiasAttackZone[square]; }
+	private:
 		// Mask of single row and column
 		static constexpr uint64_t rowMask{ 0b11111111ULL };
 		static constexpr uint64_t columnMask{ 0x0101010101010101ULL };
@@ -87,44 +126,6 @@ namespace SandalBot {
 		uint64_t createOrthogonalMovement(int square, uint64_t blockerBoard);
 		uint64_t createDiagonalMovement(int square, uint64_t blockerBoard);
 		uint64_t createMovement(int square, uint64_t blockerBoard, int start, int end);
-	public:
-		struct dirDist {
-			// Distances between piece and sides of board
-			int top{};
-			int left{};
-			int right{};
-			int bottom{};
-			int direction[8]{};
-			bool knightSquares[8]{};
-			int minVertical{};
-			int minHorizontal{};
-			dirDist() {}
-			dirDist(int top, int left, int right, int bottom);
-		};
-
-		dirDist directionDistances[64]; // Provides distance to edges
-
-
-		MovePrecomputation();
-
-		uint64_t getForwardMask(const int square) const { return forwardDiagonalMasks[(square / 8) + (square % 8)]; }
-		uint64_t getBackwardMask(const int square) const { return backwardDiagonalMasks[7 + (square / 8) - (square % 8)]; }
-		uint64_t getRowMask(const int square) const { return rowMask << ((square / 8) * 8); }
-		uint64_t getColMask(const int square) const { return columnMask << (square % 8); }
-		uint64_t getBlockerOrthogonalMask(const int square) const { return blockerOrthogonalMasks[square]; }
-		uint64_t getBlockerDiagonalMask(const int square) const { return blockerDiagonalMasks[square]; }
-		uint64_t getOrthMovementBoard(const int square, const uint64_t blockerBoard) const { return magics.getOrthogonalMovement(square, blockerBoard); }
-		uint64_t getDiagMovementBoard(const int square, const uint64_t blockerBoard) const { return magics.getDiagonalMovement(square, blockerBoard); }
-		uint64_t getKnightBoard(const int square) const { return knightMoves[square]; }
-		uint64_t getKingMoves(const int square) const { return kingMoves[square]; }
-		uint64_t getPawnAttackMoves(const int square, const int color) const { return color == Piece::white ? whitePawnAttackMoves[square] : blackPawnAttackMoves[square]; }
-		uint64_t getPassedPawnMask(const int square, const int color) const { return color == Piece::white ? whitePassedPawnMasks[square] : blackPassedPawnMasks[square]; }
-		uint64_t getPawnIslandMask(const int column) const { return pawnIslandMasks[column]; }
-		uint64_t getShieldMask(const int square, const int color) const { return color == Piece::white ? whitePawnShieldMask[square] : blackPawnShieldMask[square]; }
-		uint64_t getDirectionMask(const int square1, const int square2);
-		uint8_t getDistance(const int square1, const int square2) const { return distances[square1][square2]; }
-		uint64_t getKingAttackSquare(const int square, const int color) const { return color == Piece::white ? whiteKingAttackZone[square] : blackKingAttackZone[square]; }
-		uint64_t getUnbiasKingAttackZone(const int square) const { return kingUnbiasAttackZone[square]; }
 	};
 
 }

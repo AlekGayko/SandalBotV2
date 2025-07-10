@@ -8,12 +8,11 @@ using namespace std;
 
 namespace SandalBot {
 
-	MoveOrderer::MoveOrderer(Board* board, MoveGen* gen, Searcher* searcher)
-		: board(board), generator(gen), searcher(searcher) {}
+	MoveOrderer::MoveOrderer(MoveGen* gen) : generator(gen) {}
 
 	// Assigns each move in decayed c array a heuristic value depending on its effectiveness.
 	// Sorts array based on list point values
-	void MoveOrderer::order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch) {
+	void MoveOrderer::order(Board* board, MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch) {
 		// No need to sort one move
 		if (numMoves <= 1) return;
 

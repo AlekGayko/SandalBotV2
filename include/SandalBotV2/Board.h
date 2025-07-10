@@ -19,18 +19,6 @@ namespace SandalBot {
 	// including piece positions, and previous positions
 	class Board {
 		friend class Searcher;
-	private:
-		void loadPieceLists();
-		void loadBitBoards();
-		void flagMoveChanges(Move move, uint64_t& newZobristHash, int& enPassantSquare, int colorIndex, int oppositeIndex);
-		int updateCastlingRights(const int piece, const int colorIndex, const int startSquare, int castlingRights);
-		void makeEnPassantChanges(Move move, uint64_t& newZobristHash, int oppositeIndex);
-		void makeCastlingChanges(Move move, uint64_t& newZobristHash, int colorIndex);
-		int makePromotionChanges(Move move, int piece, int colorIndex);
-		void undoEnPassantChanges(Move move);
-		void undoCastlingChanges(Move move);
-		void updateBitBoards(Move move, int pieceType, int takenPiece);
-		void undoBitBoards(Move move, int pieceType, int takenPiece);
 	public:
 		int squares[64]; // Represents the pieces on each board square
 
@@ -56,12 +44,24 @@ namespace SandalBot {
 		Board();
 
 		void setEvaluator(Evaluator* evaluator);
-		
+
 		void loadPosition(std::string_view fen);
 		void makeMove(Move move);
 		void unMakeMove(Move move);
-		void printBoard();
+		void printBoard() const;
 		std::vector<uint64_t> getBitBoards();
+	private:
+		void loadPieceLists();
+		void loadBitBoards();
+		void flagMoveChanges(Move move, uint64_t& newZobristHash, int& enPassantSquare, int colorIndex, int oppositeIndex);
+		int updateCastlingRights(const int piece, const int colorIndex, const int startSquare, int castlingRights);
+		void makeEnPassantChanges(Move move, uint64_t& newZobristHash, int oppositeIndex);
+		void makeCastlingChanges(Move move, uint64_t& newZobristHash, int colorIndex);
+		int makePromotionChanges(Move move, int piece, int colorIndex);
+		void undoEnPassantChanges(Move move);
+		void undoCastlingChanges(Move move);
+		void updateBitBoards(Move move, int pieceType, int takenPiece);
+		void undoBitBoards(Move move, int pieceType, int takenPiece);
 	};
 
 }

@@ -34,7 +34,7 @@ namespace SandalBot {
 		// Start Position FEN string
 		constexpr std::string_view startpos { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
 
-		std::string generateFEN(Board* board, bool includeEPSquare = true);
+		std::string generateFEN(const Board* board, bool includeEPSquare = true);
 
 		// Creates PositionInfo to parse FEN and return parsed data
 		PositionInfo fenToPosition(std::string_view FEN);

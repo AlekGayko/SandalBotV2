@@ -16,6 +16,46 @@ namespace SandalBot {
 		friend class MoveOrderer;
 		friend class MovePrecomputation;
 		friend class Searcher;
+	public:
+		MovePrecomputation* preComp{ nullptr };
+
+		// Castling information
+		static constexpr int startingKingSquares[2]{ 4, 60 };
+		static constexpr int shortCastleKingSquares[2]{ 6, 62 };
+		static constexpr int longCastleKingSquares[2]{ 2, 58 };
+		static constexpr int shortCastleRookSquares[2]{ 7, 63 };
+		static constexpr int longCastleRookSquares[2]{ 0, 56 };
+		static constexpr int shortCastleRookSpawn[2]{ 5, 61 };
+		static constexpr int longCastleRookSpawn[2]{ 3, 59 };
+		static constexpr int maxMoves{ 218 };
+
+		bool isCheck{}; // Tracks whether there is check in position
+
+		MoveGen();
+		MoveGen(Board* board);
+		~MoveGen();
+		int generateMoves(MovePoint moves[], bool capturesOnly = false);
+		void initVariables(bool capturesOnly);
+		void generateOrthogonalMoves(MovePoint moves[]);
+		void generateDiagonalMoves(MovePoint moves[]);
+		void generateKnightMoves(MovePoint moves[]);
+		void generateKingMoves(MovePoint moves[]);
+		void generatePawnMoves(MovePoint moves[]);
+		void enPassantMoves(MovePoint moves[], int targetSquare, int startSquare);
+		void promotionMoves(MovePoint moves[], int targetSquare, int startSquare);
+		void castlingMoves(MovePoint moves[], int startSquare);
+
+		uint64_t generateKnightAttackData(const uint64_t enemyBoard);
+		uint64_t generatePawnAttackData(const uint64_t enemyBoard, const int opposingColor);
+		uint64_t generateKingAttackData(const int enemyKingSquare);
+		uint64_t generateOrthogonalAttackData(const uint64_t orthogonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
+		uint64_t generateDiagonalAttackData(const uint64_t diagonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
+		void generateAttackData();
+		void generateCheckData();
+
+		bool enPassantPin(int friendlyPawnSquare, int enemyPawnSquare);
+
+		void updateResults(Move moves[]);
 	private:
 		Board* board = nullptr;
 
@@ -48,47 +88,6 @@ namespace SandalBot {
 		uint64_t checkRayBB{};
 		uint64_t friendlyBoard{};
 		uint64_t enemyBoard{};
-
-	public:
-		MovePrecomputation* preComp{ nullptr };
-
-		// Castling information
-		static constexpr int startingKingSquares[2] { 4, 60 };
-		static constexpr int shortCastleKingSquares[2] { 6, 62 };
-		static constexpr int longCastleKingSquares[2] { 2, 58 };
-		static constexpr int shortCastleRookSquares[2] { 7, 63 };
-		static constexpr int longCastleRookSquares[2] { 0, 56 };
-		static constexpr int shortCastleRookSpawn[2] { 5, 61 };
-		static constexpr int longCastleRookSpawn[2] { 3, 59 };
-		static constexpr int maxMoves{ 218 };
-
-		bool isCheck{}; // Tracks whether there is check in position
-
-		MoveGen();
-		MoveGen(Board* board);
-		~MoveGen();
-		int generateMoves(MovePoint moves[], bool capturesOnly = false);
-		void initVariables(bool capturesOnly);
-		void generateOrthogonalMoves(MovePoint moves[]);
-		void generateDiagonalMoves(MovePoint moves[]);
-		void generateKnightMoves(MovePoint moves[]);
-		void generateKingMoves(MovePoint moves[]);
-		void generatePawnMoves(MovePoint moves[]);
-		void enPassantMoves(MovePoint moves[], int targetSquare, int startSquare);
-		void promotionMoves(MovePoint moves[], int targetSquare, int startSquare);
-		void castlingMoves(MovePoint moves[], int startSquare);
-
-		uint64_t generateKnightAttackData(const uint64_t enemyBoard);
-		uint64_t generatePawnAttackData(const uint64_t enemyBoard, const int opposingColor);
-		uint64_t generateKingAttackData(const int enemyKingSquare);
-		uint64_t generateOrthogonalAttackData(const uint64_t orthogonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
-		uint64_t generateDiagonalAttackData(const uint64_t diagonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
-		void generateAttackData();
-		void generateCheckData();
-
-		bool enPassantPin(int friendlyPawnSquare, int enemyPawnSquare);
-
-		void updateResults(Move moves[]);
 	};
 
 }

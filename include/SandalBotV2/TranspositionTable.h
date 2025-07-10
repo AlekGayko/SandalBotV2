@@ -13,6 +13,26 @@ namespace SandalBot {
 	// evaluation, bestmove, and other information can be stored to avoid recomputation - 
 	// drastically reduced search tree sizes in repetitive positions
 	class TranspositionTable : public ZobristHash {
+	public:
+		// Sentinel value for evaluation
+		static constexpr int notFound{ std::numeric_limits<int>::min() };
+		// Node types
+		static constexpr uint8_t exact{ 0 };
+		static constexpr uint8_t lowerBound{ 1 };
+		static constexpr uint8_t upperBound{ 2 };
+		// Size of table and number of slots filled
+		std::size_t size{};
+		std::size_t slotsFilled{};
+
+		TranspositionTable(int sizeMB = defaultSizeMB);
+		~TranspositionTable() { delete[] table; }
+		Move getBestMove(uint64_t hashKey);
+		int getDepth(uint64_t hashKey);
+		void store(int eval, int16_t remainingDepth, int16_t currentDepth, uint8_t nodeType, Move move, uint64_t hashKey);
+		int lookup(int16_t remainingDepth, int16_t currentDepth, int alpha, int beta, uint64_t hashKey);
+		void clear();
+		int retrieveMateScore(int eval, int16_t currentDepth);
+		int storeMateScore(int eval, int16_t currentDepth);
 	private:
 		// Hash table entry, storing positional information
 		struct Entry {
@@ -53,27 +73,6 @@ namespace SandalBot {
 		Move nullMove{};
 
 		std::size_t getIndex(uint64_t hash) const { return hash % size; }
-	public:
-		// Sentinel value for evaluation
-		static constexpr int notFound{ std::numeric_limits<int>::min() };
-		// Node types
-		static constexpr uint8_t exact{ 0 };
-		static constexpr uint8_t lowerBound{ 1 };
-		static constexpr uint8_t upperBound{ 2 };
-		// Size of table and number of slots filled
-		std::size_t size{};
-		std::size_t slotsFilled{};
-
-		TranspositionTable() : size(0) {}
-		TranspositionTable(Board* board, int sizeMB=defaultSizeMB);
-		~TranspositionTable() { delete[] table; }
-		Move getBestMove(uint64_t hashKey);
-		int getDepth(uint64_t hashKey);
-		void store(int eval, int16_t remainingDepth, int16_t currentDepth, uint8_t nodeType, Move move, uint64_t hashKey);
-		int lookup(int16_t remainingDepth, int16_t currentDepth, int alpha, int beta, uint64_t hashKey);
-		void clear();
-		int retrieveMateScore(int eval, int16_t currentDepth);
-		int storeMateScore(int eval, int16_t currentDepth);
 	};
 
 }

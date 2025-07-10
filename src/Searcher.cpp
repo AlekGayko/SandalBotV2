@@ -17,10 +17,10 @@ namespace SandalBot {
 		: board(board) {
 		// Allocate member variables
 		this->moveGenerator = new MoveGen(board);
-		this->orderer = new MoveOrderer(board, moveGenerator, this);
+		this->orderer = new MoveOrderer(moveGenerator);
 		this->evaluator = new Evaluator(board, moveGenerator->preComp);
 		this->evaluator->generator = moveGenerator;
-		this->tTable = new TranspositionTable(board);
+		this->tTable = new TranspositionTable();
 		this->bestLine = new MoveLine(bestLineSize);
 	}
 
@@ -134,7 +134,7 @@ namespace SandalBot {
 
 		// Order the moves
 		if (numMoves > 1) {
-			orderer->order(moves, bestMove, numMoves, 0, true);
+			orderer->order(board, moves, bestMove, numMoves, 0, true);
 		}
 
 		for (int i = 0; i < numMoves; i++) {
@@ -230,14 +230,9 @@ namespace SandalBot {
 		// Get best move (whether it be bestMove from iterative deepening or previous transpositions)
 		Move currentBestMove = depth == 0 ? std::move(this->bestMove) : tTable->getBestMove(board->state->zobristHash);
 		// Order moves to heuristically narrow search
-		orderer->order(moves, currentBestMove, numMoves, depth, false);
+		orderer->order(board, moves, currentBestMove, numMoves, depth, false);
 
-		for (int i = 0; i < numMoves; i++) {
-			if (board->squares[moves[i].move.getStartSquare()] == Piece::empty) {
-				cout << "depth: " << depth << endl;
-				cout << "maxdepth: " << maxDepth << endl;
-				cout << "extensions: " << numExtensions << endl;
-			}
+		for (int i = 0; i < numMoves; ++i) {
 			// Make move
 			board->makeMove(moves[i].move);
 			bool fullSearch = true;
@@ -319,15 +314,14 @@ namespace SandalBot {
 		MovePoint moves[218];
 
 		int numMoves = moveGenerator->generateMoves(moves);
-		for (int i = 0; i < numMoves; i++) {
+		for (int i = 0; i < numMoves; ++i) {
 			uint64_t numMoves{ 0ULL }; // Tracks number of nodes found in perft
 			// Simulate move
 			board->makeMove(moves[i].move);
 			numMoves += moveSearch(depth + 1, maxDepth);
 			board->unMakeMove(moves[i].move);
 
-			// If at depth 0, print number of moves from branch, incredibly useful for debugging and
-			// comparing to other engines
+			// If at depth 0, print number of moves from branch, useful for debugging
 			if (depth == 0) {
 				string promotionpiece = "";
 				switch (moves[i].move.getFlag()) {
@@ -472,7 +466,7 @@ namespace SandalBot {
 		}
 
 		delete tTable;
-		tTable = new TranspositionTable(board, sizeMB);
+		tTable = new TranspositionTable(sizeMB);
 	}
 
 	// Clears all transposition table entries

@@ -399,7 +399,7 @@ namespace SandalBot {
 	}
 
 	// Prints the formatted board position, FEN representation, and the zobrist hash
-	void Board::printBoard() {
+	void Board::printBoard() const {
 		string result = "";
 
 		for (int y = 0; y < 8; y++) {

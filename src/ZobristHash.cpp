@@ -2,18 +2,17 @@
 #include "Piece.h"
 #include "ZobristHash.h"
 
-#include <iostream>
+#include <cassert>
 #include <functional>
+#include <iostream>
 #include <random>
-#include <unordered_map>
-#include <set>
 
 
 using namespace std;
 
 namespace SandalBot {
 
-	bool ZobristHash::initialised{ false }; // Signifies whether hashes have been initialised
+	bool ZobristHash::initialised{ false };
 
 	// Hash values of each piece for both colors for every square
 	uint64_t ZobristHash::pieceHashes[2][7][64];
@@ -22,14 +21,10 @@ namespace SandalBot {
 	uint64_t ZobristHash::whiteMoveHash; // Hash for sides turn
 
 
-
-	ZobristHash::ZobristHash() : ZobristHash(nullptr) {}
-
-	ZobristHash::ZobristHash(Board* board) : board(board) {
+	ZobristHash::ZobristHash() {
 		// Initialises all hash values
-		if (!initialised) 
+		if (!initialised)
 			initHashes();
-		initialised = true;
 	}
 
 	// Initialises hash member values
@@ -55,19 +50,17 @@ namespace SandalBot {
 		}
 
 		whiteMoveHash = rng();
-	}
 
-	// Returns hash from member board
-	uint64_t ZobristHash::hashBoard() {
-		return hashBoard(board);
+		initialised = true;
 	}
 
 	// Static function returns hash of a given board
 	uint64_t ZobristHash::hashBoard(Board* board) {
+		assert(board != nullptr);
+
 		// Initialise hashes if not
 		if (!initialised) {
 			initHashes();
-			initialised = true;
 		}
 
 		int numPieces;

@@ -9,6 +9,19 @@ namespace SandalBot {
 	// PrecomputedMagics stores hashtable to orthogonal and diagonal moves via indexing by blocker bitboards.
 	// Hashtables are indexed by: (blockerboard * magic number) >> right shift number
 	class PrecomputedMagics {
+	public:
+		PrecomputedMagics();
+		~PrecomputedMagics();
+		std::size_t getOrthIndex(const uint64_t blockers, const int square) const { return (blockers * orthogonalMagics[square].magic) >> orthogonalMagics[square].rightShift; }
+		std::size_t getDiagIndex(const uint64_t blockers, const int square) const { return (blockers * diagonalMagics[square].magic) >> diagonalMagics[square].rightShift; }
+		void addOrthogonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards);
+		void addDiagonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards);
+		uint64_t getOrthogonalMovement(const int square, const uint64_t blockers) const {
+			return orthogonalMoves[square][getOrthIndex(blockers, square)];
+		}
+		uint64_t getDiagonalMovement(const int square, const uint64_t blockers) const {
+			return diagonalMoves[square][getDiagIndex(blockers, square)];
+		}
 	private:
 		#pragma pack(push, 1)
 		struct MagicInfo {
@@ -28,19 +41,6 @@ namespace SandalBot {
 		// Move Maps
 		uint64_t* orthogonalMoves[64];
 		uint64_t* diagonalMoves[64];
-	public:
-		PrecomputedMagics();
-		~PrecomputedMagics();
-		std::size_t getOrthIndex(const uint64_t blockers, const int square) const { return (blockers * orthogonalMagics[square].magic) >> orthogonalMagics[square].rightShift; }
-		std::size_t getDiagIndex(const uint64_t blockers, const int square) const { return (blockers * diagonalMagics[square].magic) >> diagonalMagics[square].rightShift; }
-		void addOrthogonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards);
-		void addDiagonalMoves(int square, std::vector<uint64_t>& blockers, std::vector<uint64_t>& movementBoards);
-		uint64_t getOrthogonalMovement(const int square, const uint64_t blockers) const {
-			return orthogonalMoves[square][getOrthIndex(blockers, square)];
-		}
-		uint64_t getDiagonalMovement(const int square, const uint64_t blockers) const {
-			return diagonalMoves[square][getDiagIndex(blockers, square)];
-		}
 	};
 
 }

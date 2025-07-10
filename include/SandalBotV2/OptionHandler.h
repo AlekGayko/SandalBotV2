@@ -15,6 +15,11 @@ namespace SandalBot {
 	// OptionHandler handles the setting of options from the users
 	// to change the current configuration of the bot
 	class OptionHandler {
+	public:
+		OptionHandler(Bot* bot);
+		void initOptions();
+		void processOption(std::string optionName, std::string value);
+		std::string getOptionsString();
 	private:
 		// Option represents option with name, description, and action function
 		struct Option {
@@ -25,11 +30,6 @@ namespace SandalBot {
 
 		Bot* bot{ nullptr };
 		std::unordered_map<std::string, Option> options{};
-	public:
-		OptionHandler(Bot* bot);
-		void initOptions();
-		void processOption(std::string optionName, std::string value);
-		std::string getOptionsString();
 	};
 
 }

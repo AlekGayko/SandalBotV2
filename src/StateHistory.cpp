@@ -40,12 +40,4 @@ namespace SandalBot {
 			--size;
 	}
 
-	BoardState& StateHistory::getSecondLast() {
-		return history[size > 1 ? size - 2 : 0];
-	}
-
-	BoardState& StateHistory::back() {
-		return history[size - 1];
-	}
-
 }

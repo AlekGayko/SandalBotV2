@@ -2,7 +2,7 @@
 
 #include <cctype>
 
-namespace SandalBot {
+namespace SandalBot::Piece {
 
     // Returns corresponding integer piece from given character symbol
     int Piece::symbolToPiece(char symbol) {

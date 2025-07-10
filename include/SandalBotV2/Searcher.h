@@ -20,6 +20,21 @@ namespace SandalBot {
 	// the algorithmic design of the bot. Supports asynchronous searching, and synchronous
 	// searching.
 	class Searcher {
+	public:
+		Evaluator* evaluator{ nullptr };
+		MoveGen* moveGenerator{ nullptr };
+		MoveOrderer* orderer{ nullptr };
+		Move bestMove{};
+
+		Searcher() {};
+		Searcher(Board* board);
+		~Searcher();
+		void startSearch(bool isTimed, int moveTimeMs = 0);
+		void endSearch();
+		int eval();
+		uint64_t perft(int depth);
+		void clearHash();
+		void changeHashSize(int sizeMB);
 	private:
 		// SearchStatistics encapsulates the statistics from a search iteration
 		struct SearchStatistics {
@@ -72,21 +87,6 @@ namespace SandalBot {
 		void generateBestLine(Move bestMove);
 		void enactBestLine(Move move, int depth);
 		bool isPositionIllegal();
-	public:
-		Evaluator* evaluator{ nullptr };
-		MoveGen* moveGenerator{ nullptr };
-		MoveOrderer* orderer{ nullptr };
-		Move bestMove{};
-
-		Searcher() {};
-		Searcher(Board* board);
-		~Searcher();
-		void startSearch(bool isTimed, int moveTimeMs = 0);
-		void endSearch();
-		int eval();
-		uint64_t perft(int depth);
-		void clearHash();
-		void changeHashSize(int sizeMB);
 	};
 
 }

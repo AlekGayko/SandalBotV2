@@ -13,7 +13,7 @@ using namespace std;
 namespace SandalBot {
 	// Given a board, and a parameter to include en passant square, returns a FEN string
 	// which accurately respresents the board
-	std::string FEN::generateFEN(Board* board, bool includeEPSquare) {
+	std::string FEN::generateFEN(const Board* board, bool includeEPSquare) {
 		std::string FEN = "";
 		// Iterate over board
 		for (int rank = 0; rank < 8; rank++) {

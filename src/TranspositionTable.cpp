@@ -1,4 +1,3 @@
-#include "Board.h"
 #include "Evaluator.h"
 #include "TranspositionTable.h"
 
@@ -8,8 +7,7 @@ using namespace std;
 
 namespace SandalBot {
 
-	TranspositionTable::TranspositionTable(Board* board, int sizeMB) : ZobristHash(board) {
-		this->board = board;
+	TranspositionTable::TranspositionTable(int sizeMB) : ZobristHash() {
 		this->size = (sizeMB * 1024ULL * 1024ULL) / sizeof(Entry);
 		this->table = new Entry[size];
 		this->slotsFilled = 0ULL;

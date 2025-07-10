@@ -93,7 +93,6 @@ namespace SandalBot {
 
 	// Initialise variables
 	void Evaluator::initVariables() {
-		evaluation = 0;
 		whiteKingSquare = board->pieceLists[Board::whiteIndex][Piece::king][0];
 		blackKingSquare = board->pieceLists[Board::blackIndex][Piece::king][0];
 	}
@@ -102,6 +101,8 @@ namespace SandalBot {
 	// Negative return value signifies losing position, zero is a draw, and positive is winning
 	int Evaluator::Evaluate() {
 		initVariables();
+
+		int evaluation{ 0 };
 
 		// If insufficient material its a draw
 		if (insufficientMaterial()) {
@@ -114,7 +115,7 @@ namespace SandalBot {
 		evaluation += kingSafety();
 		evaluation += openFilesEvaluation();
 		evaluation += openDiagEvaluation();
-		evaluation += kingDist();
+		evaluation += kingDist(evaluation);
 
 		return board->state->whiteTurn ? evaluation : -evaluation;
 	}
@@ -749,15 +750,15 @@ namespace SandalBot {
 	}
 
 	// Calculates mopup evaluation
-	int Evaluator::kingDist() {
+	int Evaluator::kingDist(int currentEvaluation) {
 		// If not an endgame or evaluation is too tight, dont bother with mopup evaluation
-		if (endGameWeight == 0.f || abs(evaluation) < 2 * PieceEvaluations::pieceVals[Piece::pawn]) {
+		if (endGameWeight == 0.f || abs(currentEvaluation) < 2 * PieceEvaluations::pieceVals[Piece::pawn]) {
 			return 0;
 		}
 
 		int mopUpScore = 0;
 
-		int losingKingSquare = evaluation > 0 ? blackKingSquare : whiteKingSquare;
+		int losingKingSquare = currentEvaluation > 0 ? blackKingSquare : whiteKingSquare;
 
 		int losingKingCMD = arrCenterManhattanDistance[losingKingSquare];
 

@@ -9,21 +9,29 @@
 
 namespace SandalBot {
 
-	class Searcher;
-
 	using PointValue = int16_t;
 
 	// Struct holds a move and corresponding heuristic value
-	#pragma pack(push, 1)
 	struct MovePoint {
 		PointValue value{};
 		Move move{};
 	};
-	#pragma pack(pop)
+
 	// MoveOrderer heuristically orders and array of moves from best to worst.
 	// Uses a scoring system to order moves, and also employs 'killer' moves,
 	// which are previously found moves which have been historically good
 	class MoveOrderer {
+	public:
+		MoveOrderer() {};
+		MoveOrderer(MoveGen* gen);
+		void order(Board* board, MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch = false);
+		void addKiller(int depth, Move move);
+
+		static void quickSort(MovePoint moves[], int start, int end);
+		static void bubbleSort(MovePoint moves[], int numMoves);
+		static void insertionSort(MovePoint moves[], int numMoves);
+		static void selectionSort(MovePoint moves[], int numMoves);
+		static void mergeSort(MovePoint moves[], int start, int end);
 	private:
 		struct Killer {
 			Move moveA{};
@@ -54,20 +62,8 @@ namespace SandalBot {
 
 		Board* board{ nullptr };
 		MoveGen* generator{ nullptr };
-		Searcher* searcher{ nullptr };
 
 		Killer killerMoves[32]; // Array of killer moves where index is depth of killer move
-	public:
-		MoveOrderer() {};
-		MoveOrderer(Board* board, MoveGen* gen, Searcher* searcher);
-		void order(MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch = false);
-		void addKiller(int depth, Move move);
-
-		static void quickSort(MovePoint moves[], int start, int end);
-		static void bubbleSort(MovePoint moves[], int numMoves);
-		static void insertionSort(MovePoint moves[], int numMoves);
-		static void selectionSort(MovePoint moves[], int numMoves);
-		static void mergeSort(MovePoint moves[], int start, int end);
 	};
 
 }
