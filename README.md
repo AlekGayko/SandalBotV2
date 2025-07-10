@@ -31,7 +31,7 @@ chmod +x scripts/setup_vcpkg.sh
 ```
 
 *Note:*  
-Make sure you have Git, CMake, and a compatible compiler installed before running these scripts.
+- Make sure you have Git, CMake, and a compatible compiler installed before running these scripts.
 
 ---
 
@@ -65,17 +65,15 @@ cmake -S . -B build -G "Visual Studio 17 2022" -DBUILD_TESTING=ON -DBUILD_BENCHM
 
 ### 3. Build
 
-#### Linux
-
 Build the project with:
+
+#### Linux
 
 ```bash
 cmake --build build
 ```
 
 #### Windows
-
-Build the project with:
 
 ```powershell
 cmake --build build --config Release
@@ -91,9 +89,9 @@ Or
 
 ## Run Executable
 
-#### Linux
-
 Run engine with command:
+
+#### Linux
 
 ```bash
 ./build/src/SandalBotV2
