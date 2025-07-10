@@ -45,21 +45,21 @@ Use CMake to configure the project and generate platform-appropriate build files
 cmake -S . -B build -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Release
 ```
 
-- Replace `ON` with `OFF` as needed.
 - Replace 'Release' with 'Debug' as needed.
-
-*Note:*
-- Setting 'ON' to either `BUILD_TESTING` or `BUILD_BENCHMARKS` will generate a static library for the src files.
 
 #### Windows (Visual Studio 2022 example)
 
 ```powershell
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON
+cmake -S . -B build -G "Visual Studio 17 2022" -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON
 ```
 
-*Note:*  
-- The `-S .` flag specifies the source directory (current directory).  
-- The `-B build` flag specifies the output build directory.
+- Replace `Visual Studio 17 2022` with another Visual Studio version if necessary.
+
+---
+
+*Note:*
+- Replace `ON` with `OFF` to `BUILD_TESTING` or `BUILD_BENCHMARKS` as needed.
+- Setting 'ON' to either `BUILD_TESTING` or `BUILD_BENCHMARKS` will generate a static library for the src files.
 
 ---
 
@@ -70,12 +70,20 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON -DBUILD
 Build the project with:
 
 ```bash
+cmake --build build
+```
+
+#### Windows
+
+Build the project with:
+
+```powershell
 cmake --build build --config Release
 ```
 
-*You can replace `Release` with `Debug` or other build types as configured.*
+*You can replace `Release` with `Debug`.*
 
-#### Windows
+Or
 
 - Open the generated `.sln` file located in `build/` with Visual Studio.  
 
@@ -93,7 +101,11 @@ Run engine with command:
 
 #### Windows
 
-- Click the 'run' button in Visual Studio.
+```powershell
+./build/src/Release/SandalBotV2.exe
+```
+
+*You can replace `Release` with `Debug` depending on build type.*
 
 ---
 
@@ -101,7 +113,7 @@ Run engine with command:
 
 Unit and integration tests are managed via CTest.
 
-#### Linux / WSL / Command Line
+#### Linux and Windows
 
 Navigate to the build directory:
 
