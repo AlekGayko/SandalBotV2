@@ -59,7 +59,7 @@ cmake -S . -B build -G "Visual Studio 17 2022" -DBUILD_TESTING=ON -DBUILD_BENCHM
 
 *Note:*
 - Replace `ON` with `OFF` to `BUILD_TESTING` or `BUILD_BENCHMARKS` as needed.
-- Setting 'ON' to either `BUILD_TESTING` or `BUILD_BENCHMARKS` will generate a static library for the src files.
+- Setting `ON` to either `BUILD_TESTING` or `BUILD_BENCHMARKS` will generate a static library for the src files.
 
 ---
 
