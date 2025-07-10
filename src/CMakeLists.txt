@@ -1,10 +1,15 @@
 file(GLOB SOURCES *.cpp)
+file(GLOB_RECURSE HEADERS ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/*.h)
 
 include_directories(${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME})
 
 add_executable(${PROJECT_NAME}
     ${SOURCES}
+    ${HEADERS}
 )
+
+source_group("Source Files" ${PROJECT_SOURCE_DIR} FILES ${SOURCES})
+source_group("Header Files" ${PROJECT_SOURCE_DIR} FILES ${HEADERS})
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -march=native -O3)
 

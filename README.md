@@ -42,7 +42,7 @@ Use CMake to configure the project and generate platform-appropriate build files
 #### Linux
 
 ```bash
-cmake -S . -B build -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DBUILD_TESTING=OFF -DBUILD_BENCHMARKS=OFF -DCMAKE_BUILD_TYPE=Release
 ```
 
 - Replace 'Release' with 'Debug' as needed.
@@ -50,7 +50,7 @@ cmake -S . -B build -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=
 #### Windows (Visual Studio 2022 example)
 
 ```powershell
-cmake -S . -B build -G "Visual Studio 17 2022" -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON
+cmake -S . -B build -G "Visual Studio 17 2022" -DBUILD_TESTING=OFF -DBUILD_BENCHMARKS=OFF
 ```
 
 - Replace `Visual Studio 17 2022` with another Visual Studio version if necessary.
@@ -58,8 +58,8 @@ cmake -S . -B build -G "Visual Studio 17 2022" -DBUILD_TESTING=ON -DBUILD_BENCHM
 ---
 
 *Note:*
-- Replace `ON` with `OFF` to `BUILD_TESTING` or `BUILD_BENCHMARKS` as needed.
-- Setting `ON` to either `BUILD_TESTING` or `BUILD_BENCHMARKS` will generate a static library for the src files.
+- Replace `OFF` with `ON` to `BUILD_TESTING` or `BUILD_BENCHMARKS` as needed.
+- Setting `OFF` to either `BUILD_TESTING` or `BUILD_BENCHMARKS` will generate a static library for the src files.
 
 ---
 
