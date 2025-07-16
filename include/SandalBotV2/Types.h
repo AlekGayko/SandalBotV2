@@ -73,11 +73,11 @@ namespace SandalBot {
 		W_ROOK_SHORT_SQ = H1
 	};
 
-	constexpr Bitboard shortCastleCheckSQ[COLOR_NB] = { 1ULL << F1 | 1ULL << G1, 1ULL << F8 | 1ULL << G8 };
-	constexpr Bitboard longCastleCheckSQ[COLOR_NB] = { 1ULL << D1 | 1ULL << C1, 1ULL << D8 | 1ULL << C8 };
+	constexpr Bitboard shortCastleCheckSQ[COLOR_NB] = { 1ULL << F8 | 1ULL << G8, 1ULL << F1 | 1ULL << G1 };
+	constexpr Bitboard longCastleCheckSQ[COLOR_NB] = { 1ULL << D8 | 1ULL << C8, 1ULL << D1 | 1ULL << C1 };
 
-	constexpr Bitboard emptyShortCastleSQ[COLOR_NB] = { shortCastleCheckSQ[0], shortCastleCheckSQ[1] };
-	constexpr Bitboard emptyLongCastleSQ[COLOR_NB] = { shortCastleCheckSQ[0] | 1ULL << B1, shortCastleCheckSQ[1] | 1ULL << B8 };
+	constexpr Bitboard emptyShortCastleSQ[COLOR_NB] = { shortCastleCheckSQ[BLACK], shortCastleCheckSQ[WHITE] };
+	constexpr Bitboard emptyLongCastleSQ[COLOR_NB] = { shortCastleCheckSQ[BLACK] | 1ULL << B8, shortCastleCheckSQ[WHITE] | 1ULL << B1 };
 
 	enum PieceType {
 		NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, // 0 - 6

@@ -105,8 +105,10 @@ namespace SandalBot {
 		Square to = move.to();
 		Move::Flag flag = move.flag();
 		Piece piece = squares[from];
-		Piece capturedPiece = squares[to];
-	
+
+		Square capturedSquare = to;
+		Piece capturedPiece = squares[capturedSquare];
+		
 		Square enPassantSquare = NONE_SQUARE;
 		CastlingRights cr = state->cr;
 		Bitboard newZobristHash = state->zobristHash;
@@ -122,14 +124,12 @@ namespace SandalBot {
 		if (state->enPassantSquare != NONE_SQUARE)
 			newZobristHash ^= ZobristHash::enPassantHash[state->enPassantSquare];
 
-		if (capturedPiece != NO_PIECE) {
-			Square capturedSquare = to;
-			if (flag == Move::Flag::EN_PASSANT) {
-				capturedSquare -= pawnPush(mSideToMove);
-				capturedPiece = squares[capturedSquare];
-				squares[capturedSquare] = NO_PIECE;
-			}
+		if (flag == Move::Flag::EN_PASSANT) {
+			capturedSquare -= pawnPush(mSideToMove);
+			capturedPiece = squares[capturedSquare];
+		}
 
+		if (capturedPiece != NO_PIECE) {
 			deletePiece(capturedSquare);
 
 			PieceType type = typeOf(capturedPiece);

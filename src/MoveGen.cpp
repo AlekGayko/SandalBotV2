@@ -100,7 +100,7 @@ namespace SandalBot {
 			Square from = popLSB(pawns);
 			Bitboard pushBB = capturesOnly ? 0ULL : ((1ULL << (from + pawnUp)) & emptySquares);
 
-			if (pushBB != 0ULL && toRow(from) == startRow) {
+			if (pushBB != 0ULL && toRow(from) == startRow && ((1ULL << (from + 2 * pawnUp)) & emptySquares) != 0ULL) {
 				pushBB |= 1ULL << (from + 2 * pawnUp);
 			}
 
@@ -134,8 +134,10 @@ namespace SandalBot {
 					addMove(moves, from, to);
 				}
 			}
+			
+			Bitboard epBB = getPawnAttackMoves<Us>(from) & (1ULL << board->state->enPassantSquare);
 
-			if ((attackBB & (1ULL << board->state->enPassantSquare)) != 0ULL) {
+			if (epBB != 0ULL) {
 				enPassantMoves<Us>(moves, from, board->state->enPassantSquare, isPinned);
 			} 
 		}
@@ -210,12 +212,20 @@ namespace SandalBot {
 	void MoveGen::generateKingMoves(MovePoint moves[], bool capturesOnly) {
 		constexpr CastlingRights crMask = (Us == WHITE ? W_RIGHTS : B_RIGHTS);
 		Square from = board->kingSquares[Us];
-		
+
 		// Get king movement board
 		Bitboard moveBitboard = getMovementBoard<KING>(from, 0ULL);
 		moveBitboard &= ~(opponentAttacks); // Disallow moving into opponent checks
 		moveBitboard &= ~(board->colorsBB[Us]); // Avoid capturing own pieces
-
+		if (board->state->zobristHash == 11353654550532553395ULL) {
+			cout << "isCheck: " << isCheck << endl;
+			cout << "checkbb: \n";
+			printBB(checkBB);
+			cout << "opponentAttacks: \n";
+			printBB(opponentAttacks);
+			cout << "movebitboard: \n";
+			printBB(moveBitboard);
+		}
 		// If captures only, only allow capturing enemy pieces
 		if (capturesOnly)
 			moveBitboard &= board->colorsBB[~Us];
@@ -235,13 +245,29 @@ namespace SandalBot {
 	template <Color Us>
 	// Generates castling moves for king
 	void MoveGen::castlingMoves(MovePoint moves[], Square from) {
+		if (board->state->zobristHash == 11353654550532553395ULL) {
+			cout << "opponentAttacks:\n";
+			printBB(opponentAttacks);
+		}
 		if (canShortCastle(Us, board->state->cr)) {
+			if (board->state->zobristHash == 11353654550532553395ULL) {
+				cout << "castlechecksq & attacks:\n";
+				printBB(shortCastleCheckSQ[Us] & opponentAttacks);
+				cout << "empty squares & all pieces:\n";
+				printBB(emptyShortCastleSQ[Us] & board->typesBB[ALL_PIECES]);
+			}
 			if (((shortCastleCheckSQ[Us] & opponentAttacks) == 0ULL) && ((emptyShortCastleSQ[Us] & board->typesBB[ALL_PIECES]) == 0ULL)) {
 				addMove(moves, from, Square(from + 2 * EAST), Move::Flag::CASTLE);
 			}
 		}
 
 		if (canLongCastle(Us, board->state->cr)) {
+			if (board->state->zobristHash == 11353654550532553395ULL) {
+				cout << "castlechecksq & attacks:\n";
+				printBB(longCastleCheckSQ[Us] & opponentAttacks);
+				cout << "empty squares & all pieces:\n";
+				printBB(emptyLongCastleSQ[Us] & board->typesBB[ALL_PIECES]);
+			}
 			if (((longCastleCheckSQ[Us] & opponentAttacks) == 0ULL) && ((emptyLongCastleSQ[Us] & board->typesBB[ALL_PIECES]) == 0ULL)) {
 				addMove(moves, from, Square(from + 2 * WEST), Move::Flag::CASTLE);
 			}
@@ -252,12 +278,13 @@ namespace SandalBot {
 	Bitboard MoveGen::generatePawnAttackData() {
 		Bitboard attackBB = 0ULL;
 
-		Bitboard pawns = board->typesBB[PAWN] & board->colorsBB[Us];
+		Bitboard pawns = board->typesBB[PAWN] & board->colorsBB[~Us];
+
 		// Add only attack movement to overall attack board
 		while (pawns != 0ULL) {
 			Square from = popLSB(pawns);
-			Bitboard moveBitboard = getPawnAttackMoves<~Us>(from);
-			attackBB |= moveBitboard;
+			Bitboard movementBB = getPawnAttackMoves<~Us>(from);
+			attackBB |= movementBB;
 		}
 
 		return attackBB;
@@ -268,10 +295,14 @@ namespace SandalBot {
 		Bitboard attackBB = 0ULL;
 
 		Bitboard pieces = board->typesBB[Type] & board->colorsBB[~Us];
+		Bitboard blockers = board->typesBB[ALL_PIECES] & ~(1ULL << board->kingSquares[Us]);
 		// Add movement to overall attack board
 		while (pieces != 0ULL) {
 			Square from = popLSB(pieces);
-			attackBB |= getMovementBoard<Type>(from, 0ULL);
+			
+			Bitboard movementBB = getMovementBoard<Type>(from, blockers);
+
+			attackBB |= movementBB;
 		}
 
 		return attackBB;
@@ -280,7 +311,7 @@ namespace SandalBot {
 	template <Color Us>
 	// Generate attack movement from opponent for all pieces
 	void MoveGen::generateAllAttackData() {
-		opponentAttacks |= getMovementBoard<KING>(board->kingSquares[Us], 0ULL);
+		opponentAttacks |= getMovementBoard<KING>(board->kingSquares[~Us], 0ULL);
 		opponentAttacks |= generateAttackData<Us, QUEEN>();
 		opponentAttacks |= generateAttackData<Us, ROOK>();
 		opponentAttacks |= generateAttackData<Us, BISHOP>();
@@ -360,7 +391,7 @@ namespace SandalBot {
 		
 		// See if any pawns can check the king
 		Bitboard enemyPawns = board->typesBB[PAWN] & enemyBoard;
-		Bitboard pawnMoveBitboard = getPawnAttackMoves<~Us>(kSq);
+		Bitboard pawnMoveBitboard = getPawnAttackMoves<Us>(kSq);
 		pawnMoveBitboard &= enemyPawns;
 
 		checkBB |= pawnMoveBitboard;

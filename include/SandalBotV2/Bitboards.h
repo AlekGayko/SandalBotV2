@@ -129,7 +129,7 @@ namespace SandalBot {
 		Direction(SOUTH + 2 * EAST),
 		Direction(2 * SOUTH + EAST),
 		Direction(2 * SOUTH + WEST),
-		Direction(SOUTH + WEST),
+		Direction(SOUTH + 2 * WEST),
 		Direction(NORTH + 2 * WEST)
 	};
 
