@@ -42,6 +42,7 @@ namespace SandalBot {
 		void makeMove(Move move);
 		void unMakeMove();
 		void printBoard() const;
+		void printBitboards() const;
 		Color sideToMove() const { return mSideToMove; }
 		int moveCounter() const { return mMoveCounter; }
 	private:
@@ -53,8 +54,6 @@ namespace SandalBot {
 		void movePiece(Square from, Square to);
 		void placePiece(Piece piece, Square sq);
 		void deletePiece(Square sq);
-
-		void printBitboards();
 	};
 
 }

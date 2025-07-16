@@ -4,6 +4,7 @@
 #include "Searcher.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 
 using namespace std;
@@ -36,6 +37,8 @@ namespace SandalBot {
 			PieceType ownPiece = typeOf(board->squares[from]);
 			PieceType enemyPiece = typeOf(board->squares[to]);
 			bool toDefended = generator->opponentAttacks & (1ULL << to);
+
+			assert(ownPiece != NO_PIECE_TYPE);
 
 			// If taking an opponent's piece
 			if (enemyPiece != NO_PIECE) {

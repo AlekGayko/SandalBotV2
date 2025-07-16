@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef BOARDSTATE_H
 #define BOARDSTATE_H
 

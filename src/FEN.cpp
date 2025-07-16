@@ -11,6 +11,29 @@
 using namespace std;
 
 namespace SandalBot {
+
+	template <Color Us, bool Short>
+	static bool verifyCastle(bool right, Piece squares[]) {
+		if (!right) {
+			return false;
+		}
+		constexpr Piece usRook = makePiece(ROOK, Us);
+		constexpr Piece usKing = makePiece(KING, Us);
+		constexpr Square kSq = Square(Us == WHITE ? W_KING_SQUARE : B_KING_SQUARE);
+		constexpr Square rSq = Square(Short ? W_ROOK_SHORT_SQ : W_ROOK_LONG_SQ);
+		constexpr Square usRSq = Us == WHITE ? rSq : flipRow(rSq);
+		
+		if (squares[kSq] != usKing) {
+			return false;
+		}
+		
+		if (squares[usRSq] != usRook) {
+			return false;
+		}
+		
+		return true;
+	}
+
 	// Given a board, and a parameter to include en passant square, returns a FEN string
 	// which accurately respresents the board
 	std::string FEN::generateFEN(const Board* board, bool includeEPSquare) {
@@ -62,7 +85,7 @@ namespace SandalBot {
 		// Append en passant target square
 		FEN += ' ';
 
-		if (includeEPSquare) {
+		if (includeEPSquare && board->state->enPassantSquare != NONE_SQUARE) {
 			FEN += CoordHelper::indexToString(board->state->enPassantSquare);
 		} else {
 			FEN += '-';
@@ -127,6 +150,12 @@ namespace SandalBot {
 		bool blackShortCastle = StringUtil::contains(castlingRights, 'k');
 		bool blackLongCastle = StringUtil::contains(castlingRights, 'q');
 
+		whiteShortCastle = verifyCastle<WHITE, true>(whiteShortCastle, newInfo.squares);
+		whiteLongCastle = verifyCastle<WHITE, false>(whiteLongCastle, newInfo.squares);
+		blackShortCastle = verifyCastle<BLACK, true>(blackShortCastle, newInfo.squares);
+		blackLongCastle = verifyCastle<BLACK, false>(blackLongCastle, newInfo.squares);
+
+		newInfo.cr = NO_RIGHTS;
 		newInfo.cr |= whiteShortCastle ? W_OO : newInfo.cr;
 		newInfo.cr |= whiteLongCastle ? W_OOO : newInfo.cr;
 		newInfo.cr |= blackShortCastle ? B_OO : newInfo.cr;

@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef COORDHELPER_H
 #define COORDHELPER_H
 

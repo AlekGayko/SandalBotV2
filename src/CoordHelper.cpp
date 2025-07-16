@@ -41,6 +41,7 @@ namespace SandalBot {
             int row = index / 8;
             row = row < 0 || row > 7 ? 0 : row;
             int col = index % 8;
+
             std::string coord = std::string(1, charFiles[col]) + std::string(1, charRanks[row]);
             return coord;
         }

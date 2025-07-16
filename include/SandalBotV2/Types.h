@@ -77,7 +77,7 @@ namespace SandalBot {
 	constexpr Bitboard longCastleCheckSQ[COLOR_NB] = { 1ULL << D8 | 1ULL << C8, 1ULL << D1 | 1ULL << C1 };
 
 	constexpr Bitboard emptyShortCastleSQ[COLOR_NB] = { shortCastleCheckSQ[BLACK], shortCastleCheckSQ[WHITE] };
-	constexpr Bitboard emptyLongCastleSQ[COLOR_NB] = { shortCastleCheckSQ[BLACK] | 1ULL << B8, shortCastleCheckSQ[WHITE] | 1ULL << B1 };
+	constexpr Bitboard emptyLongCastleSQ[COLOR_NB] = { longCastleCheckSQ[BLACK] | 1ULL << B8, longCastleCheckSQ[WHITE] | 1ULL << B1 };
 
 	enum PieceType {
 		NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, // 0 - 6
@@ -215,15 +215,15 @@ namespace SandalBot {
 	constexpr CastlingRights cancelRookCastlingRights(CastlingRights cr, Color c, Square from) {
 		if (c == WHITE) {
 			if (from == W_ROOK_SHORT_SQ) {
-				return CastlingRights(cr & W_OO);
+				return CastlingRights(cr & ~W_OO);
 			} else if (from == W_ROOK_LONG_SQ) {
-				return CastlingRights(cr & W_OOO);
+				return CastlingRights(cr & ~W_OOO);
 			}
 		} else {
 			if (from == B_ROOK_SHORT_SQ) {
-				return CastlingRights(cr & B_OO);
+				return CastlingRights(cr & ~B_OO);
 			} else if (from == B_ROOK_LONG_SQ) {
-				return CastlingRights(cr & B_OOO);
+				return CastlingRights(cr & ~B_OOO);
 			}
 		}
 

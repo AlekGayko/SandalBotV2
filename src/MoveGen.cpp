@@ -95,6 +95,7 @@ namespace SandalBot {
 		Bitboard pawns = board->typesBB[PAWN] & board->colorsBB[Us];
 		Bitboard allPieces = board->typesBB[ALL_PIECES];
 		Bitboard emptySquares = ~allPieces;
+		bool epAvailable = board->state->enPassantSquare != NONE_SQUARE;
 
 		while (pawns != 0ULL) {
 			Square from = popLSB(pawns);
@@ -137,7 +138,7 @@ namespace SandalBot {
 			
 			Bitboard epBB = getPawnAttackMoves<Us>(from) & (1ULL << board->state->enPassantSquare);
 
-			if (epBB != 0ULL) {
+			if (epBB != 0ULL && epAvailable) {
 				enPassantMoves<Us>(moves, from, board->state->enPassantSquare, isPinned);
 			} 
 		}
@@ -217,15 +218,7 @@ namespace SandalBot {
 		Bitboard moveBitboard = getMovementBoard<KING>(from, 0ULL);
 		moveBitboard &= ~(opponentAttacks); // Disallow moving into opponent checks
 		moveBitboard &= ~(board->colorsBB[Us]); // Avoid capturing own pieces
-		if (board->state->zobristHash == 11353654550532553395ULL) {
-			cout << "isCheck: " << isCheck << endl;
-			cout << "checkbb: \n";
-			printBB(checkBB);
-			cout << "opponentAttacks: \n";
-			printBB(opponentAttacks);
-			cout << "movebitboard: \n";
-			printBB(moveBitboard);
-		}
+
 		// If captures only, only allow capturing enemy pieces
 		if (capturesOnly)
 			moveBitboard &= board->colorsBB[~Us];
@@ -245,29 +238,13 @@ namespace SandalBot {
 	template <Color Us>
 	// Generates castling moves for king
 	void MoveGen::castlingMoves(MovePoint moves[], Square from) {
-		if (board->state->zobristHash == 11353654550532553395ULL) {
-			cout << "opponentAttacks:\n";
-			printBB(opponentAttacks);
-		}
 		if (canShortCastle(Us, board->state->cr)) {
-			if (board->state->zobristHash == 11353654550532553395ULL) {
-				cout << "castlechecksq & attacks:\n";
-				printBB(shortCastleCheckSQ[Us] & opponentAttacks);
-				cout << "empty squares & all pieces:\n";
-				printBB(emptyShortCastleSQ[Us] & board->typesBB[ALL_PIECES]);
-			}
 			if (((shortCastleCheckSQ[Us] & opponentAttacks) == 0ULL) && ((emptyShortCastleSQ[Us] & board->typesBB[ALL_PIECES]) == 0ULL)) {
 				addMove(moves, from, Square(from + 2 * EAST), Move::Flag::CASTLE);
 			}
 		}
 
 		if (canLongCastle(Us, board->state->cr)) {
-			if (board->state->zobristHash == 11353654550532553395ULL) {
-				cout << "castlechecksq & attacks:\n";
-				printBB(longCastleCheckSQ[Us] & opponentAttacks);
-				cout << "empty squares & all pieces:\n";
-				printBB(emptyLongCastleSQ[Us] & board->typesBB[ALL_PIECES]);
-			}
 			if (((longCastleCheckSQ[Us] & opponentAttacks) == 0ULL) && ((emptyLongCastleSQ[Us] & board->typesBB[ALL_PIECES]) == 0ULL)) {
 				addMove(moves, from, Square(from + 2 * WEST), Move::Flag::CASTLE);
 			}

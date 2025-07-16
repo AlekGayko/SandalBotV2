@@ -51,7 +51,7 @@ namespace SandalBot {
 			pieceCount[piece] += 1;
 
 			sideValues[color] += PieceEvaluations::pieceVals[type];
-			pieceSquareValues[color] += PieceEvaluations::pieceEvals[type][sq];
+			pieceSquareValues[color] += PieceEvaluations::pieceEvals[type][color == WHITE ? sq : flipRow(sq)];
 
 			if (type != PAWN && type != KING) {
 				MMPieces[color] += 1;
@@ -113,10 +113,7 @@ namespace SandalBot {
 		CastlingRights cr = state->cr;
 		Bitboard newZobristHash = state->zobristHash;
 		int fiftyMoveCounter = (piece == makePiece(PAWN, mSideToMove) || capturedPiece != NO_PIECE) ? 0 : state->fiftyMoveCounter + 1;
-		if (!(typeOf(capturedPiece) != KING && piece != NO_PIECE)) {
-			printBoard();
-			cout << move << endl;
-		}
+
 		assert(typeOf(capturedPiece) != KING && piece != NO_PIECE);
 
 		newZobristHash ^= ZobristHash::whiteMoveHash; // Change hash move side
@@ -133,17 +130,22 @@ namespace SandalBot {
 			deletePiece(capturedSquare);
 
 			PieceType type = typeOf(capturedPiece);
+
+			if (type == ROOK) {
+				cr = cancelRookCastlingRights(cr, ~mSideToMove, capturedSquare);
+			}
+
 			newZobristHash ^= ZobristHash::pieceHashes[~mSideToMove][type][capturedSquare];
 		}
 
 		movePiece(from, to);
-		newZobristHash ^= ZobristHash::pieceHashes[mSideToMove][piece][from] ^ ZobristHash::pieceHashes[mSideToMove][typeOf(piece)][to];
+		newZobristHash ^= ZobristHash::pieceHashes[mSideToMove][typeOf(piece)][from] ^ ZobristHash::pieceHashes[mSideToMove][typeOf(piece)][to];
 
 		if (move.isPromotion()) {
 			Piece promotionPiece = makePiece(PieceType(flag), mSideToMove); // Move flag promotions inherit piecetype values
 			deletePiece(to);
 			placePiece(promotionPiece, to);
-			newZobristHash ^= ZobristHash::pieceHashes[mSideToMove][typeOf(piece)][to] ^ ZobristHash::pieceHashes[mSideToMove][promotionPiece][to];
+			newZobristHash ^= ZobristHash::pieceHashes[mSideToMove][typeOf(piece)][to] ^ ZobristHash::pieceHashes[mSideToMove][typeOf(promotionPiece)][to];
 		} else if (flag == Move::Flag::CASTLE) {
 			Square rookFrom = rCastleFrom(from, to);
 			Square rookTo = rCastleTo(from, to);
@@ -157,11 +159,11 @@ namespace SandalBot {
 
 		switch (typeOf(piece)) {
 		case KING:
-			cancelCastlingRights(cr, mSideToMove);
+			cr = cancelCastlingRights(cr, mSideToMove);
 			newZobristHash ^= ZobristHash::castlingRightsHash[int(state->cr)] ^ ZobristHash::castlingRightsHash[int(cr)];
 			break;
 		case ROOK:
-			cancelRookCastlingRights(cr, mSideToMove, from);
+			cr = cancelRookCastlingRights(cr, mSideToMove, from);
 			newZobristHash ^= ZobristHash::castlingRightsHash[int(state->cr)] ^ ZobristHash::castlingRightsHash[int(cr)];
 			break;
 		}				
@@ -261,7 +263,7 @@ namespace SandalBot {
 		cout << result << endl;
 	}
 
-	void Board::printBitboards() {
+	void Board::printBitboards() const {
 		std::cout << "Piece Type Bitboards:\n";
 
 		for (PieceType type = PAWN; type < PIECE_TYPE_NB; ++type) {
@@ -281,8 +283,11 @@ namespace SandalBot {
 
 	void Board::movePiece(Square from, Square to) {
 		Piece piece = squares[from];
-
+		
 		Bitboard fromTo = (1ULL << from) | (1ULL << to);
+
+		assert(piece != NO_PIECE);
+		assert(squares[to] == NO_PIECE);
 
 		typesBB[typeOf(piece)] ^= fromTo;
 		colorsBB[colorOf(piece)] ^= fromTo;
@@ -291,8 +296,11 @@ namespace SandalBot {
 		squares[to] = squares[from];
 		squares[from] = NO_PIECE;
 
-		pieceSquareValues[colorOf(piece)] += PieceEvaluations::pieceEvals[typeOf(piece)][to] 
-			- PieceEvaluations::pieceEvals[typeOf(piece)][from];
+		Square evalFrom = colorOf(piece) == WHITE ? from : flipRow(from);
+		Square evalTo = colorOf(piece) == WHITE ? to : flipRow(to);
+
+		pieceSquareValues[colorOf(piece)] += PieceEvaluations::pieceEvals[typeOf(piece)][evalTo] 
+			- PieceEvaluations::pieceEvals[typeOf(piece)][evalFrom];
 
 		if (typeOf(piece) == KING) {
 			kingSquares[colorOf(piece)] = to;
@@ -300,20 +308,23 @@ namespace SandalBot {
 	}
 
 	void Board::placePiece(Piece piece, Square sq) {
+		assert(piece != NO_PIECE);
 		assert(typeOf(piece) != KING);
 
 		Bitboard sqBB = 1ULL << sq;
 
-		typesBB[typeOf(piece)] ^= sqBB;
-		colorsBB[colorOf(piece)] ^= sqBB;
-		typesBB[ALL_PIECES] ^= sqBB;
+		typesBB[typeOf(piece)] |= sqBB;
+		colorsBB[colorOf(piece)] |= sqBB;
+		typesBB[ALL_PIECES] |= sqBB;
 
 		pieceCount[piece] += 1;
 
 		squares[sq] = piece;
 
+		Square evalSq = colorOf(piece) == WHITE ? sq : flipRow(sq);
+
 		sideValues[colorOf(piece)] += PieceEvaluations::pieceVals[typeOf(piece)];
-		pieceSquareValues[colorOf(piece)] += PieceEvaluations::pieceEvals[typeOf(piece)][sq];
+		pieceSquareValues[colorOf(piece)] += PieceEvaluations::pieceEvals[typeOf(piece)][evalSq];
 
 		if (typeOf(piece) != PAWN) {
 			MMPieces[colorOf(piece)] += 1;
@@ -328,16 +339,17 @@ namespace SandalBot {
 
 		Bitboard captureBB = 1ULL << sq;
 
-		typesBB[typeOf(piece)] ^= captureBB;
-		colorsBB[colorOf(piece)] ^= captureBB;
-		typesBB[ALL_PIECES] ^= captureBB;
+		typesBB[typeOf(piece)] &= ~captureBB;
+		colorsBB[colorOf(piece)] &= ~captureBB;
+		typesBB[ALL_PIECES] &= ~captureBB;
 
 		pieceCount[piece] -= 1;
 
 		squares[sq] = NO_PIECE;
 
+		Square evalSq = colorOf(piece) == WHITE ? sq : flipRow(sq);
 		sideValues[colorOf(piece)] -= PieceEvaluations::pieceVals[typeOf(piece)];
-		pieceSquareValues[colorOf(piece)] -= PieceEvaluations::pieceEvals[typeOf(piece)][sq];
+		pieceSquareValues[colorOf(piece)] -= PieceEvaluations::pieceEvals[typeOf(piece)][evalSq];
 
 		if (typeOf(piece) != PAWN) {
 			MMPieces[colorOf(piece)] -= 1;
