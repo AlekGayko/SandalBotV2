@@ -1,9 +1,9 @@
 #ifndef EVALUATOR_H
 #define EVALUATOR_H
 
+#include "Bitboards.h"
 #include "Board.h"
 #include "PieceEvaluations.h"
-#include "MovePrecomputation.h"
 #include "MoveGen.h"
 
 namespace SandalBot {
@@ -13,30 +13,18 @@ namespace SandalBot {
 	// king safety, and open files/diagonals
 	class Evaluator {
 	public:
-		static int blackEvalSquare[64]; // Maps squares for black side, for positional evaluations
-		static constexpr int colorStart[2]{ 63, 0 };
 		static constexpr int checkMateScore{ 100000 };
 		static constexpr int drawScore{ 0 };
 		static constexpr int cancelledScore{ 0 };
 
-		MoveGen* generator{ nullptr };
+		Evaluator() {};
 
-		Evaluator();
-		Evaluator(Board* board, MovePrecomputation* precomputation);
-		int Evaluate();
-		void initStaticVariables();
-		void initPieceEvaluations();
-		void updateStaticEval(Board* board, Move move);
-		void undoStaticEval(Board* board, Move move);
-		void staticPieceMove(const int piece, int startSquare, int targetSquare, const bool whiteTurn);
-		void staticPieceDelete(const int piece, int square, const bool whiteTurn);
-		void staticPieceSpawn(const int piece, int square, const bool whiteTurn);
+		int Evaluate(Board* board);
 		bool insufficientMaterial();
 		static bool isMateScore(int score);
 		static int movesTilMate(int score);
 	private:
 		// Contains useful data which can be calculated on instantiation
-		MovePrecomputation* precomputation{ nullptr };
 		Board* board{ nullptr };
 
 		static constexpr float endgameRequiredPieces{ 7.f }; // Number of pieces which define start of endgame phase
@@ -83,49 +71,41 @@ namespace SandalBot {
 
 		float endGameWeight{};
 
-		int whiteKingSquare{};
-		int blackKingSquare{};
-		int whiteStaticEval{};
-		int blackStaticEval{};
-		int whiteMaterial{};
-		int blackMaterial{};
-		int whiteMMPieces{};
-		int blackMMPieces{};
-
-		void initBlackSquares();
-		void initVariables();
-		void initEndgameWeight();
 		void calculateEndgameWeight();
 
-		int staticPieceEvaluations();
-		int staticPieceEvaluation(PieceList* pieceList, int& material, bool useBlackSquares = false);
-		int kingDist(int currentEvaluation);
+		template <Color Us>
+		int evaluateSide();
+
+		template <Color Us>
+		int staticPieceEvaluation();
+		template <Color Us>
 		int kingSafety();
-		int kingTropismEvaluations();
-		int kingTropism(const int kingSquare, PieceList* enemyList);
-		int pawnShieldEvaluations();
-		int pawnShieldEvaluation(const int square, uint64_t& pawns);
-		int passedPawnEvaluations();
-		int passedPawnEvaluation(PieceList& pieceList, uint64_t opposingPawns, const int color);
-		int pawnIslandEvaluations();
-		int pawnIslandEvaluation(PieceList& pieceList, uint64_t pawns);
-		int kingAttackZones();
-		int kingAttackZone(uint64_t attackZone, uint64_t friendlyPieces, int enemyKingSquare, int opposingColor);
-		int incrementAttackZoneEval(uint64_t attackZone, uint64_t moves, const int piece);
+		template <Color Us>
+		int kingTropism();
+		template <Color Us>
+		int pawnShieldEvaluation();
+		template <Color Us>
+		int passedPawnEvaluation();
+		template <Color Us>
+		int pawnIslandEvaluation();
+		template <Color Us>
+		int kingAttackZone();
+		int incrementAttackZoneEval(Bitboard attackZone, Bitboard moves, PieceType piece);
+
+		int kingDist(int currentEvaluation);
 
 		int openFilesEvaluation();
-		int evaluateOpenFile(uint64_t column, int pawnCounter);
+		int evaluateOpenFile(Bitboard column, int pawnCounter);
 
 		int openDiagEvaluation();
-		int evaluateOpenDiag(uint64_t diag, int pawnCounter);
+		int evaluateOpenDiag(Bitboard diag, int pawnCounter);
 
-		bool openDiagFileNearKing(uint64_t mask, int kingSquare);
+		bool openDiagFileNearKing(Bitboard mask, Square kingSquare);
 
-		int evalKnightMoves(uint64_t attackZone, uint64_t knights);
-		int evalPawnMoves(uint64_t attackZone, uint64_t pawns, const int opposingColor);
-		int evalOrthMoves(uint64_t attackZone, uint64_t orths, int enemyKingSquare);
-		int evalDiagMoves(uint64_t attackZone, uint64_t diags, int enemyKingSquare);
-		int evalQueenMoves(uint64_t attackZone, uint64_t queens, int enemyKingSquare);
+		template <Color Us, PieceType Type>
+		int evalMoves(Bitboard attackZone);
+		template <Color Us>
+		int evalPawnMoves(Bitboard attackZone);
 
 		bool insufficientMateMaterial(int material);
 	};

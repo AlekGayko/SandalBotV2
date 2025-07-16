@@ -1,4 +1,6 @@
 #include "MoveOrderer.h"
+
+#include "MoveGen.h"
 #include "Searcher.h"
 
 #include <algorithm>
@@ -8,16 +10,12 @@ using namespace std;
 
 namespace SandalBot {
 
-	MoveOrderer::MoveOrderer(MoveGen* gen) : generator(gen) {}
-
 	// Assigns each move in decayed c array a heuristic value depending on its effectiveness.
 	// Sorts array based on list point values
-	void MoveOrderer::order(Board* board, MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch) {
+	void MoveOrderer::order(Board* board, MoveGen* generator, MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch) {
 		// No need to sort one move
 		if (numMoves <= 1) return;
 
-		int colorIndex = board->state->whiteTurn ? Board::whiteIndex : Board::blackIndex;
-		int evalStart = Evaluator::colorStart[colorIndex];
 		// For each move
 		for (int it = 0; it < numMoves; ++it) {
 			// If not in quiescence search and found move is a previusly found best move, most likely best move
@@ -30,23 +28,24 @@ namespace SandalBot {
 				moves[it].value = killerValue;
 				continue;
 			}
+
 			PointValue moveValue = 0;
-			const int startSquare = moves[it].move.getStartSquare();
-			const int targetSquare = moves[it].move.getTargetSquare();
-			const int flag = moves[it].move.getFlag();
-			int ownPiece = Piece::type(board->squares[startSquare]);
-			int enemyPiece = Piece::type(board->squares[targetSquare]);
-			bool targetSquareDefended = generator->opponentAttacks & (1ULL << targetSquare);
+			const Square from = moves[it].move.from();
+			const Square to = moves[it].move.to();
+			const Move::Flag flag = moves[it].move.flag();
+			PieceType ownPiece = typeOf(board->squares[from]);
+			PieceType enemyPiece = typeOf(board->squares[to]);
+			bool toDefended = generator->opponentAttacks & (1ULL << to);
 
 			// If taking an opponent's piece
-			if (enemyPiece != Piece::empty) {
+			if (enemyPiece != NO_PIECE) {
 				PointValue enemyValue = PieceEvaluations::pieceVals[enemyPiece];
 				PointValue ownValue = PieceEvaluations::pieceVals[ownPiece];
 				PointValue diffVal = enemyValue - ownValue;
 				// If taking a piece worth less than our piece's value
 				if (enemyValue < ownValue) {
 					// If piece is defended
-					if (targetSquareDefended) {
+					if (toDefended) {
 						moveValue += diffVal;
 					}
 					// If piece is undefended
@@ -56,7 +55,7 @@ namespace SandalBot {
 				}
 				// If we're taking a piece with greater value
 				else {
-					if (targetSquareDefended) {
+					if (toDefended) {
 						moveValue += diffVal;
 					} else {
 						moveValue += enemyValue;
@@ -65,55 +64,51 @@ namespace SandalBot {
 			}
 			// If we're not taking a piece
 			else {
-				if (targetSquareDefended) {
-					moveValue += undefendedTargetSquareValue;
+				if (toDefended) {
+					moveValue += undefendedtoValue;
 				}
 			}
 
 			// Add difference in piece positioning
-			if (colorIndex == Board::blackIndex) {
-				moveValue += PieceEvaluations::pieceEvals[ownPiece][Evaluator::blackEvalSquare[evalStart - targetSquare]];
-				moveValue -= PieceEvaluations::pieceEvals[ownPiece][Evaluator::blackEvalSquare[evalStart - startSquare]];
+			if (board->sideToMove() == BLACK) {
+				moveValue += PieceEvaluations::pieceEvals[ownPiece][flipRow(to)];
+				moveValue -= PieceEvaluations::pieceEvals[ownPiece][flipRow(from)];
 			} else {
-				moveValue += PieceEvaluations::pieceEvals[ownPiece][targetSquare];
-				moveValue -= PieceEvaluations::pieceEvals[ownPiece][startSquare];
+				moveValue += PieceEvaluations::pieceEvals[ownPiece][to];
+				moveValue -= PieceEvaluations::pieceEvals[ownPiece][from];
 			}
 
 			// Moves with flags are most likely special (good)
 			switch (flag) {
-			case Move::noFlag:
+			case Move::Flag::NO_FLAG:
 				break;
-			case Move::enPassantCaptureFlag:
+			case Move::Flag::EN_PASSANT:
 				moveValue += enPassantValue;
 				break;
-			case Move::castleFlag:
+			case Move::Flag::CASTLE:
 				moveValue += castleValue;
 				break;
-			case Move::pawnTwoSquaresFlag:
+			case Move::Flag::PAWN_TWO_SQUARES:
 				moveValue += pawnTwoSquareValue;
 				break;
-			case Move::promoteToQueenFlag:
+			case Move::Flag::QUEEN:
 				moveValue += queenPromotionValue;
 				break;
-			case Move::promoteToRookFlag:
+			case Move::Flag::ROOK:
 				moveValue += rookPromotionValue;
 				break;
-			case Move::promoteToBishopFlag:
+			case Move::Flag::BISHOP:
 				moveValue += bishopPromotionValue;
 				break;
-			case Move::promoteToKnightFlag:
+			case Move::Flag::KNIGHT:
 				moveValue += knightPromotionValue;
 				break;
 			}
 
 			moves[it].value = moveValue;
 		}
-		//mergeSort(moves, 0, numMoves);
-		//insertionSort(moves, numMoves);
-		//selectionSort(moves, numMoves);
-		//bubbleSort(moves, numMoves);
+
 		std::sort(moves, moves + numMoves, [](MovePoint& mp1, MovePoint& mp2) { return mp1.value > mp2.value; });
-		//quickSort(moves, 0, numMoves); // Sort array
 	}
 
 	// Quicksort implementation which sorts moves array based on moveVals point system

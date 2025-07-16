@@ -3,13 +3,14 @@
 
 #include "Board.h"
 #include "PieceEvaluations.h"
-#include "MoveGen.h"
 
 #include <limits>
 
 namespace SandalBot {
 
 	using PointValue = int16_t;
+
+	class MoveGen;
 
 	// Struct holds a move and corresponding heuristic value
 	struct MovePoint {
@@ -23,8 +24,8 @@ namespace SandalBot {
 	class MoveOrderer {
 	public:
 		MoveOrderer() {};
-		MoveOrderer(MoveGen* gen);
-		void order(Board* board, MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch = false);
+
+		void order(Board* board, MoveGen* generator, MovePoint moves[], Move bestMove, int numMoves, int depth, bool qSearch = false);
 		void addKiller(int depth, Move move);
 
 		static void quickSort(MovePoint moves[], int start, int end);
@@ -51,7 +52,7 @@ namespace SandalBot {
 
 		static constexpr PointValue bestMoveValue{ std::numeric_limits<PointValue>::max() };
 		static constexpr PointValue killerValue{ 10000 };
-		static constexpr PointValue undefendedTargetSquareValue{ -200 };
+		static constexpr PointValue undefendedtoValue{ -200 };
 		static constexpr PointValue enPassantValue{ 300 };
 		static constexpr PointValue castleValue{ 300 };
 		static constexpr PointValue pawnTwoSquareValue{ 100 };
@@ -59,9 +60,6 @@ namespace SandalBot {
 		static constexpr PointValue rookPromotionValue{ 400 };
 		static constexpr PointValue bishopPromotionValue{ 300 };
 		static constexpr PointValue knightPromotionValue{ 300 };
-
-		Board* board{ nullptr };
-		MoveGen* generator{ nullptr };
 
 		Killer killerMoves[32]; // Array of killer moves where index is depth of killer move
 	};

@@ -17,7 +17,7 @@ namespace SandalBot {
 	}
 
 	// Push new state to history, dynamically adjusts array if memory exceeded
-	void StateHistory::push(BoardState& state) {
+	void StateHistory::push(const BoardState& state) {
 		// If memory exceeded, double array size and copy elements over
 		if (size >= allocatedSize - 2) {
 			BoardState* newHistory = new BoardState[2 * allocatedSize];

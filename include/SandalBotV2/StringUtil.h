@@ -8,13 +8,13 @@
 // StringUtil is a namespace for utility functions regarding strings
 namespace SandalBot::StringUtil {
 
-	std::string trim(const std::string& str);
-	std::string toLower(const std::string& str);
+	std::string trim(std::string_view str);
+	std::string toLower(std::string_view str);
 	std::vector<std::string> splitString(std::string_view str);
-	bool contains(const std::string& str, char ch);
-	bool contains(const std::string& str1, const std::string& str2);
-	int indexOf(const std::string& str1, const std::string& str2);
-	bool isDigitString(const std::string& str);
+	bool contains(std::string_view str, char ch);
+	bool contains(std::string_view str1, std::string_view str2);
+	int indexOf(std::string_view str1, std::string_view str2);
+	bool isDigitString(std::string_view str);
 	std::string commaSeparator(int integer);
 
 };

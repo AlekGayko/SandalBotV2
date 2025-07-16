@@ -1,5 +1,4 @@
 #include "Board.h"
-#include "Piece.h"
 #include "ZobristHash.h"
 
 #include <cassert>
@@ -12,75 +11,59 @@ using namespace std;
 
 namespace SandalBot {
 
-	bool ZobristHash::initialised{ false };
-
-	// Hash values of each piece for both colors for every square
-	uint64_t ZobristHash::pieceHashes[2][7][64];
-	uint64_t ZobristHash::enPassantHash[64]; // Hash values for each en passant target square
-	uint64_t ZobristHash::castlingRightsHash[17]; // Hashes for each castling right
-	uint64_t ZobristHash::whiteMoveHash; // Hash for sides turn
-
-
-	ZobristHash::ZobristHash() {
-		// Initialises all hash values
-		if (!initialised)
-			initHashes();
-	}
+	HashKey ZobristHash::pieceHashes[2][7][64];
+	HashKey ZobristHash::enPassantHash[64];
+	HashKey ZobristHash::castlingRightsHash[17];
+	HashKey ZobristHash::whiteMoveHash;
 
 	// Initialises hash member values
 	void ZobristHash::initHashes() {
 		std::mt19937_64 rng(0x1234);
 
 		// Iterate over every color, piece and square to produce unique hash values
-		for (uint64_t colorIndex = 0; colorIndex < 2; ++colorIndex) {
-			for (uint64_t piece = Piece::pawn; piece <= Piece::king; ++piece) {
-				for (uint64_t square = 0; square < 64; ++square) {
-					pieceHashes[colorIndex][piece][square] = rng();
-				}
+		for (PieceType type = PAWN; type <= KING; ++type) {
+			for (Square sq = START_SQUARE; sq < SQUARES_NB; ++sq) {
+				pieceHashes[BLACK][type][sq] = rng();
+				pieceHashes[WHITE][type][sq] = rng();
 			}
 		}
 
 		// Init en passant hashes
-		for (int square = 0; square < 64; square++) {
-			enPassantHash[square] = rng();
+		for (Square sq = START_SQUARE; sq < SQUARES_NB; ++sq) {
+			enPassantHash[sq] = rng();
 		}
 		// Init castling hashes
-		for (int right = 0; right < 17; right++) {
-			castlingRightsHash[right] = rng();
+		for (CastlingRights cr = NO_RIGHTS; cr < RIGHTS_NB; ++cr) {
+			castlingRightsHash[int(cr)] = rng();
 		}
 
 		whiteMoveHash = rng();
-
-		initialised = true;
 	}
 
 	// Static function returns hash of a given board
-	uint64_t ZobristHash::hashBoard(Board* board) {
+	HashKey ZobristHash::hashBoard(Board* board) {
 		assert(board != nullptr);
 
-		// Initialise hashes if not
-		if (!initialised) {
-			initHashes();
-		}
-
-		int numPieces;
-		uint64_t boardHash = 0ULL;
+		HashKey boardHash = 0ULL;
 		// Apply hashes for every piece on board, XOR'ing them together
-		for (int colorIndex = 0; colorIndex < 2; colorIndex++) {
-			for (int piece = Piece::pawn; piece <= Piece::king; piece++) {
-				numPieces = board->pieceLists[colorIndex][piece].numPieces;
-				for (int it = 0; it < numPieces; it++) {
-					boardHash ^= pieceHashes[colorIndex][piece][board->pieceLists[colorIndex][piece][it]];
-				}
+		for (Square sq = START_SQUARE; sq < SQUARES_NB; ++sq) {
+			PieceType type = typeOf(board->squares[sq]);
+			Color color = colorOf(board->squares[sq]);
+
+			if (type == NO_PIECE_TYPE) {
+				continue;
 			}
+
+			boardHash ^= pieceHashes[color][type][sq];
 		}
 
-		if (board->state->enPassantSquare != -1) 
+		if (board->state->enPassantSquare != NONE_SQUARE) 
 			boardHash ^= enPassantHash[board->state->enPassantSquare];
 
-		boardHash ^= castlingRightsHash[board->state->castlingRights];
+		boardHash ^= castlingRightsHash[int(board->state->cr)];
 
-		if (board->state->whiteTurn) boardHash ^= whiteMoveHash;
+		if (board->sideToMove() == WHITE) 
+			boardHash ^= whiteMoveHash;
 
 		return boardHash;
 	}

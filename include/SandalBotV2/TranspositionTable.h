@@ -1,8 +1,9 @@
 #ifndef TRANSPOSITIONTABLE_H
 #define TRANSPOSITIONTABLE_H
 
-#include "ZobristHash.h"
 #include "Move.h"
+#include "Types.h"
+#include "ZobristHash.h"
 
 #include <limits>
 
@@ -12,7 +13,7 @@ namespace SandalBot {
 	// for a hashtable of previously visited positions. Using hashes as indexes, positions'
 	// evaluation, bestmove, and other information can be stored to avoid recomputation - 
 	// drastically reduced search tree sizes in repetitive positions
-	class TranspositionTable : public ZobristHash {
+	class TranspositionTable {
 	public:
 		// Sentinel value for evaluation
 		static constexpr int notFound{ std::numeric_limits<int>::min() };
@@ -26,23 +27,23 @@ namespace SandalBot {
 
 		TranspositionTable(int sizeMB = defaultSizeMB);
 		~TranspositionTable() { delete[] table; }
-		Move getBestMove(uint64_t hashKey);
-		int getDepth(uint64_t hashKey);
-		void store(int eval, int16_t remainingDepth, int16_t currentDepth, uint8_t nodeType, Move move, uint64_t hashKey);
-		int lookup(int16_t remainingDepth, int16_t currentDepth, int alpha, int beta, uint64_t hashKey);
+		Move getBestMove(HashKey hashKey);
+		int getDepth(HashKey hashKey);
+		void store(int eval, int16_t remainingDepth, int16_t currentDepth, uint8_t nodeType, Move move, HashKey hashKey);
+		int lookup(int16_t remainingDepth, int16_t currentDepth, int alpha, int beta, HashKey hashKey);
 		void clear();
 		int retrieveMateScore(int eval, int16_t currentDepth);
 		int storeMateScore(int eval, int16_t currentDepth);
 	private:
 		// Hash table entry, storing positional information
 		struct Entry {
-			uint64_t hash{ 0ULL };
+			HashKey hash{ 0ULL };
 			int eval{ 0 };
 			int16_t depth{ std::numeric_limits<int16_t>::max() };
 			uint8_t nodeType{}; // Determines whether node was an exact, upper, or lower bound of evaluation
 			Move move{};
 			Entry() {}
-			Entry(uint64_t hash, int eval, uint16_t depth, uint8_t nodeType, Move move) 
+			Entry(HashKey hash, int eval, uint16_t depth, uint8_t nodeType, Move move) 
 				: hash(hash), eval(eval), depth(depth), nodeType(nodeType), move(move) {}
 			Entry(Entry&& other) noexcept
 				: hash(other.hash), eval(other.eval), depth(other.depth), 
@@ -72,7 +73,7 @@ namespace SandalBot {
 		Entry* table{ nullptr };
 		Move nullMove{};
 
-		std::size_t getIndex(uint64_t hash) const { return hash % size; }
+		std::size_t getIndex(HashKey hash) const { return hash % size; }
 	};
 
 }

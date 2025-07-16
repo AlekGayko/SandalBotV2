@@ -1,5 +1,7 @@
 #include "Bot.h"
 
+#include "Types.h"
+
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -10,14 +12,14 @@ using namespace std;
 namespace SandalBot {
 
     // Validates a move on the current board position
-    int Bot::validateUserMove(MovePoint moves[218], int startSquare, int targetSquare, int flag) {
+    int Bot::validateUserMove(MovePoint moves[218], Square from, Square to, Move::Flag flag) {
         // Generate all possible moves in position
-        int numMoves = searcher->moveGenerator->generateMoves(moves);
+        int numMoves = searcher->moveGenerator->generate(moves);
         int moveIndex = -1;
         // If proposed move is in possible moves, it is a valid move
         for (int i = 0; i < numMoves; i++) {
-            if (moves[i].move.getStartSquare() == startSquare && moves[i].move.getTargetSquare() == targetSquare &&
-                (moves[i].move.getFlag() < Move::promoteToQueenFlag || moves[i].move.getFlag() == flag)) {
+            if (moves[i].move.from() == from && moves[i].move.to() == to &&
+                (moves[i].move.flag() > Move::Flag::QUEEN || moves[i].move.flag() == flag)) {
                 moveIndex = i;
                 break;
             }
@@ -29,7 +31,6 @@ namespace SandalBot {
     Bot::Bot() {
         board = new Board();
         searcher = new Searcher(board);
-        board->setEvaluator(searcher->evaluator); // Connect evaluator and board
     }
 
     Bot::~Bot() {
@@ -49,39 +50,39 @@ namespace SandalBot {
             return;
         }
         // These variables define all moves
-        int startSquare;
-        int targetSquare;
-        int flag;
+        Square from;
+        Square to;
+        Move::Flag flag;
 
         // Castle notation are edge cases
         if (movestr == "O-O") {
-            startSquare = board->state->whiteTurn ? 60 : 4;
-            targetSquare = board->state->whiteTurn ? 62 : 6;
-            flag = Move::castleFlag;
+            from = Square(board->sideToMove() == WHITE ? W_KING_SQUARE : B_KING_SQUARE);
+            to = board->sideToMove() == WHITE ? G1 : G8;
+            flag = Move::Flag::CASTLE;
         } else if (movestr == "O-O-O") {
-            startSquare = board->state->whiteTurn ? 60 : 4;
-            targetSquare = board->state->whiteTurn ? 58 : 2;
-            flag = Move::castleFlag;
+            from = Square(board->sideToMove() == WHITE ? W_KING_SQUARE : B_KING_SQUARE);
+            to = board->sideToMove() == WHITE ? C1 : C8;
+            flag = Move::Flag::CASTLE;
         } else {
             // Extract start and target square
-            startSquare = CoordHelper::stringToIndex(movestr.substr(0, 2));
-            targetSquare = CoordHelper::stringToIndex(movestr.substr(2, 2));
-            flag = 0;
+            from = Square(CoordHelper::stringToIndex(movestr.substr(0, 2)));
+            to = Square(CoordHelper::stringToIndex(movestr.substr(2, 2)));
+            flag = Move::Flag::NO_FLAG;
 
             // Promotion moves have an extra character for promotion piece
             if (movestr.size() == 5) {
                 switch (movestr[4]) {
                 case 'q':
-                    flag = Move::promoteToQueenFlag;
+                    flag = Move::Flag::QUEEN;
                     break;
                 case 'r':
-                    flag = Move::promoteToRookFlag;
+                    flag = Move::Flag::ROOK;
                     break;
                 case 'n':
-                    flag = Move::promoteToKnightFlag;
+                    flag = Move::Flag::KNIGHT;
                     break;
                 case 'b':
-                    flag = Move::promoteToBishopFlag;
+                    flag = Move::Flag::BISHOP;
                     break;
                 }
             }
@@ -89,9 +90,10 @@ namespace SandalBot {
 
         // Validate move
         MovePoint positionMoves[218];
-        int moveIndex = validateUserMove(positionMoves, startSquare, targetSquare, flag);
+        int moveIndex = validateUserMove(positionMoves, from, to, flag);
 
-        if (moveIndex == -1) return;
+        if (moveIndex == -1) 
+            return;
 
         // If move is valid, enact move
         board->makeMove(positionMoves[moveIndex].move);
@@ -107,27 +109,27 @@ namespace SandalBot {
         }
 
         // Generate UCI notation from generated move
-        string startSquare = CoordHelper::indexToString(searcher->bestMove.getStartSquare());
-        string targetSquare = CoordHelper::indexToString(searcher->bestMove.getTargetSquare());
+        string from = CoordHelper::indexToString(searcher->bestMove.from());
+        string to = CoordHelper::indexToString(searcher->bestMove.to());
         string flag = "";
 
-        switch (searcher->bestMove.getFlag()) {
-        case Move::promoteToQueenFlag:
+        switch (searcher->bestMove.flag()) {
+        case Move::Flag::QUEEN:
             flag = "q";
             break;
-        case Move::promoteToBishopFlag:
+        case Move::Flag::BISHOP:
             flag = "b";
             break;
-        case Move::promoteToKnightFlag:
+        case Move::Flag::KNIGHT:
             flag = "n";
             break;
-        case Move::promoteToRookFlag:
+        case Move::Flag::ROOK:
             flag = "r";
             break;
         }
 
-        cout << "bestmove " << startSquare << targetSquare << flag << endl;
-        return startSquare + targetSquare;
+        cout << "bestmove " << from << to << flag << endl;
+        return from + to;
     }
 
     // Search position asynchronously
@@ -164,8 +166,8 @@ namespace SandalBot {
 
     // Returns the amount of thinking time the bot wishes to spend while generating a move
     int Bot::chooseMoveTime(int whiteTimeMs, int blackTimeMs, int whiteIncMs, int blackIncMs) {
-        int timeRemaining = board->state->whiteTurn ? whiteTimeMs : blackTimeMs;
-        int incMs = board->state->whiteTurn ? whiteIncMs : blackIncMs;
+        int timeRemaining = board->sideToMove() == WHITE ? whiteTimeMs : blackTimeMs;
+        int incMs = board->sideToMove() == WHITE ? whiteIncMs : blackIncMs;
         double minTimeMs = min(50, int(timeRemaining * 0.25));
         double moveTimeMs = float(timeRemaining) / 40.0f;
 

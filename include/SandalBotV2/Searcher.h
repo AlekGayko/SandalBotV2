@@ -7,6 +7,7 @@
 #include "MoveLine.h"
 #include "MoveOrderer.h"
 #include "TranspositionTable.h"
+#include "Types.h"
 
 #include <atomic>
 #include <chrono>

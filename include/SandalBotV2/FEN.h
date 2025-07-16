@@ -2,8 +2,8 @@
 #define FEN_H
 
 #include "Board.h"
-#include "Piece.h"
 #include "StringUtil.h"
+#include "Types.h"
 
 #include <iostream>
 #include <string>
@@ -11,20 +11,17 @@
 
 namespace SandalBot {
 
-	class Board;
+	using namespace std::literals::string_view_literals;
 
 	// PositionInfo stores information that can be extracted from FEN string
 	struct PositionInfo {
 		std::string FEN{};
-		int8_t squares[64];
-		uint8_t fiftyMoveCount{};
-		uint16_t moveCount{};
-		uint8_t enPassantSquare{};
-		bool whiteShortCastle{};
-		bool whiteLongCastle{};
-		bool blackShortCastle{};
-		bool blackLongCastle{};
-		bool whiteTurn{};
+		Piece squares[64];
+		int fiftyMoveCount{};
+		int moveCount{};
+		Square enPassantSquare{};
+		CastlingRights cr{};
+		Color sideToMove{};
 		
 		PositionInfo() = default;
 	};
@@ -32,7 +29,7 @@ namespace SandalBot {
 	// Utility class for FEN strings, can parse FEN strings and generate them
 	namespace FEN {
 		// Start Position FEN string
-		constexpr std::string_view startpos { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
+		constexpr std::string_view startpos { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"sv };
 
 		std::string generateFEN(const Board* board, bool includeEPSquare = true);
 

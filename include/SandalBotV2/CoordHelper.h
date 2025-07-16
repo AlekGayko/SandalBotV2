@@ -6,8 +6,11 @@
 #include "StringUtil.h"
 
 #include <string>
+#include <string_view>
 
 namespace SandalBot {
+
+	using namespace std::literals::string_view_literals;
 
 	// Coord encapsulates a coordinate
 	struct Coord {
@@ -24,8 +27,8 @@ namespace SandalBot {
 	// CoordHelper provides utility functions for dealing with coordinates in many forms
 	namespace CoordHelper {
 		// Human readable forms of rows and columns
-		const std::string charFiles{ "abcdefgh" };
-		const std::string charRanks{ "87654321" };
+		constexpr std::string_view charFiles{ "abcdefgh"sv };
+		constexpr std::string_view charRanks{ "87654321"sv };
 
 		std::string indexToString(int index);
 		int stringToIndex(std::string str);

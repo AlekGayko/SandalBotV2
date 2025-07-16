@@ -1,10 +1,17 @@
+#include "Bitboards.h"
+#include "IUCI.h"
+#include "ZobristHash.h"
+
 #include <iostream>
 #include <string>
-#include "IUCI.h"
+
+using namespace SandalBot;
 
 int main() {
-	// Instantiate engine
-	SandalBot::IUCI engine;
+	ZobristHash::initHashes();
+	initBitboards();
+
+	IUCI engine;
 
 	// Repeatedly accept commands
 	std::string command = "";
@@ -13,4 +20,5 @@ int main() {
 		engine.processCommand(command); // Let engine process command
 	}
 
+	return 0;
 }

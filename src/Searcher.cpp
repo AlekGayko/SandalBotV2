@@ -6,20 +6,21 @@
 #include <iostream>
 #include <thread>
 #include <string>
-#include <sstream>
+#include <string_view>
 
 using namespace std;
 
 namespace SandalBot {
+
+	using namespace std::literals::string_view_literals;
 
 	// Constructor initialised with board
 	Searcher::Searcher(Board* board)
 		: board(board) {
 		// Allocate member variables
 		this->moveGenerator = new MoveGen(board);
-		this->orderer = new MoveOrderer(moveGenerator);
-		this->evaluator = new Evaluator(board, moveGenerator->preComp);
-		this->evaluator->generator = moveGenerator;
+		this->orderer = new MoveOrderer();
+		this->evaluator = new Evaluator();
 		this->tTable = new TranspositionTable();
 		this->bestLine = new MoveLine(bestLineSize);
 	}
@@ -115,7 +116,7 @@ namespace SandalBot {
 
 		int score{ 0 };
 		// Evaluate board
-		score = evaluator->Evaluate();
+		score = evaluator->Evaluate(board);
 
 		// If evaluation is too good, cut search
 		if (score >= beta) {
@@ -130,11 +131,11 @@ namespace SandalBot {
 		MovePoint moves[218];
 
 		// Generate moves which only take pieces
-		int numMoves = moveGenerator->generateMoves(moves, true);
+		int numMoves = moveGenerator->generate(moves, true);
 
 		// Order the moves
 		if (numMoves > 1) {
-			orderer->order(board, moves, bestMove, numMoves, 0, true);
+			orderer->order(board, moveGenerator, moves, bestMove, numMoves, 0, true);
 		}
 
 		for (int i = 0; i < numMoves; i++) {
@@ -143,7 +144,7 @@ namespace SandalBot {
 			// Recursively search
 			score = -quiescenceSearch(-beta, -alpha, maxDepth + 1);
 			// Undo move
-			board->unMakeMove(moves[i].move);
+			board->unMakeMove();
 
 			// If search cancelled, dont store move and return
 			if (cancelSearch)
@@ -224,13 +225,13 @@ namespace SandalBot {
 		// Initialise array for moves (218 is maximum number of moves)
 		MovePoint moves[218];
 		// Generate moves and store them inside moves[]
-		int numMoves = moveGenerator->generateMoves(moves);
+		int numMoves = moveGenerator->generate(moves);
 		bool isCheck = moveGenerator->isCheck;
 		bool worthExtension = false;
 		// Get best move (whether it be bestMove from iterative deepening or previous transpositions)
 		Move currentBestMove = depth == 0 ? std::move(this->bestMove) : tTable->getBestMove(board->state->zobristHash);
 		// Order moves to heuristically narrow search
-		orderer->order(board, moves, currentBestMove, numMoves, depth, false);
+		orderer->order(board, moveGenerator, moves, currentBestMove, numMoves, depth, false);
 
 		for (int i = 0; i < numMoves; ++i) {
 			// Make move
@@ -239,12 +240,12 @@ namespace SandalBot {
 			int extension = 0;
 			worthExtension = worthSearching(moves[i].move, isCheck, numExtensions);
 			// Reduce depth for moves late in move order as they are unlikely to be good
-			/*
-			if (i >= 4 * reduceExtensionCutoff && maxDepth - depth >= 3 && !worthExtension) {
+			
+			if (i >= 4 * reduceExtensionCutoff && (maxDepth - depth) >= 3 && !worthExtension) {
 				score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 2, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;
-			} else */if (i >= reduceExtensionCutoff && (maxDepth - depth) >= 2 && !worthExtension) {
+			} else if (i >= reduceExtensionCutoff && (maxDepth - depth) >= 2 && !worthExtension) {
 				score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 1, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;
@@ -259,7 +260,7 @@ namespace SandalBot {
 			}
 
 			// Undo move
-			board->unMakeMove(moves[i].move);
+			board->unMakeMove();
 
 			// If search is cancelled, prevent processing move
 			if (cancelSearch)
@@ -313,33 +314,33 @@ namespace SandalBot {
 
 		MovePoint moves[218];
 
-		int numMoves = moveGenerator->generateMoves(moves);
+		int numMoves = moveGenerator->generate(moves);
 		for (int i = 0; i < numMoves; ++i) {
 			uint64_t numMoves{ 0ULL }; // Tracks number of nodes found in perft
 			// Simulate move
 			board->makeMove(moves[i].move);
 			numMoves += moveSearch(depth + 1, maxDepth);
-			board->unMakeMove(moves[i].move);
+			board->unMakeMove();
 
 			// If at depth 0, print number of moves from branch, useful for debugging
 			if (depth == 0) {
-				string promotionpiece = "";
-				switch (moves[i].move.getFlag()) {
-				case Move::promoteToQueenFlag:
-					promotionpiece = "q";
+				std::string_view promotionpiece = "";
+				switch (moves[i].move.flag()) {
+				case Move::Flag::QUEEN:
+					promotionpiece = "q"sv;
 					break;
-				case Move::promoteToRookFlag:
-					promotionpiece = "r";
+				case Move::Flag::ROOK:
+					promotionpiece = "r"sv;
 					break;
-				case Move::promoteToBishopFlag:
-					promotionpiece = "b";
+				case Move::Flag::BISHOP:
+					promotionpiece = "b"sv;
 					break;
-				case Move::promoteToKnightFlag:
-					promotionpiece = "n";
+				case Move::Flag::KNIGHT:
+					promotionpiece = "n"sv;
 					break;
 				}
-				cout << CoordHelper::indexToString(moves[i].move.getStartSquare()) 
-				<< CoordHelper::indexToString(moves[i].move.getTargetSquare()) 
+				cout << CoordHelper::indexToString(moves[i].move.from()) 
+				<< CoordHelper::indexToString(moves[i].move.to()) 
 				<< promotionpiece << ": " << numMoves << endl;
 			}
 			movesGenerated += numMoves;
@@ -399,7 +400,7 @@ namespace SandalBot {
 
 	// Determines whether move is worth extending search for
 	bool Searcher::worthSearching(Move move, const bool isCheck, const int numExtensions) {
-		return (move.getFlag() >= Move::promoteToQueenFlag || isCheck) && numExtensions < maxExtensions;
+		return (move.isPromotion() || isCheck) && numExtensions < maxExtensions;
 	}
 
 	// Generates best line
@@ -428,25 +429,24 @@ namespace SandalBot {
 
 		enactBestLine(nextMove, depth + 1);
 
-		board->unMakeMove(move); // Rollback changes to board
+		board->unMakeMove(); // Rollback changes to board
 	}
 
 	// Checks whether the board position is illegal, used to prevent malicious FEN inputs
 	bool Searcher::isPositionIllegal() {
 		// If more or less than one king on each side, its an illegal position
-		if (board->pieceLists[Board::whiteIndex][Piece::king].numPieces != 1 
-			|| board->pieceLists[Board::blackIndex][Piece::king].numPieces != 1) {
+		if (board->pieceCount[W_KING] != 1 || board->pieceCount[B_KING] != 1) {
 			return true;
 		}
 
 		// If piece can take a king, its an illegal position
 		MovePoint moves[218];
 
-		int numMoves = moveGenerator->generateMoves(moves); // Generate all legal moves
+		int numMoves = moveGenerator->generate(moves); // Generate all legal moves
 
 		// If any move attack king, it is illegal
 		for (int i = 0; i < numMoves; i++) {
-			if (Piece::type(board->squares[moves[i].move.getTargetSquare()]) == Piece::king) {
+			if (typeOf(board->squares[moves[i].move.to()]) == KING) {
 				return true;
 			}
 		}
@@ -456,7 +456,7 @@ namespace SandalBot {
 
 	// Returns static evaluation of position
 	int Searcher::eval() {
-		return evaluator->Evaluate();
+		return evaluator->Evaluate(board);
 	}
 
 	// Deletes old transposition table and creates new one of different size

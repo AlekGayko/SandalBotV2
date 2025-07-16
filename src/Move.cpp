@@ -5,44 +5,33 @@
 
 namespace SandalBot {
 	// Returns the piece the move promotes to
-	int Move::promotionPieceType() {
-		switch (getFlag()) {
-		case promoteToQueenFlag:
-			return Piece::queen;
-		case promoteToRookFlag:
-			return Piece::rook;
-		case promoteToBishopFlag:
-			return Piece::bishop;
-		case promoteToKnightFlag:
-			return Piece::knight;
-		default:
-			return 0;
-		}
+	constexpr PieceType Move::promotionPieceType() {
+		return PieceType(flag());
 	}
 	// Returns a string representing the move in UCI notation
 	std::string Move::str() const {
 		std::string str = "";
-		str += CoordHelper::indexToString(getStartSquare());
-		str += CoordHelper::indexToString(getTargetSquare());
+		str += CoordHelper::indexToString(from());
+		str += CoordHelper::indexToString(to());
 
-		switch (getFlag()) {
-		case castleFlag:
-			if (getTargetSquare() > getStartSquare()) {
+		switch (flag()) {
+		case Flag::CASTLE:
+			if (to() > from()) {
 				str = "O-O";
 			} else {
 				str = "O-O-O";
 			}
 			break;
-		case promoteToQueenFlag:
+		case Flag::QUEEN:
 			str += "q";
 			break;
-		case promoteToRookFlag:
+		case Flag::ROOK:
 			str += "r";
 			break;
-		case promoteToBishopFlag:
+		case Flag::BISHOP:
 			str += "b";
 			break;
-		case promoteToKnightFlag:
+		case Flag::KNIGHT:
 			str += "n";
 			break;
 		}
@@ -51,9 +40,9 @@ namespace SandalBot {
 	}
 	// Returns string representing the binary format of the 16 bit moveValue
 	std::string Move::binStr() const {
-		std::bitset<4> binFlag { getFlag() };
-		std::bitset<6> binStart { getStartSquare() };
-		std::bitset<6> binTarget{ getTargetSquare() };
+		std::bitset<4> binFlag { static_cast<uint64_t>(flag()) };
+		std::bitset<6> binStart { static_cast<uint64_t>(from()) };
+		std::bitset<6> binTarget{ static_cast<uint64_t>(to()) };
 
 		return binFlag.to_string() + " " + 
 			binStart.to_string() + " " + binTarget.to_string();

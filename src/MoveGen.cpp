@@ -10,477 +10,311 @@ using namespace std;
 
 namespace SandalBot {
 
-	MoveGen::~MoveGen() {
-		delete preComp;
-	}
-
-	MoveGen::MoveGen() {
-		preComp = new MovePrecomputation();
-	}
-
-	MoveGen::MoveGen(Board* board) {
-		if (board == nullptr) throw std::invalid_argument("board cannot be nullptr");
-		this->board = board;
-		preComp = new MovePrecomputation();
-	}
-
 	// Generates all legal moves on the board. Returns the number of legalmoves
 	// and populates the decayed moves array (Must be minimum length of 218 - maximum possible moves).
 	// capturesOnly determines whether only capture moves are considered
-	int MoveGen::generateMoves(MovePoint moves[], bool capturesOnly) {
-		initVariables(capturesOnly); // Setup variables for current board
-		generateCheckData(); // Determine pins and check
-		generateKingMoves(moves);
+	int MoveGen::generate(MovePoint moves[], bool capturesOnly) {
+		board->sideToMove() == WHITE 
+			? generateAllMoves<WHITE>(moves, capturesOnly) : generateAllMoves<BLACK>(moves, capturesOnly);
+
+		return currentMoves;
+	}
+
+	template <Color Us>
+	int MoveGen::generateAllMoves(MovePoint moves[], bool capturesOnly) {
+		initVariables(); // Setup variables for current board
+		generateCheckData<Us>(); // Determine pins and check
+
+		generateKingMoves<Us>(moves, capturesOnly);
 
 		// If king is checked twice, only legal moves is to move king
 		if (doubleCheck)
 			return currentMoves;
 
-		generatePawnMoves(moves);
-		generateKnightMoves(moves);
-		generateOrthogonalMoves(moves);
-		generateDiagonalMoves(moves);
+		generatePawnMoves<Us>(moves, capturesOnly);
+		generateMoves<Us, QUEEN>(moves, capturesOnly);
+		generateMoves<Us, KNIGHT>(moves, capturesOnly);
+		generateMoves<Us, BISHOP>(moves, capturesOnly);
+		generateMoves<Us, ROOK>(moves, capturesOnly);
 
 		return currentMoves;
 	}
 
 	// Initialise variables for move generation
-	void MoveGen::initVariables(bool capturesOnly) {
-		squares = board->squares;
+	void MoveGen::initVariables() {
 		isCheck = false;
 		doubleCheck = false;
-		whiteTurn = board->state->whiteTurn;
-		enPassantSquare = board->state->enPassantSquare;
-		castlingRights = board->state->castlingRights;
-		fiftyMoveCounter = board->state->fiftyMoveCounter;
-		moveCounter = board->state->moveCounter;
 
-		colorIndex = whiteTurn ? Board::whiteIndex : Board::blackIndex;
-		enemyColorIndex = !whiteTurn ? Board::whiteIndex : Board::blackIndex;
-		currentColor = whiteTurn ? Piece::white : Piece::black;
-		opposingColor = !whiteTurn ? Piece::white : Piece::black;
 		currentMoves = 0ULL;
-
-		friendlyKingSquare = board->pieceLists[colorIndex][Piece::king][0];
-		enemyKingSquare = board->pieceLists[enemyColorIndex][Piece::king][0];
 
 		checkBB = 0ULL;
 		checkRayBB = 0ULL;
 		opponentAttacks = 0ULL;
-
-		friendlyBoard = whiteTurn ? board->whitePieces : board->blackPieces;
-		enemyBoard = !whiteTurn ? board->whitePieces : board->blackPieces;
-
-		generateCaptures = capturesOnly;
 	}
 
-	// Generate all possible moves for orthogonal moving pieces (rooks and queens).
-	// Populates decayed moves array with new moves
-	void MoveGen::generateOrthogonalMoves(MovePoint moves[]) {
-		int startSquare;
-		int targetSquare;
-		bool isPinned;
-		uint64_t orthSliders = board->orthogonalPieces & friendlyBoard; // All friendly orthogonal pieces
+	template<Color Us, PieceType Type>
+	void MoveGen::generateMoves(MovePoint moves[], bool capturesOnly) {
+		Bitboard pieces = board->typesBB[Type] & board->colorsBB[Us];
 
-		// Iterate over friendly orthogonal pieces
-		while (orthSliders != 0ULL) {
-			// Get square of piece and remove it from bitboard
-			startSquare = BitBoardUtility::popLSB(orthSliders);
-			isPinned = checkRayBB & (1ULL << startSquare);
+		while (pieces != 0ULL) {
+			Square from = popLSB(pieces);
+			Bitboard movementBB = getMovementBoard<Type>(from, board->typesBB[ALL_PIECES]);
+			movementBB &= ~board->colorsBB[Us];
+			
+			bool pinned = checkRayBB && (checkRayBB & (1ULL << from));
 
-			// If pinned diagonally, cannot move orthogonally
-			if (isPinned && abs(friendlyKingSquare - startSquare) % 7 == 0) {
-				continue;
-			} else if (isPinned && abs(friendlyKingSquare - startSquare) % 9 == 0) {
-				continue;
+			if (pinned) {
+				Bitboard pinLine = getLineBB(from, board->kingSquares[Us]);
+				movementBB &= pinLine;
 			}
-			// Generate movement board from magic bitboard hashtable
-			uint64_t blockers = board->allPieces & preComp->getBlockerOrthogonalMask(startSquare);
-			uint64_t moveBitboard = preComp->getOrthMovementBoard(startSquare, blockers);
 
-			moveBitboard &= ~(friendlyBoard); // Disallow taking friendly pieces
-
-			// If in check, only allow taking checking piece or blocking check
 			if (isCheck) {
-				moveBitboard &= checkBB;
+				movementBB &= checkBB;
 			}
 
-			// If pinned, only allow movement along pinned direction
-			if (isPinned) {
-				moveBitboard &= checkRayBB;
+			if (capturesOnly) {
+				movementBB &= board->colorsBB[~Us];
 			}
 
-			// If only captures, only consider moves that take enemy pieces
-			if (generateCaptures) {
-				moveBitboard &= enemyBoard;
-			}
-
-			// If pinned orthogonally, only allow movement in pinned direction
-			if (isPinned && friendlyKingSquare / 8 == startSquare / 8) {
-				moveBitboard &= preComp->getRowMask(startSquare);
-			}
-			if (isPinned && abs(friendlyKingSquare - startSquare) % 8 == 0) {
-				moveBitboard &= preComp->getColMask(startSquare);
-			}
-
-			// For every available move, add to moves array
-			while (moveBitboard != 0ULL) {
-				targetSquare = BitBoardUtility::popLSB(moveBitboard);
-
-				moves[currentMoves++].move = Move(startSquare, targetSquare);
-			}
-
-		}
-	}
-	// Generate all possible moves for diagonal moving pieces (bishops and queens).
-	// Populates decayed moves array with new moves
-	void MoveGen::generateDiagonalMoves(MovePoint moves[]) {
-		int startSquare;
-		int targetSquare;
-		bool isPinned;
-		uint64_t diagSliders = board->diagonalPieces & friendlyBoard; // All friendly diagonal pieces
-
-		// Iterate over friendly diagonal pieces
-		while (diagSliders != 0ULL) {
-			// Get square of piece and remove it from bitboard
-			startSquare = BitBoardUtility::popLSB(diagSliders);
-
-			isPinned = checkRayBB & (1ULL << startSquare);
-
-			// If pinned orthogonal, cannot move diagonally
-			if (isPinned && friendlyKingSquare / 8 == startSquare / 8) {
-				continue;
-			} else if (isPinned && abs(friendlyKingSquare - startSquare) % 8 == 0) {
-				continue;
-			}
-			// Generate movement board from magic bitboard hashtable
-			uint64_t blockers = board->allPieces & preComp->getBlockerDiagonalMask(startSquare);
-			uint64_t moveBitboard = preComp->getDiagMovementBoard(startSquare, blockers);
-
-			moveBitboard &= ~(friendlyBoard); // Disallow taking friendly pieces
-			// If in check, only allow taking checking piece or blocking check
-			if (isCheck) {
-				moveBitboard &= checkBB;
-			}
-			// If pinned, only allow movement along pinned direction
-			if (isPinned) {
-				moveBitboard &= checkRayBB;
-			}
-			// If only captures, only consider moves that take enemy pieces
-			if (generateCaptures) {
-				moveBitboard &= enemyBoard;
-			}
-			// If pinned diagonally, only allow movement in pinned direction
-			if (isPinned && abs(friendlyKingSquare - startSquare) % 7 == 0) {
-				moveBitboard &= preComp->getForwardMask(startSquare);
-			} else if (isPinned && abs(friendlyKingSquare - startSquare) % 9 == 0) {
-				moveBitboard &= preComp->getBackwardMask(startSquare);
-			}
-			// For every available move, add to moves array
-			while (moveBitboard != 0ULL) {
-				targetSquare = BitBoardUtility::popLSB(moveBitboard);
-
-				moves[currentMoves++].move = Move(startSquare, targetSquare);
-			}
-
-		}
-	}
-	// Generate all possible moves for knights.
-	// Populates decayed moves array with new moves
-	void MoveGen::generateKnightMoves(MovePoint moves[]) {
-		int startSquare;
-		int targetSquare;
-		bool isPinned;
-		uint64_t knights = board->knights & friendlyBoard; // Get bitboard of all friendly knights
-		// Iterate over all friendly knights
-		while (knights != 0ULL) {
-			// Get knight square
-			startSquare = BitBoardUtility::popLSB(knights);
-			isPinned = checkRayBB & (1ULL << startSquare);
-			// If knight is pinned, impossible to move
-			if (isPinned) continue;
-			// Get movement board
-			uint64_t moveBitboard = preComp->getKnightBoard(startSquare);
-			moveBitboard &= ~(friendlyBoard); // Avoid capturing friendly pieces
-			// If in check, attempt to capture checking piece or block check
-			if (isCheck)
-				moveBitboard &= checkBB;
-			// If captures only, only consider capturing enemy pieces
-			if (generateCaptures)
-				moveBitboard &= enemyBoard;
-			// Add all possible moves left to moves array
-			while (moveBitboard != 0) {
-				targetSquare = BitBoardUtility::popLSB(moveBitboard);
-
-				moves[currentMoves++].move = Move(startSquare, targetSquare);
+			while (movementBB != 0ULL) {
+				Square to = popLSB(movementBB);
+				addMove(moves, from, to);
 			}
 		}
 	}
-	// Generate all possible moves for king.
-	// Populates decayed moves array with new moves
-	void MoveGen::generateKingMoves(MovePoint moves[]) {
-		int targetSquare;
-		const int castleMask = whiteTurn ? BoardState::whiteCastleMask : BoardState::blackCastleMask;
-		const int colorIndex = whiteTurn ? board->whiteIndex : board->blackIndex;
-		// If king can castle, generate moves
-		if (!generateCaptures && friendlyKingSquare == startingKingSquares[colorIndex] && castlingRights & castleMask && !isCheck)
-			castlingMoves(moves, friendlyKingSquare);
-		// Get king movement board
-		uint64_t moveBitboard = preComp->getKingMoves(friendlyKingSquare);
-		moveBitboard &= ~(opponentAttacks); // Disallow moving into opponent checks
-		moveBitboard &= ~(friendlyBoard); // Avoid capturing own pieces
-		// If captures only, only allow capturing enemy pieces
-		if (generateCaptures)
-			moveBitboard &= enemyBoard;
 
-		// Add all available moves
-		while (moveBitboard != 0ULL) {
-			targetSquare = BitBoardUtility::popLSB(moveBitboard);
-
-			moves[currentMoves++].move = Move(friendlyKingSquare, targetSquare);
-		}
-	}
 	// Generate all possible moves for pawns, including the many odd moves pawns can make.
 	// Populates decayed moves array with new moves
-	void MoveGen::generatePawnMoves(MovePoint moves[]) {
-		int direction = whiteTurn ? whitePawnDirection : blackPawnDirection;
-		const int startRow = whiteTurn ? 6 : 1;
-		const int promotionRow = whiteTurn ? 1 : 6;
-		bool isPinned;
-		int startSquare;
-		int targetSquare;
-		int kingDir;
+	template <Color Us>
+	void MoveGen::generatePawnMoves(MovePoint moves[], bool capturesOnly) {
+		constexpr Direction pawnUp = pawnPush(Us);
+		constexpr Row startRow = Us == WHITE ? ROW_2 : ROW_7;
+		constexpr Row twoSquaresRow = Us == WHITE ? ROW_4 : ROW_5;
+		constexpr Row promoteRow = Us == WHITE ? ROW_7 : ROW_2;
 
-		uint64_t pawns = board->pawns & friendlyBoard;
+		Bitboard pawns = board->typesBB[PAWN] & board->colorsBB[Us];
+		Bitboard allPieces = board->typesBB[ALL_PIECES];
+		Bitboard emptySquares = ~allPieces;
 
-		// Iterate over all friendly pawns
 		while (pawns != 0ULL) {
-			startSquare = BitBoardUtility::popLSB(pawns);
-			kingDir = abs(friendlyKingSquare - startSquare); // Direction to king
-			isPinned = checkRayBB & (1ULL << startSquare);
+			Square from = popLSB(pawns);
+			Bitboard pushBB = capturesOnly ? 0ULL : ((1ULL << (from + pawnUp)) & emptySquares);
 
-			// Cannot move if pinned horiztonally
-			if (isPinned && friendlyKingSquare / 8 == startSquare / 8) continue;
+			if (pushBB != 0ULL && toRow(from) == startRow) {
+				pushBB |= 1ULL << (from + 2 * pawnUp);
+			}
 
-			uint64_t moveBitboard = (1ULL << (startSquare + direction)) & ~board->allPieces; // Move forward one square
-			// If nothing is blocking movement forward and on starting row, allow movement forward two squares 
-			if (moveBitboard != 0ULL && startSquare / 8 == startRow) {
-				moveBitboard |= (1ULL << (startSquare + 2 * direction)) & ~board->allPieces;
+			Bitboard attackBB = getPawnAttackMoves<Us>(from) & allPieces;
+
+			Bitboard movementBB = pushBB | attackBB;
+
+			movementBB &= ~board->colorsBB[Us];
+
+			bool isPinned = checkRayBB && (checkRayBB & (1ULL << from));
+
+			if (isPinned) {
+				Bitboard pinLine = getLineBB(from, board->kingSquares[Us]);
+				movementBB &= pinLine;
 			}
-			// If captures only, cannot move forward
-			if (generateCaptures)
-				moveBitboard = 0ULL;
-			// If pinned, and not on same column (diagonally pinned)
-			if (isPinned && friendlyKingSquare % 8 != startSquare % 8)
-				moveBitboard = 0ULL;
-			// Generate movement for diagonal attacks
-			uint64_t attackBitboard = preComp->getPawnAttackMoves(startSquare, currentColor);
-			// If pinned on file, cannot attack diagonally
-			if (isPinned && friendlyKingSquare % 8 == startSquare % 8) {
-				attackBitboard = 0ULL;
-			} 
-			// If pinned at a -45 degree angle, cannot move forward and only attack on that diagonal
-			else if (isPinned && kingDir % 9 == 0) {
-				attackBitboard &= preComp->getBackwardMask(startSquare);
-				moveBitboard = 0ULL;
+
+			if (isCheck) {
+				movementBB &= checkBB;
 			}
-			// "", but with 45 degree diagonal
-			else if (isPinned && kingDir % 7 == 0) {
-				attackBitboard &= preComp->getForwardMask(startSquare);
-				moveBitboard = 0ULL;
+
+			if (toRow(from) == promoteRow && movementBB != 0ULL) {
+				promotionMoves<Us>(moves, from, movementBB);
 			}
-			// En Passant
-			if (enPassantSquare != -1 && (attackBitboard & 1ULL << enPassantSquare)) {
-				enPassantMoves(moves, enPassantSquare, startSquare);
-			}
-			// Combine attack moves and forward moves
-			attackBitboard &= enemyBoard;
-			moveBitboard |= attackBitboard;
-			// If check, allow movement only to block or capture checking piece
-			if (isCheck)
-				moveBitboard &= checkBB;
-			// Add moves to array
-			while (moveBitboard != 0ULL) {
-				targetSquare = BitBoardUtility::popLSB(moveBitboard);
-				// Promotion moves
-				if (startSquare / 8 == promotionRow) {
-					for (int i = 0; i < 4; i++) {
-						moves[currentMoves++].move = Move(startSquare, targetSquare, promotionFlags[i]);
-					}
-				} 
-				// Regular pawn moves
-				else if (abs(targetSquare - startSquare) < 10) {
-					moves[currentMoves++].move = Move(startSquare, targetSquare);
-				} 
-				// Two squares forward
-				else {
-					moves[currentMoves++].move = Move(startSquare, targetSquare, Move::pawnTwoSquaresFlag);
+	
+			while (movementBB != 0ULL) {
+				Square to = popLSB(movementBB);
+
+				if (toRow(from) == startRow && toRow(to) == twoSquaresRow) {
+					addMove(moves, from, to, Move::Flag::PAWN_TWO_SQUARES);
+				} else {
+					addMove(moves, from, to);
 				}
 			}
+
+			if ((attackBB & (1ULL << board->state->enPassantSquare)) != 0ULL) {
+				enPassantMoves<Us>(moves, from, board->state->enPassantSquare, isPinned);
+			} 
 		}
 	}
+
 	// Generate en passant move
-	void MoveGen::enPassantMoves(MovePoint moves[], int targetSquare, int startSquare) {
-		const int enemyPawnOffset = whiteTurn ? 8 : -8;
-		const int enemyPawnSquare = targetSquare + enemyPawnOffset;
+	template <Color Us>
+	void MoveGen::enPassantMoves(MovePoint moves[], Square from, Square to, bool isPinned) {
+		Square enemyPawnSquare = to - pawnPush(Us);
 		// If in check, and own pawn does not block check and enemy pawn being taken isnt the checking piece, 
 		// cannot en passant
-		if (isCheck && !(checkBB & 1ULL << targetSquare) && !(checkBB & 1ULL << enemyPawnSquare)) return;
-		// If rare edge case occurs, cannot en passant
-		if (enPassantPin(startSquare, enemyPawnSquare)) return;
+		if (isCheck && !(checkBB & (1ULL << to)) && !(checkBB & (1ULL << enemyPawnSquare)))
+			return;
 
-		moves[currentMoves++].move = Move(startSquare, targetSquare, Move::enPassantCaptureFlag);
+		if (isPinned) {
+			Bitboard movementBB = 1ULL << to;
+			Bitboard pinLine = getLineBB(from, board->kingSquares[Us]);
+			movementBB &= pinLine;
+
+			if (movementBB == 0ULL) {
+				return;
+			}
+		}
+
+		// If rare edge case occurs, cannot en passant
+		if (enPassantPin<Us>(from, enemyPawnSquare))
+			return;
+
+		addMove(moves, from, to, Move::Flag::EN_PASSANT);
 	}
+
 	// Checks rare edge case where orthogonal piece can pin through two pawns
 	// and cause check upon en passant. Example case: 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 
-	bool MoveGen::enPassantPin(int friendlyPawnSquare, int enemyPawnSquare) {
+	template <Color Us>
+	bool MoveGen::enPassantPin(Square friendlyPawnSquare, Square enemyPawnSquare) {
+		Square kSq = board->kingSquares[Us];
 		// If king and pawn on different rows, no pin possible
-		if (friendlyKingSquare / 8 != friendlyPawnSquare / 8) return false;
+		if (toRow(kSq) != toRow(friendlyPawnSquare))
+			return false;
 
 		// Create blocker board
-		uint64_t blockers = preComp->getBlockerOrthogonalMask(friendlyKingSquare) & board->allPieces;
+		Bitboard blockers = getBlockerOrthogonalMask(kSq) & board->typesBB[ALL_PIECES];
 		// After en passant pawns will be gone
 		blockers &= ~(1ULL << friendlyPawnSquare) & ~(1ULL << enemyPawnSquare);
 		// Block column
-		blockers |= preComp->getColMask(friendlyKingSquare) & ~(1ULL << friendlyKingSquare);
-		blockers &= ~preComp->getRowMask(0);
-		blockers &= ~preComp->getRowMask(63);
+		blockers |= getColMask(kSq) & ~(1ULL << kSq);
+		blockers &= ~getRowMask(Square(ROW_8));
+		blockers &= ~getRowMask(Square(ROW_1));
 		// Get movement board
-		uint64_t movementBitboard = preComp->getOrthMovementBoard(friendlyKingSquare, blockers);
+		Bitboard movementBitboard = getOrthMovementBoard(kSq, blockers);
 		// Restrict movement to row and enemy orthogonal pieces
-		movementBitboard &= board->orthogonalPieces & enemyBoard & preComp->getRowMask(friendlyKingSquare);
+		movementBitboard &= (board->typesBB[ROOK] | board->typesBB[QUEEN]) & board->colorsBB[~Us];
 		// If movement board != 0ULL, there is a pin
 		return movementBitboard != 0ULL;
 	}
+
+	template <Color Us>
+	void MoveGen::promotionMoves(MovePoint moves[], Square from, Bitboard movementBB) {
+		while (movementBB != 0ULL) {
+			Square to = popLSB(movementBB);
+
+			addMove(moves, from, to, Move::Flag::QUEEN);
+			addMove(moves, from, to, Move::Flag::ROOK);
+			addMove(moves, from, to, Move::Flag::BISHOP);
+			addMove(moves, from, to, Move::Flag::KNIGHT);
+		}
+	}
+
+	// Generate all possible moves for king.
+	// Populates decayed moves array with new moves
+	template <Color Us>
+	void MoveGen::generateKingMoves(MovePoint moves[], bool capturesOnly) {
+		constexpr CastlingRights crMask = (Us == WHITE ? W_RIGHTS : B_RIGHTS);
+		Square from = board->kingSquares[Us];
+		
+		// Get king movement board
+		Bitboard moveBitboard = getMovementBoard<KING>(from, 0ULL);
+		moveBitboard &= ~(opponentAttacks); // Disallow moving into opponent checks
+		moveBitboard &= ~(board->colorsBB[Us]); // Avoid capturing own pieces
+
+		// If captures only, only allow capturing enemy pieces
+		if (capturesOnly)
+			moveBitboard &= board->colorsBB[~Us];
+
+		// Add all available moves
+		while (moveBitboard != 0ULL) {
+			Square to = popLSB(moveBitboard);
+
+			addMove(moves, from, to);
+		}
+
+		// If king can castle, generate moves
+		if (!capturesOnly && !isCheck && (crMask & board->state->cr) != NO_RIGHTS)
+			castlingMoves<Us>(moves, from);
+	}
+
+	template <Color Us>
 	// Generates castling moves for king
-	void MoveGen::castlingMoves(MovePoint moves[], int startSquare) {
-		// Castling rights
-		const int shortMask = whiteTurn ? BoardState::whiteShortCastleMask : BoardState::blackShortCastleMask;
-		const int longMask = whiteTurn ? BoardState::whiteLongCastleMask : BoardState::blackLongCastleMask;
-		const int friendlyRook = whiteTurn ? Piece::whiteRook : Piece::blackRook;
-		// Squares king 'travels' over
-		const int travellingShortSquare = startSquare + 1;
-		const int travellingLongSquare = startSquare - 1;
-		// Checks if king 'travels' over square that is in check
-		const bool shortAttacked = opponentAttacks & (1ULL << travellingShortSquare);
-		const bool longAttacked = opponentAttacks & (1ULL << travellingLongSquare);
-		// Short castling
-		if (!(opponentAttacks & (1ULL << shortCastleKingSquares[colorIndex])) 
-			&& !shortAttacked && castlingRights & shortMask && squares[shortCastleRookSquares[colorIndex]] == friendlyRook 
-			&& squares[startSquare + 1] == Piece::empty && squares[startSquare + 2] == Piece::empty) {
-			moves[currentMoves++].move = std::move(Move(startingKingSquares[colorIndex], shortCastleKingSquares[colorIndex], Move::castleFlag));
+	void MoveGen::castlingMoves(MovePoint moves[], Square from) {
+		if (canShortCastle(Us, board->state->cr)) {
+			if (((shortCastleCheckSQ[Us] & opponentAttacks) == 0ULL) && ((emptyShortCastleSQ[Us] & board->typesBB[ALL_PIECES]) == 0ULL)) {
+				addMove(moves, from, Square(from + 2 * EAST), Move::Flag::CASTLE);
+			}
 		}
-		// Long castling
-		if (!(opponentAttacks & (1ULL << longCastleKingSquares[colorIndex])) 
-			&& !longAttacked && castlingRights & longMask && squares[longCastleRookSquares[colorIndex]] == friendlyRook 
-			&& squares[startSquare - 1] == Piece::empty && squares[startSquare - 2] == Piece::empty 
-			&& squares[startSquare - 3] == Piece::empty) {
-			moves[currentMoves++].move = std::move(Move(startingKingSquares[colorIndex], longCastleKingSquares[colorIndex], Move::castleFlag));
+
+		if (canLongCastle(Us, board->state->cr)) {
+			if (((longCastleCheckSQ[Us] & opponentAttacks) == 0ULL) && ((emptyLongCastleSQ[Us] & board->typesBB[ALL_PIECES]) == 0ULL)) {
+				addMove(moves, from, Square(from + 2 * WEST), Move::Flag::CASTLE);
+			}
 		}
 	}
-	// Generate all squares 'attacked' by orthogonal pieces, return them in a bitboard
-	uint64_t MoveGen::generateOrthogonalAttackData(const uint64_t orthogonalPieces, const uint64_t enemyBoard, int friendlyKingSquare) {
-		uint64_t opponentAttacks = 0ULL;
-		int startSquare;
-		// Enemy orthogonal pieces
-		uint64_t orthSliders = orthogonalPieces & enemyBoard;
-		// Calculate movement for each piece and add to overall attack board
-		while (orthSliders != 0ULL) {
-			startSquare = BitBoardUtility::popLSB(orthSliders);
 
-			uint64_t blockers = board->allPieces & preComp->getBlockerOrthogonalMask(startSquare);
-			BitBoardUtility::deleteBit(blockers, friendlyKingSquare);
-			uint64_t moveBitboard = preComp->getOrthMovementBoard(startSquare, blockers);
+	template <Color Us>
+	Bitboard MoveGen::generatePawnAttackData() {
+		Bitboard attackBB = 0ULL;
 
-			opponentAttacks |= moveBitboard;
-		}
-
-		return opponentAttacks;
-	}
-	// Generate all squares 'attacked' by diagonal pieces, return them in a bitboard
-	uint64_t MoveGen::generateDiagonalAttackData(const uint64_t diagonalPieces, const uint64_t enemyBoard, int friendlyKingSquare) {
-		uint64_t opponentAttacks = 0ULL;
-		int startSquare;
-		// Enemy diagonal pieces
-		uint64_t diagSliders = diagonalPieces & enemyBoard;
-		// Calculate movement for each piece and add to overall attack board
-		while (diagSliders != 0ULL) {
-			startSquare = BitBoardUtility::popLSB(diagSliders);
-
-			uint64_t blockers = board->allPieces & preComp->getBlockerDiagonalMask(startSquare);
-			BitBoardUtility::deleteBit(blockers, friendlyKingSquare);
-			uint64_t moveBitboard = preComp->getDiagMovementBoard(startSquare, blockers);
-
-			opponentAttacks |= moveBitboard;
-		}
-
-		return opponentAttacks;
-	}
-	// Generate all squares 'attacked' by knights, return them in a bitboard
-	uint64_t MoveGen::generateKnightAttackData(const uint64_t enemyBoard) {
-		uint64_t opponentAttacks = 0ULL;
-		int startSquare;
-		// Enemy knights
-		uint64_t knights = board->knights & enemyBoard;
-		// Add movement to overall attack board
-		while (knights != 0ULL) {
-			startSquare = BitBoardUtility::popLSB(knights);
-			opponentAttacks |= preComp->getKnightBoard(startSquare);
-		}
-
-		return opponentAttacks;
-	}
-	// Generate all squares 'attacked' by pawns, return them in a bitboard
-	uint64_t MoveGen::generatePawnAttackData(const uint64_t enemyBoard, const int opposingColor) {
-		uint64_t opponentAttacks = 0ULL;
-		int startSquare;
-		// Enemy pawns
-		uint64_t pawns = board->pawns & enemyBoard;
+		Bitboard pawns = board->typesBB[PAWN] & board->colorsBB[Us];
 		// Add only attack movement to overall attack board
 		while (pawns != 0ULL) {
-			startSquare = BitBoardUtility::popLSB(pawns);
-			uint64_t moveBitboard = preComp->getPawnAttackMoves(startSquare, opposingColor);
-			opponentAttacks |= moveBitboard;
+			Square from = popLSB(pawns);
+			Bitboard moveBitboard = getPawnAttackMoves<~Us>(from);
+			attackBB |= moveBitboard;
 		}
 
-		return opponentAttacks;
+		return attackBB;
 	}
-	// Generate all squares 'attacked' by king, return them in a bitboard
-	uint64_t MoveGen::generateKingAttackData(const int enemyKingSquare) {
-		return preComp->getKingMoves(enemyKingSquare);
+
+	template <Color Us, PieceType Type>
+	Bitboard MoveGen::generateAttackData() {
+		Bitboard attackBB = 0ULL;
+
+		Bitboard pieces = board->typesBB[Type] & board->colorsBB[~Us];
+		// Add movement to overall attack board
+		while (pieces != 0ULL) {
+			Square from = popLSB(pieces);
+			attackBB |= getMovementBoard<Type>(from, 0ULL);
+		}
+
+		return attackBB;
 	}
+
+	template <Color Us>
 	// Generate attack movement from opponent for all pieces
-	void MoveGen::generateAttackData() {
-		opponentAttacks |= generateOrthogonalAttackData(board->orthogonalPieces, enemyBoard, friendlyKingSquare);
-		opponentAttacks |= generateDiagonalAttackData(board->diagonalPieces, enemyBoard, friendlyKingSquare);
-		opponentAttacks |= generateKingAttackData(enemyKingSquare);
-		opponentAttacks |= generateKnightAttackData(enemyBoard);
-		opponentAttacks |= generatePawnAttackData(enemyBoard, opposingColor);
+	void MoveGen::generateAllAttackData() {
+		opponentAttacks |= getMovementBoard<KING>(board->kingSquares[Us], 0ULL);
+		opponentAttacks |= generateAttackData<Us, QUEEN>();
+		opponentAttacks |= generateAttackData<Us, ROOK>();
+		opponentAttacks |= generateAttackData<Us, BISHOP>();
+		opponentAttacks |= generateAttackData<Us, KNIGHT>();
+		opponentAttacks |= generatePawnAttackData<Us>();
 	}
+
+	template <Color Us>
 	// Calculate check and pin data to calculate where king can move
 	void MoveGen::generateCheckData() {
-		generateAttackData();
+		generateAllAttackData<Us>();
 
-		int targetSquare;
-		uint64_t temp;
-		uint64_t enemyBlockers;
+		Square kSq = board->kingSquares[Us];
+		Bitboard friendlyBoard = board->colorsBB[Us];
+		Bitboard enemyBoard = board->colorsBB[~Us];
+		Bitboard temp;
+		Bitboard enemyBlockers;
 		// Get pieces 'blocking' kings orthogonal and diagonal view
-		uint64_t orthogonalBlockers = board->allPieces & preComp->getBlockerOrthogonalMask(friendlyKingSquare);
-		uint64_t diagonalBlockers = board->allPieces & preComp->getBlockerDiagonalMask(friendlyKingSquare);
+		Bitboard orthogonalBlockers = board->typesBB[ALL_PIECES] & getBlockerOrthogonalMask(kSq);
+		Bitboard diagonalBlockers = board->typesBB[ALL_PIECES] & getBlockerDiagonalMask(kSq);
 		// Get kings orthogonal 'vision'
-		temp = preComp->getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
-		uint64_t checkBoard = temp;
-		enemyBlockers = temp & enemyBoard & board->orthogonalPieces; // See if enemy orthogonal pieces attack the king
+		temp = getOrthMovementBoard(kSq, orthogonalBlockers);
+		Bitboard checkBoard = temp;
+		enemyBlockers = temp & enemyBoard & (board->typesBB[ROOK] | board->typesBB[QUEEN]); // See if enemy orthogonal pieces attack the king
 		// Get kings diagonal 'vision'
-		temp = preComp->getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
+		temp = getDiagMovementBoard(kSq, diagonalBlockers);
 		checkBoard |= temp;
-		enemyBlockers |= temp & enemyBoard & board->diagonalPieces; // See if enemy diagonal pieces attack king
+		enemyBlockers |= temp & enemyBoard & (board->typesBB[BISHOP] | board->typesBB[QUEEN]); // See if enemy diagonal pieces attack king
 
 		// For each diagonal/orthogonal piece that attacks the king
 		while (enemyBlockers != 0ULL) {
 			// Get mask with line between king and enemy piece
-			targetSquare = BitBoardUtility::popLSB(enemyBlockers);
-			temp = preComp->getDirectionMask(friendlyKingSquare, targetSquare);
+			Square to = popLSB(enemyBlockers);
+			temp = getLineBetweenBB(kSq, to);
 			checkBB |= temp & checkBoard; // Add line between king and enemy to check bitboard
 			// Update check and double check
 			doubleCheck = isCheck;
@@ -496,28 +330,28 @@ namespace SandalBot {
 		diagonalBlockers &= ~(checkBoard & friendlyBoard);
 
 		// Same logic as check but for pieces behind first wave friendly pieces
-		temp = preComp->getOrthMovementBoard(friendlyKingSquare, orthogonalBlockers);
+		temp = getOrthMovementBoard(kSq, orthogonalBlockers);
 		checkBoard = temp;
-		enemyBlockers = temp & enemyBoard & board->orthogonalPieces;
-		temp = preComp->getDiagMovementBoard(friendlyKingSquare, diagonalBlockers);
+		enemyBlockers = temp & enemyBoard & (board->typesBB[ROOK] | board->typesBB[QUEEN]);
+		temp = getDiagMovementBoard(kSq, diagonalBlockers);
 		checkBoard |= temp;
-		enemyBlockers |= temp & enemyBoard & board->diagonalPieces;
+		enemyBlockers |= temp & enemyBoard & (board->typesBB[BISHOP] | board->typesBB[QUEEN]);
 		// For every enemy piece pinning friendly pieces
 		while (enemyBlockers != 0ULL) {
-			targetSquare = BitBoardUtility::popLSB(enemyBlockers);
-			temp = preComp->getDirectionMask(friendlyKingSquare, targetSquare);
+			Square to = popLSB(enemyBlockers);
+			temp = getLineBetweenBB(kSq, to);
 			checkRayBB |= temp & checkBoard; // Add 'ray' between king and enemy piece to rays
 		}
 
 		// See if any knights check the king
-		uint64_t enemyKnights = board->knights & enemyBoard;
-		uint64_t knightMoveBitboard = preComp->getKnightBoard(friendlyKingSquare);
+		Bitboard enemyKnights = board->typesBB[KNIGHT] & enemyBoard;
+		Bitboard knightMoveBitboard = getMovementBoard<KNIGHT>(kSq, 0ULL);
 		knightMoveBitboard &= enemyKnights;
 
 		checkBB |= knightMoveBitboard;
 		// Update check status if king can see any knights
-		while (knightMoveBitboard != 0) {
-			BitBoardUtility::popLSB(knightMoveBitboard);
+		while (knightMoveBitboard != 0ULL) {
+			popLSB(knightMoveBitboard);
 			doubleCheck = isCheck;
 			isCheck = true;
 			if (doubleCheck)
@@ -525,14 +359,14 @@ namespace SandalBot {
 		}
 		
 		// See if any pawns can check the king
-		uint64_t enemyPawns = board->pawns & enemyBoard;
-		uint64_t pawnMoveBitboard = preComp->getPawnAttackMoves(friendlyKingSquare, currentColor);
+		Bitboard enemyPawns = board->typesBB[PAWN] & enemyBoard;
+		Bitboard pawnMoveBitboard = getPawnAttackMoves<~Us>(kSq);
 		pawnMoveBitboard &= enemyPawns;
 
 		checkBB |= pawnMoveBitboard;
 		// Update check status if king is attacked by any pawns
-		while (pawnMoveBitboard != 0) {
-			BitBoardUtility::popLSB(pawnMoveBitboard);
+		while (pawnMoveBitboard != 0ULL) {
+			popLSB(pawnMoveBitboard);
 			doubleCheck = isCheck;
 			isCheck = true;
 			if (doubleCheck)

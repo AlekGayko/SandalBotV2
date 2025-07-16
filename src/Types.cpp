@@ -1,71 +1,72 @@
-#include "Piece.h"
+#include "Types.h"
 
 #include <cctype>
 
-namespace SandalBot::Piece {
+namespace SandalBot {
 
     // Returns corresponding integer piece from given character symbol
-    int Piece::symbolToPiece(char symbol) {
-        int color = black;
-        int pieceType = 0;
+    Piece symbolToPiece(char symbol) {
+        Color color = BLACK;
+        PieceType pieceType = NO_PIECE_TYPE;
+
         if (std::isupper(symbol)) { // Uppercase symbols are white
-            color = white;
+            color = WHITE;
         }
 
         // Get piece type
         switch (std::tolower(symbol)) { // Convert to lower for white and black
         case 'k':
-            pieceType = king;
+            pieceType = KING;
             break;
         case 'q':
-            pieceType = queen;
+            pieceType = QUEEN;
             break;
         case 'r':
-            pieceType = rook;
+            pieceType = ROOK;
             break;
         case 'b':
-            pieceType = bishop;
+            pieceType = BISHOP;
             break;
         case 'n':
-            pieceType = knight;
+            pieceType = KNIGHT;
             break;
         case 'p':
-            pieceType = pawn;
+            pieceType = PAWN;
             break;
         default:
-            return 0;
+            return NO_PIECE;
         }
         return makePiece(pieceType, color);
     }
 
     // Returns corresponding character symbol from integer piece
-    char Piece::pieceToSymbol(int piece) {
+    char pieceToSymbol(Piece piece) {
         char symbol = '_';
 
         switch (piece & pieceMask) { // Get piece type
-        case king:
+        case KING:
             symbol = 'k';
             break;
-        case queen:
+        case QUEEN:
             symbol = 'q';
             break;
-        case rook:
+        case ROOK:
             symbol = 'r';
             break;
-        case bishop:
+        case BISHOP:
             symbol = 'b';
             break;
-        case knight:
+        case KNIGHT:
             symbol = 'n';
             break;
-        case pawn:
+        case PAWN:
             symbol = 'p';
             break;
         default:
             return symbol;
         }
         // If piece is white, convert to uppercase character
-        if (isColor(piece, white)) {
+        if (isColor(piece, WHITE)) {
             symbol = std::toupper(symbol);
         }
 

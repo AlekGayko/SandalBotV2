@@ -7,7 +7,7 @@ using namespace std;
 namespace SandalBot {
 
 	BoardHistory::BoardHistory() {
-		hashHistory = new uint64_t[historySize];
+		hashHistory = new HashKey[historySize];
 		startSearchIndicies = new int[historySize + 1];
 
 		startSearchIndicies[0] = 0;
@@ -20,11 +20,11 @@ namespace SandalBot {
 
 	// Standard push function which adds new hash and start indice.
 	// Also dynamically adjusts size of arrays if needed
-	void BoardHistory::push(uint64_t value, bool reset) {
+	void BoardHistory::push(HashKey value, bool reset) {
 		// Double size of arrays if memory has run out
 		if (numBoards >= historySize) {
 			historySize *= 2;
-			uint64_t* newHashHistory = new uint64_t[historySize];
+			HashKey* newHashHistory = new HashKey[historySize];
 			int* newSearchIndice = new int[historySize + 1];
 
 			for (int i = 0; i < numBoards; i++) {
@@ -46,7 +46,7 @@ namespace SandalBot {
 	}
 
 	// Returns a boolean, depending on whether a given hash causes a threefold-repetition
-	bool BoardHistory::contains(const uint64_t key) const {
+	bool BoardHistory::contains(const HashKey key) const {
 		if (numBoards <= 2) return false;
 
 		int start = numBoards - 2;

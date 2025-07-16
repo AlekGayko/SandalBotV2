@@ -16,18 +16,18 @@ namespace SandalBot {
 	std::string FEN::generateFEN(const Board* board, bool includeEPSquare) {
 		std::string FEN = "";
 		// Iterate over board
-		for (int rank = 0; rank < 8; rank++) {
+		for (Row rank = ROW_8; rank <= ROW_1; ++rank) {
 			int numEmptyFiles = 0; // Keep track of empty squares to include
-			for (int file = 0; file < 8; file++) {
-				int index = rank * 8 + file;
-				int piece = board->squares[index];
+			for (Column file = COL_A; file <= COL_H; ++file) {
+				Square index = Square(rank * 8 + file);
+				Piece piece = board->squares[index];
 				// If non-empty piece, append non-zero empty squares, and then append piece symbol
-				if (piece != Piece::empty) {
+				if (piece != NO_PIECE) {
 					if (numEmptyFiles != 0) {
 						FEN += to_string(numEmptyFiles);
 						numEmptyFiles = 0;
 					}
-					char pieceChar = Piece::pieceToSymbol(piece);
+					char pieceChar = pieceToSymbol(piece);
 					FEN += pieceChar;
 				} else {
 					numEmptyFiles++;
@@ -44,12 +44,12 @@ namespace SandalBot {
 		}
 		// Append active color
 		FEN += ' ';
-		FEN += board->state->whiteTurn ? 'w' : 'b';
+		FEN += board->sideToMove() == WHITE ? 'w' : 'b';
 
-		bool whiteShortCastle = (board->state->whiteShortCastleMask & board->state->castlingRights);
-		bool whiteLongCastle = (board->state->whiteLongCastleMask & board->state->castlingRights);
-		bool blackShortCastle = (board->state->blackShortCastleMask & board->state->castlingRights);
-		bool blackLongCastle = (board->state->blackLongCastleMask & board->state->castlingRights);
+		bool whiteShortCastle = bool(W_OO & board->state->cr);
+		bool whiteLongCastle = bool(W_OOO & board->state->cr);
+		bool blackShortCastle = bool(B_OO & board->state->cr);
+		bool blackLongCastle = bool(B_OOO & board->state->cr);
 
 		// Append castling availability
 		FEN += ' ';
@@ -57,7 +57,7 @@ namespace SandalBot {
 		FEN += whiteLongCastle ? "Q" : "";
 		FEN += blackShortCastle ? "k" : "";
 		FEN += blackLongCastle ? "q" : "";
-		FEN += (board->state->castlingRights == 0) ? "-" : ""; // No castling rights, default to '-'
+		FEN += (board->state->cr == NO_RIGHTS) ? "-" : ""; // No castling rights, default to '-'
 
 		// Append en passant target square
 		FEN += ' ';
@@ -73,14 +73,14 @@ namespace SandalBot {
 		FEN += to_string(board->state->fiftyMoveCounter);
 		// Append full move counter
 		FEN += ' ';
-		FEN += to_string((board->state->moveCounter / 2) + 1);
+		FEN += to_string((board->moveCounter() / 2) + 1);
 
 		return FEN;
 	}
 
 	PositionInfo FEN::fenToPosition(std::string_view FEN) {
 		PositionInfo newInfo;
-		int squarePieces[64] {};
+		Piece squarePieces[64] {};
 		// Split string via spaces
 		vector<std::string> sections = StringUtil::splitString(FEN);
 		// Cannot have FEN string with less than 3 parts
@@ -88,28 +88,27 @@ namespace SandalBot {
 			throw runtime_error("FEN Parsing Error");
 		}
 
-		int file = 0;
-		int rank = 0;
+		Column file = COL_A;
+		Row rank = ROW_8;
 		// Parse piece placement data
 		for (char symbol : sections[0]) {
 			// '/' represents new row/rank
 			if (symbol == '/') {
-				file = 0;
-				rank++;
+				file = COL_A;
+				++rank;
 			} else {
 				// If character is a digit, represents x empty squares on a row
 				if (isdigit(symbol)) {
-					int square = rank * 8 + file;
-					file += symbol - '0';
-					for (int i = 0; i < std::stoi(std::string(1, symbol)); i++) {
-						squarePieces[square + i] = Piece::empty;
-					}
+					Square square = Square(rank * 8 + file);
+					file = Column(file + symbol - '0');
+
+					std::fill(squarePieces + int(square), squarePieces + int(square + file), NO_PIECE);
 				} 
 				// Symbol must represent a piece
 				else {
-					int piece = Piece::symbolToPiece(symbol);
+					Piece piece = symbolToPiece(symbol);
 					squarePieces[rank * 8 + file] = piece;
-					file++;
+					++file;
 				}
 			}
 		}
@@ -117,25 +116,31 @@ namespace SandalBot {
 		std::copy(squarePieces, squarePieces + 64, newInfo.squares);
 
 		// If active color section is 'w', it is whites turn
-		newInfo.whiteTurn = sections[1] == "w";
+		newInfo.sideToMove = sections[1] == "w" ? WHITE : BLACK;
 
 		// Castling availability section of for 'KQkq', each representing ability 
 		// to castle king or queen side for each color
 		std::string castlingRights = sections[2];
 		// Determine whether availability is in section
-		newInfo.whiteShortCastle = StringUtil::contains(castlingRights, 'K');
-		newInfo.whiteLongCastle = StringUtil::contains(castlingRights, 'Q');
-		newInfo.blackShortCastle = StringUtil::contains(castlingRights, 'k');
-		newInfo.blackLongCastle = StringUtil::contains(castlingRights, 'q');
+		bool whiteShortCastle = StringUtil::contains(castlingRights, 'K');
+		bool whiteLongCastle = StringUtil::contains(castlingRights, 'Q');
+		bool blackShortCastle = StringUtil::contains(castlingRights, 'k');
+		bool blackLongCastle = StringUtil::contains(castlingRights, 'q');
+
+		newInfo.cr |= whiteShortCastle ? W_OO : newInfo.cr;
+		newInfo.cr |= whiteLongCastle ? W_OOO : newInfo.cr;
+		newInfo.cr |= blackShortCastle ? B_OO : newInfo.cr;
+		newInfo.cr |= blackLongCastle ? B_OOO : newInfo.cr;
+
 		// Next variables
-		newInfo.enPassantSquare = -1;
+		newInfo.enPassantSquare = NONE_SQUARE;
 		newInfo.fiftyMoveCount = 0;
 		newInfo.moveCount = 0;
 
 		// If en passant target square is of length two (e.g. 'e3') it is available
 		if (sections.size() > 3 && sections[3].size() == 2) {
 			string enPassantSquareName = sections[3];
-			newInfo.enPassantSquare = CoordHelper::stringToIndex(enPassantSquareName);
+			newInfo.enPassantSquare = Square(CoordHelper::stringToIndex(enPassantSquareName));
 		}
 		// fifty move counter
 		if (sections.size() > 4) {

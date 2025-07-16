@@ -1,11 +1,11 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 
-#include "BitBoardUtility.h"
+#include "Bitboards.h"
 #include "Board.h"
-#include "MovePrecomputation.h"
 #include "CoordHelper.h"
-#include "Piece.h"
+#include "MoveOrderer.h"
+#include "Types.h"
 
 namespace SandalBot {
 
@@ -14,80 +14,68 @@ namespace SandalBot {
 	// MoveGen class generates all possible legalmoves in a given position
 	class MoveGen {
 		friend class MoveOrderer;
-		friend class MovePrecomputation;
 		friend class Searcher;
 	public:
-		MovePrecomputation* preComp{ nullptr };
-
-		// Castling information
-		static constexpr int startingKingSquares[2]{ 4, 60 };
-		static constexpr int shortCastleKingSquares[2]{ 6, 62 };
-		static constexpr int longCastleKingSquares[2]{ 2, 58 };
-		static constexpr int shortCastleRookSquares[2]{ 7, 63 };
-		static constexpr int longCastleRookSquares[2]{ 0, 56 };
-		static constexpr int shortCastleRookSpawn[2]{ 5, 61 };
-		static constexpr int longCastleRookSpawn[2]{ 3, 59 };
 		static constexpr int maxMoves{ 218 };
 
 		bool isCheck{}; // Tracks whether there is check in position
 
-		MoveGen();
-		MoveGen(Board* board);
-		~MoveGen();
-		int generateMoves(MovePoint moves[], bool capturesOnly = false);
-		void initVariables(bool capturesOnly);
-		void generateOrthogonalMoves(MovePoint moves[]);
-		void generateDiagonalMoves(MovePoint moves[]);
-		void generateKnightMoves(MovePoint moves[]);
-		void generateKingMoves(MovePoint moves[]);
-		void generatePawnMoves(MovePoint moves[]);
-		void enPassantMoves(MovePoint moves[], int targetSquare, int startSquare);
-		void promotionMoves(MovePoint moves[], int targetSquare, int startSquare);
-		void castlingMoves(MovePoint moves[], int startSquare);
+		MoveGen() = default;
 
-		uint64_t generateKnightAttackData(const uint64_t enemyBoard);
-		uint64_t generatePawnAttackData(const uint64_t enemyBoard, const int opposingColor);
-		uint64_t generateKingAttackData(const int enemyKingSquare);
-		uint64_t generateOrthogonalAttackData(const uint64_t orthogonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
-		uint64_t generateDiagonalAttackData(const uint64_t diagonalPieces, const uint64_t enemyBoard, int friendlyKingSquare);
-		void generateAttackData();
-		void generateCheckData();
+		~MoveGen() = default;
 
-		bool enPassantPin(int friendlyPawnSquare, int enemyPawnSquare);
+		MoveGen(Board* board) : board(board) {
+			if (board == nullptr) 
+				throw std::invalid_argument("board cannot be nullptr");
+		}
 
-		void updateResults(Move moves[]);
+		int generate(MovePoint moves[], bool capturesOnly = false);
+
 	private:
 		Board* board = nullptr;
 
-		const int whitePawnDirection{ -8 };
-		const int blackPawnDirection{ 8 };
-
-		const int promotionFlags[4] { Move::promoteToQueenFlag, Move::promoteToRookFlag, 
-			Move::promoteToKnightFlag, Move::promoteToBishopFlag };
-
 		uint64_t currentMoves{};
-		int colorIndex{};
-		int enemyColorIndex{};
-		int currentColor{};
-		int opposingColor{};
 		bool doubleCheck{};
 		bool generateCaptures{};
-		int friendlyKingSquare{};
-		int enemyKingSquare{};
-		int* squares{ nullptr };
-
-		bool whiteTurn{};
-		int enPassantSquare{};
-		int castlingRights{};
-		int fiftyMoveCounter{};
-		int moveCounter{};
 
 		// Utility bitboards
-		uint64_t opponentAttacks{};
-		uint64_t checkBB{};
-		uint64_t checkRayBB{};
-		uint64_t friendlyBoard{};
-		uint64_t enemyBoard{};
+		Bitboard opponentAttacks{};
+		Bitboard checkBB{};
+		Bitboard checkRayBB{};
+
+		void initVariables();
+
+		template <Color Us>
+		int generateAllMoves(MovePoint moves[], bool capturesOnly = false);
+		template <Color Us, PieceType Type>
+		void generateMoves(MovePoint moves[], bool capturesOnly);
+		template <Color Us>
+		void generatePawnMoves(MovePoint moves[], bool capturesOnly);
+		template <Color Us>
+		void generateKingMoves(MovePoint moves[], bool capturesOnly);
+
+		template <Color Us>
+		void enPassantMoves(MovePoint moves[], Square from, Square to, bool isPinned);
+		template <Color Us>
+		void promotionMoves(MovePoint moves[], Square from, Bitboard movementBB);
+		template <Color Us>
+		bool enPassantPin(Square friendlyPawnSquare, Square enemyPawnSquare);
+
+		template <Color Us>
+		void castlingMoves(MovePoint moves[], Square from);
+
+		template <Color Us>
+		Bitboard generatePawnAttackData();
+		template <Color Us, PieceType Type>
+		Bitboard generateAttackData();
+		template <Color Us>
+		void generateAllAttackData();
+		template <Color Us>
+		void generateCheckData();
+
+		void addMove(MovePoint moves[], Square from, Square to, Move::Flag flag = Move::Flag::NO_FLAG) {
+			moves[currentMoves++].move = std::move(Move(from, to, flag));
+		}
 	};
 
 }

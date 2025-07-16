@@ -1,29 +1,27 @@
 #ifndef ZOBRISTHASH_H
 #define ZOBRISTHASH_H
 
-#include <cstdint>
+#include "Types.h"
 
 namespace SandalBot {
 
 	class Board;
 
-	// Base class Zobrist Hash implements zobrist hashing of 
-	// board position. Represents board position in 64 bit unsigned number
+	// Zobrist Hash implements zobrist hashing of board position. 
+	// Represents board position in 64 bit unsigned number
 	// by XOR'ing several state factors, associative property of XOR
 	// allows progressive changes to hash and ability to revert changes.
-	class ZobristHash {
-	public:
-		static uint64_t pieceHashes[2][7][64];
-		static uint64_t enPassantHash[64];
-		static uint64_t castlingRightsHash[17];
-		static uint64_t whiteMoveHash;
+	namespace ZobristHash {
 
-		static void initHashes();
-		static uint64_t hashBoard(Board* board);
+		// Hash values of each piece for both colors for every square
+		extern HashKey pieceHashes[2][7][64];
+		extern HashKey enPassantHash[64]; // Hash values for each en passant target square
+		extern HashKey castlingRightsHash[17]; // Hashes for each castling right
+		extern HashKey whiteMoveHash; // Hash for sides turn
 
-		ZobristHash();
-	protected:
-		static bool initialised;
+		void initHashes();
+
+		HashKey hashBoard(Board* board);
 	};
 
 }

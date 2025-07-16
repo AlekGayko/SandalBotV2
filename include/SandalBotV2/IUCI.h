@@ -14,6 +14,8 @@
 
 namespace SandalBot {
 
+	using namespace std::literals::string_view_literals;
+
 	// IUCI is an interface class which handles user input and relays information
 	// to the SandalBot or Bot class. IUCI implements UCI (Universal Chess Interface) protocol
 	// so it can be integrated wherever other bots can.
@@ -42,11 +44,11 @@ namespace SandalBot {
 		OptionHandler* optionHandler{ nullptr };
 		std::thread goThread{}; // Thread for asynchronous searching
 		// Label vectors contain key words for specific commands to aid parsing commands
-		const std::array<std::string_view, 3> positionLabels { "position", "fen", "moves" };
-		const std::array<std::string_view, 8> goLabels { "go", "movetime", "wtime", "btime", "winc", "binc", "movestogo", "perft" };
-		const std::array<std::string_view, 2> optionLabels { "name", "value" };
+		const std::array<std::string_view, 3> positionLabels { "position"sv, "fen"sv, "moves"sv };
+		const std::array<std::string_view, 8> goLabels { "go"sv, "movetime"sv, "wtime"sv, "btime"sv, "winc"sv, "binc"sv, "movestogo"sv, "perft"sv };
+		const std::array<std::string_view, 2> optionLabels { "name"sv, "value"sv };
 
-		const std::string_view logPath { "logs.txt" }; // filePath for log file
+		const std::string_view logPath { "logs.txt"sv }; // filePath for log file
 		// Data for starting message
 		const char* name { "SandalBotV2" };
 		const char* author { "DirtySandals" };

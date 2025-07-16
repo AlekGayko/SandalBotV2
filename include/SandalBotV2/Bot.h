@@ -33,7 +33,7 @@ namespace SandalBot {
 		Board* board{ nullptr };
 		Searcher* searcher{ nullptr };
 
-		int validateUserMove(MovePoint moves[218], int startSquare, int targetSquare, int flag);
+		int validateUserMove(MovePoint moves[218], Square from, Square to, Move::Flag flag);
 	};
 
 }
