@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 
 #include "Move.h"
+#include "Types.h"
 
 using namespace SandalBot;
 
 TEST(Move, SimpleMove) {
-	int startSquare = 0;
-	int targetSquare = 63;
+	Square startSquare = A8;
+	Square targetSquare = H1;
 
 	uint16_t expectedValue = 0b0000000000111111;
 
@@ -14,39 +15,39 @@ TEST(Move, SimpleMove) {
 }
 
 TEST(Move, GetStartSquare) {
-	unsigned short int startSquare = 54;
-	unsigned short int targetSquare = 60;
+	Square from = G2;
+	Square to = E1;
 
-	EXPECT_EQ(startSquare, Move(startSquare, targetSquare).getStartSquare());
+	EXPECT_EQ(from, Move(from, to).from());
 }
 
-TEST(Move, GetTargetSquare) {
-	unsigned short int startSquare = 54;
-	unsigned short int targetSquare = 16;
+TEST(Move, Getto) {
+	Square from = G2;
+	Square to = A6;
 
-	Move move = Move(startSquare, targetSquare);
+	Move move = Move(from, to);
 
-	EXPECT_EQ(targetSquare, move.getTargetSquare());
+	EXPECT_EQ(to, move.to());
 }
 
 TEST(Move, GetFlag) {
-	unsigned short int startSquare = 32;
-	unsigned short int targetSquare = 45;
-	unsigned short int flag = Move::promoteToQueenFlag;
+	Square from = A4;
+	Square to = F3;
+	Move::Flag flag = Move::Flag::QUEEN;
 
-	Move move = Move(startSquare, targetSquare, flag);
+	Move move = Move(from, to, flag);
 
-	EXPECT_EQ(flag, move.getFlag());
+	EXPECT_EQ(flag, move.flag());
 }
 
 TEST(Move, GetSquaresAndFlag) {
-	unsigned short int startSquare = 32;
-	unsigned short int targetSquare = 45;
-	unsigned short int flag = Move::promoteToQueenFlag;
+	Square from = A4;
+	Square to = F3;
+	Move::Flag flag = Move::Flag::QUEEN;
 
-	Move move = Move(startSquare, targetSquare, flag);
+	Move move = Move(from, to, flag);
 
-	EXPECT_EQ(startSquare, move.getStartSquare());
-	EXPECT_EQ(targetSquare, move.getTargetSquare());
-	EXPECT_EQ(flag, move.getFlag());
+	EXPECT_EQ(from, move.from());
+	EXPECT_EQ(to, move.to());
+	EXPECT_EQ(flag, move.flag());
 }
