@@ -176,15 +176,15 @@ namespace SandalBot {
 		// If king and pawn on different rows, no pin possible
 		if (toRow(kSq) != toRow(friendlyPawnSquare))
 			return false;
-
+		cout << "unequal rows" << endl;
 		// Create blocker board
 		Bitboard blockers = getBlockerOrthogonalMask(kSq) & board->typesBB[ALL_PIECES];
 		// After en passant pawns will be gone
 		blockers &= ~(1ULL << friendlyPawnSquare) & ~(1ULL << enemyPawnSquare);
 		// Block column
 		blockers |= getColMask(kSq) & ~(1ULL << kSq);
-		blockers &= ~getRowMask(Square(ROW_8));
-		blockers &= ~getRowMask(Square(ROW_1));
+		blockers &= ~getRowMask(Square(ROW_8 * 8));
+		blockers &= ~getRowMask(Square(ROW_1 * 8));
 		// Get movement board
 		Bitboard movementBitboard = getOrthMovementBoard(kSq, blockers);
 		// Restrict movement to row and enemy orthogonal pieces
