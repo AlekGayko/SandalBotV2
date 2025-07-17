@@ -176,7 +176,7 @@ namespace SandalBot {
 		// If king and pawn on different rows, no pin possible
 		if (toRow(kSq) != toRow(friendlyPawnSquare))
 			return false;
-		cout << "unequal rows" << endl;
+
 		// Create blocker board
 		Bitboard blockers = getBlockerOrthogonalMask(kSq) & board->typesBB[ALL_PIECES];
 		// After en passant pawns will be gone
