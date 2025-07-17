@@ -14,7 +14,7 @@ namespace SandalBot {
     // Validates a move on the current board position
     int Bot::validateUserMove(MovePoint moves[218], Square from, Square to, Move::Flag flag) {
         // Generate all possible moves in position
-        int numMoves = searcher->moveGenerator->generate(moves);
+        int numMoves = searcher->moveGenerator.generate(moves);
         int moveIndex = -1;
         // If proposed move is in possible moves, it is a valid move
         for (int i = 0; i < numMoves; i++) {

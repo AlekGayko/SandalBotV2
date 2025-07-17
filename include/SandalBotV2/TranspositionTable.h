@@ -5,6 +5,7 @@
 #include "Types.h"
 #include "ZobristHash.h"
 
+#include <iostream>
 #include <limits>
 
 namespace SandalBot {
@@ -27,6 +28,7 @@ namespace SandalBot {
 
 		TranspositionTable(int sizeMB = defaultSizeMB);
 		~TranspositionTable() { delete[] table; }
+		TranspositionTable& operator=(const TranspositionTable& other);
 		Move getBestMove(HashKey hashKey);
 		int getDepth(HashKey hashKey);
 		void store(int eval, int16_t remainingDepth, int16_t currentDepth, uint8_t nodeType, Move move, HashKey hashKey);

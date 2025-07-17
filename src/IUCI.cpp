@@ -29,6 +29,7 @@ namespace SandalBot {
 	
 	// Init members
 	IUCI::IUCI() {
+		
 		beginningMessage();
 
 		bot = new Bot();
@@ -43,7 +44,7 @@ namespace SandalBot {
 	void IUCI::processCommand(string command) {
 		try {
 			command = StringUtil::trim(command); // Strip leading and end spaces
-			// Acquire first word
+			//Acquire first word
 			const string commandType = StringUtil::toLower(StringUtil::splitString(command)[0]);
 			// Parse different commands
 			if (commandType == "uci") {
@@ -68,7 +69,7 @@ namespace SandalBot {
 				bot->printBoard();
 			}
 		} catch (exception& e) {
-
+			std::cerr << e.what() << std::endl;
 		}
 	}
 	// 'ucinewgame' command, deletes bot and instantiates new one

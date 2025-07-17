@@ -11,6 +11,8 @@ include_directories(
 
 add_executable(UnitTests ${TEST_SRC_FILES})
 
+target_compile_options(UnitTests PRIVATE -Wall -march=native -O0 -g)
+
 gtest_discover_tests(UnitTests)
 
 find_package(GTest CONFIG REQUIRED)

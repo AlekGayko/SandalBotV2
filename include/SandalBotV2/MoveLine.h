@@ -11,9 +11,11 @@ namespace SandalBot {
 	// used for storing a principal variation from a search
 	class MoveLine {
 	public:
-		MoveLine() : size(0) {}
+		MoveLine() {}
 		MoveLine(int size);
 		~MoveLine() { delete[] line; }
+		
+		MoveLine& operator=(const MoveLine& other);
 
 		void add(Move move);
 		void reset();

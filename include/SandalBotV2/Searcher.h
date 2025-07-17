@@ -22,14 +22,14 @@ namespace SandalBot {
 	// searching.
 	class Searcher {
 	public:
-		Evaluator* evaluator{ nullptr };
-		MoveGen* moveGenerator{ nullptr };
-		MoveOrderer* orderer{ nullptr };
+		Evaluator evaluator{};
+		MoveGen moveGenerator{};
+		MoveOrderer orderer{};
 		Move bestMove{};
 
 		Searcher() {};
 		Searcher(Board* board);
-		~Searcher();
+		~Searcher() {}
 		void startSearch(bool isTimed, int moveTimeMs = 0);
 		void endSearch();
 		int eval();
@@ -67,11 +67,11 @@ namespace SandalBot {
 		static constexpr int maxExtensions{ 16 }; // Maximum number of extensions during search
 		static constexpr int bestLineSize{ maxDeepening + maxExtensions + 1 };
 
-		MoveLine* bestLine{ nullptr };
+		MoveLine bestLine{};
 
 		Board* board{ nullptr };
 
-		TranspositionTable* tTable{ nullptr }; // Store previously evaluated positions
+		TranspositionTable tTable{}; // Store previously evaluated positions
 
 		Move currentMove{};
 

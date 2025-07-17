@@ -189,7 +189,7 @@ namespace SandalBot {
 	}
 
 	void MoveOrderer::mergeSort(MovePoint moves[], int start, int end) {
-		if (start >= end) return;
+		if (start >= end - 1) return;
 
 		int mid = start + ((end - start) / 2);
 

@@ -7,16 +7,27 @@
 
 #include "TestFileReader.h"
 #include "Bot.h"
+#include "Init.h"
 
 using namespace SandalBot;
 
+class GlobalInit : public ::testing::Test {
+protected:
+  static void SetUpTestSuite() {
+    SandalBot::initGlobals();
+  }
+};
+
+TEST_F(GlobalInit, InitOnce) {
+    SUCCEED();
+}
+
 uint64_t performPerftTest(std::string FEN, int depth) {
-	Bot* bot = new Bot();
-	bot->setPosition(FEN);
-	uint64_t moves = bot->perft(depth);
+	Bot bot = Bot();
 
-	delete bot;
+	bot.setPosition(FEN);
 
+	uint64_t moves = bot.perft(depth);
 	return moves;
 }
 
@@ -43,26 +54,23 @@ TEST_P(PerftTest, CorrectMoveGeneration) {
     ss >> maxDepth;
 
     std::getline(ss >> std::ws, FEN);
-
-    std::unordered_map<int, uint64_t> expectedMoveCounts; // Store depth and movecounts in hashmap
+    
+    std::vector<uint64_t> expectedMoveCounts(maxDepth + 1, 0ULL);
     // Populate hashmap
     for (std::string& line : expectedLines) {
         int exDepth;
         uint64_t moveCount;
-        ss.clear();
-        ss << line;
+        std::stringstream ss(line);
         ss >> exDepth;
         ss >> moveCount;
-        std::cout << "moveCount: " << moveCount << std::endl;
-        expectedMoveCounts.insert({ exDepth, moveCount });
+        if (exDepth > maxDepth) {
+            FAIL();
+        }
+        expectedMoveCounts[exDepth] = moveCount;
     }
 
     // Test for movecount until maxdepth is reached
     for (int depth = 1; depth <= maxDepth; ++depth) {
-        if (expectedMoveCounts.find(depth) == expectedMoveCounts.end()) {
-            ASSERT_FALSE(false);
-        }
-
         uint64_t expectedCount = expectedMoveCounts[depth];
         uint64_t moveCount = performPerftTest(FEN, depth);
 

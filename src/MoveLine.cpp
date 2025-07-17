@@ -11,6 +11,18 @@ namespace SandalBot {
 		}
 	}
 
+	MoveLine& MoveLine::operator=(const MoveLine& other) {
+		if (this != &other) {
+			delete[] line;
+			this->capacity = other.capacity;
+			this->size = other.size;
+			line = new Move[this->capacity];
+			std::copy(other.line, other.line + capacity, this->line);
+		}
+
+		return *this;
+	}
+
 	// Standard push function
 	void MoveLine::add(Move move) {
 		if (line == nullptr)

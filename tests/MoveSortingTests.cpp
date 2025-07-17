@@ -9,7 +9,7 @@
 using namespace SandalBot;
 
 // Tests the sorting of moves
-static constexpr int movesSize = 218;
+constexpr int movesSize = 218;
 
 void checkSortedMoves(MovePoint moves[], int numMoves) {
 	if (numMoves <= 1) {

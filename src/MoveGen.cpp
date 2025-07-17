@@ -55,7 +55,7 @@ namespace SandalBot {
 	template<Color Us, PieceType Type>
 	void MoveGen::generateMoves(MovePoint moves[], bool capturesOnly) {
 		Bitboard pieces = board->typesBB[Type] & board->colorsBB[Us];
-
+	
 		while (pieces != 0ULL) {
 			Square from = popLSB(pieces);
 			Bitboard movementBB = getMovementBoard<Type>(from, board->typesBB[ALL_PIECES]);
@@ -273,6 +273,7 @@ namespace SandalBot {
 
 		Bitboard pieces = board->typesBB[Type] & board->colorsBB[~Us];
 		Bitboard blockers = board->typesBB[ALL_PIECES] & ~(1ULL << board->kingSquares[Us]);
+
 		// Add movement to overall attack board
 		while (pieces != 0ULL) {
 			Square from = popLSB(pieces);

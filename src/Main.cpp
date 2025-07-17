@@ -1,6 +1,5 @@
-#include "Bitboards.h"
+#include "Init.h"
 #include "IUCI.h"
-#include "ZobristHash.h"
 
 #include <iostream>
 #include <string>
@@ -8,9 +7,8 @@
 using namespace SandalBot;
 
 int main() {
-	ZobristHash::initHashes();
-	initBitboards();
-
+	initGlobals();
+	
 	IUCI engine;
 
 	// Repeatedly accept commands

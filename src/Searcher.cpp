@@ -15,22 +15,13 @@ namespace SandalBot {
 	using namespace std::literals::string_view_literals;
 
 	// Constructor initialised with board
-	Searcher::Searcher(Board* board)
-		: board(board) {
+	Searcher::Searcher(Board* board) : board(board) {
 		// Allocate member variables
-		this->moveGenerator = new MoveGen(board);
-		this->orderer = new MoveOrderer();
-		this->evaluator = new Evaluator();
-		this->tTable = new TranspositionTable();
-		this->bestLine = new MoveLine(bestLineSize);
-	}
-
-	Searcher::~Searcher() {
-		delete moveGenerator;
-		delete orderer;
-		delete tTable;
-		delete evaluator;
-		delete bestLine;
+		this->moveGenerator = MoveGen(board);
+		this->orderer = MoveOrderer();
+		this->evaluator = Evaluator();
+		this->tTable = TranspositionTable();
+		this->bestLine = MoveLine(bestLineSize);
 	}
 
 	// Performs iterative deepening, iteratively searches deeper and deeper for more intelligent
@@ -58,7 +49,7 @@ namespace SandalBot {
 
 			// If search is not cancelled, update stats
 			if (!cancelSearch.load()) {
-				bestLine->reset();
+				bestLine.reset();
 				generateBestLine(std::move(currentMove));
 				bestMove = currentMove;
 				temp = stats;
@@ -104,19 +95,19 @@ namespace SandalBot {
 			return Evaluator::drawScore;
 		} 
 		// Check for draw by insufficient material
-		else if (evaluator->insufficientMaterial()) {
+		else if (evaluator.insufficientMaterial()) {
 			return Evaluator::drawScore;
 		}
 
 		// If position has been previously stored, use its evaluation
-		int tTableEval = tTable->lookup(0, maxDepth, alpha, beta, board->state->zobristHash);
+		int tTableEval = tTable.lookup(0, maxDepth, alpha, beta, board->state->zobristHash);
 		if (tTableEval != TranspositionTable::notFound) {
 			return tTableEval;
 		}
 
 		int score{ 0 };
 		// Evaluate board
-		score = evaluator->Evaluate(board);
+		score = evaluator.Evaluate(board);
 
 		// If evaluation is too good, cut search
 		if (score >= beta) {
@@ -131,11 +122,11 @@ namespace SandalBot {
 		MovePoint moves[218];
 
 		// Generate moves which only take pieces
-		int numMoves = moveGenerator->generate(moves, true);
+		int numMoves = moveGenerator.generate(moves, true);
 
 		// Order the moves
 		if (numMoves > 1) {
-			orderer->order(board, moveGenerator, moves, bestMove, numMoves, 0, true);
+			orderer.order(board, &moveGenerator, moves, bestMove, numMoves, 0, true);
 		}
 
 		for (int i = 0; i < numMoves; i++) {
@@ -181,7 +172,7 @@ namespace SandalBot {
 			// Check for fifty move rule
 			else if (board->state->fiftyMoveCounter >= 100) {
 				return Evaluator::drawScore;
-			} else if (evaluator->insufficientMaterial()) {
+			} else if (evaluator.insufficientMaterial()) {
 				return Evaluator::drawScore;
 			}
 
@@ -194,16 +185,16 @@ namespace SandalBot {
 		}
 
 		// Lookup position to see if it has been searched and stored in hashtable before
-		int tTableEval = tTable->lookup(maxDepth - depth, depth, alpha, beta, board->state->zobristHash);
+		int tTableEval = tTable.lookup(maxDepth - depth, depth, alpha, beta, board->state->zobristHash);
 		// If position found in transposition hash table, use previous evaluation
 		if (tTableEval != TranspositionTable::notFound) {
-			int tTableDepth = tTable->getDepth(board->state->zobristHash);
+			int tTableDepth = tTable.getDepth(board->state->zobristHash);
 			if (tTableDepth > stats.seldepth && tTableDepth != -1) {
 				stats.seldepth = tTableDepth;
 			}
 
 			if (depth == 0) {
-				currentMove = tTable->getBestMove(board->state->zobristHash);
+				currentMove = tTable.getBestMove(board->state->zobristHash);
 			}
 
 			return tTableEval;
@@ -225,13 +216,13 @@ namespace SandalBot {
 		// Initialise array for moves (218 is maximum number of moves)
 		MovePoint moves[218];
 		// Generate moves and store them inside moves[]
-		int numMoves = moveGenerator->generate(moves);
-		bool isCheck = moveGenerator->isCheck;
+		int numMoves = moveGenerator.generate(moves);
+		bool isCheck = moveGenerator.isCheck;
 		bool worthExtension = false;
 		// Get best move (whether it be bestMove from iterative deepening or previous transpositions)
-		Move currentBestMove = depth == 0 ? std::move(this->bestMove) : tTable->getBestMove(board->state->zobristHash);
+		Move currentBestMove = depth == 0 ? std::move(this->bestMove) : tTable.getBestMove(board->state->zobristHash);
 		// Order moves to heuristically narrow search
-		orderer->order(board, moveGenerator, moves, currentBestMove, numMoves, depth, false);
+		orderer.order(board, &moveGenerator, moves, currentBestMove, numMoves, depth, false);
 
 		for (int i = 0; i < numMoves; ++i) {
 			// Make move
@@ -279,9 +270,9 @@ namespace SandalBot {
 
 			if (alpha >= beta) {
 				// Store position
-				tTable->store(beta, maxDepth + extension - depth, depth, TranspositionTable::lowerBound, moves[i].move, board->state->zobristHash);
+				tTable.store(beta, maxDepth + extension - depth, depth, TranspositionTable::lowerBound, moves[i].move, board->state->zobristHash);
 				// Update killer moves
-				orderer->addKiller(depth, moves[i].move);
+				orderer.addKiller(depth, moves[i].move);
 				return beta;
 			}
 		}
@@ -289,16 +280,16 @@ namespace SandalBot {
 		// If no moves, either checkmate or stalemate
 		if (numMoves == 0) {
 			int eval = Evaluator::drawScore;
-			if (moveGenerator->isCheck) {
+			if (moveGenerator.isCheck) {
 				eval = -(Evaluator::checkMateScore - depth);
 			}
 			// Store move
-			tTable->store(eval, maxDepth - depth, depth, TranspositionTable::exact, nullMove, board->state->zobristHash);
+			tTable.store(eval, maxDepth - depth, depth, TranspositionTable::exact, nullMove, board->state->zobristHash);
 			return eval;
 		}
 
 		// Store move
-		tTable->store(alpha, greaterAlpha ? bestDepth - depth : maxDepth - depth, depth, evalBound, greaterAlpha ? currentBestMove : nullMove, board->state->zobristHash);
+		tTable.store(alpha, greaterAlpha ? bestDepth - depth : maxDepth - depth, depth, evalBound, greaterAlpha ? currentBestMove : nullMove, board->state->zobristHash);
 
 		return alpha;
 	}
@@ -314,7 +305,7 @@ namespace SandalBot {
 
 		MovePoint moves[218];
 
-		int numMoves = moveGenerator->generate(moves);
+		int numMoves = moveGenerator.generate(moves);
 		for (int i = 0; i < numMoves; ++i) {
 			uint64_t numMoves{ 0ULL }; // Tracks number of nodes found in perft
 			// Simulate move
@@ -416,7 +407,7 @@ namespace SandalBot {
 			return;
 		}
 
-		bestLine->add(move); // Add move to bestline list
+		bestLine.add(move); // Add move to bestline list
 
 		// If threefold repetition, stop searching
 		if (board->history.contains(board->state->zobristHash)) {
@@ -425,7 +416,7 @@ namespace SandalBot {
 		// Apply move to board
 		board->makeMove(move);
 		// Acquire next move from transposition table
-		Move nextMove = tTable->getBestMove(board->state->zobristHash);
+		Move nextMove = tTable.getBestMove(board->state->zobristHash);
 
 		enactBestLine(nextMove, depth + 1);
 
@@ -442,7 +433,7 @@ namespace SandalBot {
 		// If piece can take a king, its an illegal position
 		MovePoint moves[218];
 
-		int numMoves = moveGenerator->generate(moves); // Generate all legal moves
+		int numMoves = moveGenerator.generate(moves); // Generate all legal moves
 
 		// If any move attack king, it is illegal
 		for (int i = 0; i < numMoves; i++) {
@@ -456,26 +447,17 @@ namespace SandalBot {
 
 	// Returns static evaluation of position
 	int Searcher::eval() {
-		return evaluator->Evaluate(board);
+		return evaluator.Evaluate(board);
 	}
 
 	// Deletes old transposition table and creates new one of different size
 	void Searcher::changeHashSize(int sizeMB) {
-		if (tTable == nullptr) {
-			return;
-		}
-
-		delete tTable;
-		tTable = new TranspositionTable(sizeMB);
+		tTable = TranspositionTable(sizeMB);
 	}
 
 	// Clears all transposition table entries
 	void Searcher::clearHash() {
-		if (tTable == nullptr) {
-			return;
-		}
-
-		tTable->clear();
+		tTable.clear();
 	}
 
 	// Performs perft test
@@ -500,11 +482,11 @@ namespace SandalBot {
 		if (duration == 0)
 			duration = 1;
 
-		string pv = searcher->bestLine->str(); // Principal variation
+		string pv = searcher->bestLine.str(); // Principal variation
 		cout << "info depth " << to_string(depth) << " seldepth " << to_string(seldepth);
 		cout << " score " << prepareEval() << " nodes " << to_string(nNodes + qNodes);
 		cout << " nps " << to_string(uint64_t(1000000000ULL * (nNodes + qNodes) / duration));
-		cout << " hashfull " << to_string((int)(1000 * (float)searcher->tTable->slotsFilled / (float)searcher->tTable->size));
+		cout << " hashfull " << to_string((int)(1000 * (float)searcher->tTable.slotsFilled / (float)searcher->tTable.size));
 		cout << " time " << to_string(duration / 1000000ULL);
 
 		// If principal variation exists, print it

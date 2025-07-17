@@ -16,7 +16,7 @@ namespace SandalBot {
 	// PositionInfo stores information that can be extracted from FEN string
 	struct PositionInfo {
 		std::string FEN{};
-		Piece squares[64];
+		Piece squares[SQUARES_NB];
 		int fiftyMoveCount{};
 		int moveCount{};
 		Square enPassantSquare{};

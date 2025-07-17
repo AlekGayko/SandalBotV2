@@ -13,6 +13,17 @@ namespace SandalBot {
 		this->slotsFilled = 0ULL;
 	}
 
+	TranspositionTable& TranspositionTable::operator=(const TranspositionTable& other) {
+		if (this != &other) {
+			delete[] table;  // free old memory
+			size = other.size;
+			slotsFilled = other.slotsFilled;
+			table = new Entry[size];
+			std::copy(other.table, other.table + size, table);
+		}
+		return *this;
+	}
+
 	// Get best move found from indexed hashkey
 	Move TranspositionTable::getBestMove(HashKey hashKey) {
 		if (table[getIndex(hashKey)].hash != hashKey)

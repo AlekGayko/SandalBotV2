@@ -102,30 +102,40 @@ namespace SandalBot {
 	}
 
 	PositionInfo FEN::fenToPosition(std::string_view FEN) {
-		PositionInfo newInfo;
-		Piece squarePieces[64] {};
+		PositionInfo newInfo{};
+		Piece squarePieces[SQUARES_NB] {};
+		std::fill(squarePieces, squarePieces + SQUARES_NB, NO_PIECE);
 		// Split string via spaces
 		vector<std::string> sections = StringUtil::splitString(FEN);
+
 		// Cannot have FEN string with less than 3 parts
 		if (sections.size() < 3) {
 			throw runtime_error("FEN Parsing Error");
 		}
 
-		Column file = COL_A;
-		Row rank = ROW_8;
+		Column file = COL_START;
+		Row rank = ROW_START;
 		// Parse piece placement data
 		for (char symbol : sections[0]) {
+			if (rank >= ROW_NB || rank < ROW_START) {
+				throw runtime_error("Invalid rank number");
+			}
 			// '/' represents new row/rank
 			if (symbol == '/') {
-				file = COL_A;
+				if (file < COL_NB) {
+					throw runtime_error("Illegal '/' rank change");
+				}
+				file = COL_START;
 				++rank;
 			} else {
+				if (file >= COL_NB || file < COL_START) {
+					std::cout << file << std::endl;
+					throw runtime_error("Invalid file number");
+				}
 				// If character is a digit, represents x empty squares on a row
 				if (isdigit(symbol)) {
 					Square square = Square(rank * 8 + file);
 					file = Column(file + symbol - '0');
-
-					std::fill(squarePieces + int(square), squarePieces + int(square + file), NO_PIECE);
 				} 
 				// Symbol must represent a piece
 				else {
@@ -136,7 +146,7 @@ namespace SandalBot {
 			}
 		}
 		// Copy calculated square pieces to squares member variables
-		std::copy(squarePieces, squarePieces + 64, newInfo.squares);
+		std::copy(squarePieces, squarePieces + SQUARES_NB, newInfo.squares);
 
 		// If active color section is 'w', it is whites turn
 		newInfo.sideToMove = sections[1] == "w" ? WHITE : BLACK;
@@ -168,7 +178,7 @@ namespace SandalBot {
 
 		// If en passant target square is of length two (e.g. 'e3') it is available
 		if (sections.size() > 3 && sections[3].size() == 2) {
-			string enPassantSquareName = sections[3];
+			std::string enPassantSquareName = sections[3];
 			newInfo.enPassantSquare = Square(CoordHelper::stringToIndex(enPassantSquareName));
 		}
 		// fifty move counter

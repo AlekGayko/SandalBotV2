@@ -18,5 +18,5 @@ if(BUILD_TESTING OR BUILD_BENCHMARKS)
 
     list(REMOVE_ITEM LIB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp")
     add_library(${PROJECT_NAME}lib STATIC ${LIB_SOURCES})
-    target_compile_options(${PROJECT_NAME}lib PRIVATE -Wall -march=native)
+    target_compile_options(${PROJECT_NAME}lib PRIVATE -Wall -march=native -O3)
 endif()
