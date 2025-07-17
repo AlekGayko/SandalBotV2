@@ -57,7 +57,7 @@ namespace SandalBot {
 		template <Color Us>
 		void enPassantMoves(MovePoint moves[], Square from, Square to, bool isPinned);
 		template <Color Us>
-		void promotionMoves(MovePoint moves[], Square from, Bitboard movementBB);
+		void promotionMoves(MovePoint moves[], Square from, Square to);
 		template <Color Us>
 		bool enPassantPin(Square friendlyPawnSquare, Square enemyPawnSquare);
 

@@ -122,15 +122,13 @@ namespace SandalBot {
 				movementBB &= checkBB;
 			}
 
-			if (toRow(from) == promoteRow && movementBB != 0ULL) {
-				promotionMoves<Us>(moves, from, movementBB);
-			}
-	
 			while (movementBB != 0ULL) {
 				Square to = popLSB(movementBB);
 
 				if (toRow(from) == startRow && toRow(to) == twoSquaresRow) {
 					addMove(moves, from, to, Move::Flag::PAWN_TWO_SQUARES);
+				} else if (toRow(from) == promoteRow) {
+					promotionMoves<Us>(moves, from, to);
 				} else {
 					addMove(moves, from, to);
 				}
@@ -196,15 +194,11 @@ namespace SandalBot {
 	}
 
 	template <Color Us>
-	void MoveGen::promotionMoves(MovePoint moves[], Square from, Bitboard movementBB) {
-		while (movementBB != 0ULL) {
-			Square to = popLSB(movementBB);
-
-			addMove(moves, from, to, Move::Flag::QUEEN);
-			addMove(moves, from, to, Move::Flag::ROOK);
-			addMove(moves, from, to, Move::Flag::BISHOP);
-			addMove(moves, from, to, Move::Flag::KNIGHT);
-		}
+	void MoveGen::promotionMoves(MovePoint moves[], Square from, Square to) {
+		addMove(moves, from, to, Move::Flag::QUEEN);
+		addMove(moves, from, to, Move::Flag::ROOK);
+		addMove(moves, from, to, Move::Flag::BISHOP);
+		addMove(moves, from, to, Move::Flag::KNIGHT);
 	}
 
 	// Generate all possible moves for king.

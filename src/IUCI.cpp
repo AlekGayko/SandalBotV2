@@ -69,7 +69,7 @@ namespace SandalBot {
 				bot->printBoard();
 			}
 		} catch (exception& e) {
-			std::cerr << e.what() << std::endl;
+
 		}
 	}
 	// 'ucinewgame' command, deletes bot and instantiates new one
@@ -183,7 +183,7 @@ namespace SandalBot {
 		string allMoves = getLabelledValue(command, "moves", positionLabels);
 		if (allMoves.size() > 0) {
 			vector<string> moveList = StringUtil::splitString(allMoves);
-			for (string move : moveList) {
+			for (string& move : moveList) {
 				bot->makeMove(move);
 			}
 		}
@@ -233,11 +233,11 @@ namespace SandalBot {
 		int valueEnd = text.size();
 
 		// Iterate over all labels and narrow start and end of value
-		for (T label : allLabels) {
-			if (label != label && StringUtil::contains(text, label.data())) {
+		for (T label2 : allLabels) {
+			if (label != label2 && StringUtil::contains(text, label.data())) {
 				// If start of label is after valueStart and before valueEnd, 
 				// it can narrow window for value
-				int otherIDStartIndex = StringUtil::indexOf(text, label.data());
+				int otherIDStartIndex = StringUtil::indexOf(text, label2.data());
 				if (otherIDStartIndex > valueStart && otherIDStartIndex < valueEnd) {
 					valueEnd = otherIDStartIndex;
 				}
