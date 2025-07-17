@@ -165,6 +165,7 @@ namespace SandalBot {
 	template <>
 	inline Bitboard getMovementBoard<ROOK>(Square sq, Bitboard allPieces) {
 		Bitboard orthogonalBlockers = allPieces & getBlockerOrthogonalMask(sq);
+
 		return getOrthMovementBoard(sq, orthogonalBlockers);
 	}
 

@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "TestFileReader.h"
+
 #include "Board.h"
 #include "Bot.h"
+#include "InitGlobals.h"
 #include "Move.h"
 
 #include <iostream>
@@ -24,6 +26,7 @@ std::string performPuzzleTest(std::string FEN, std::string correctMove, int move
 class PuzzleTest : public ::testing::TestWithParam<std::string> {};
 
 TEST_P(PuzzleTest, FindBestMove) {
+    GlobalInit::SetUpTestSuite();
     std::string fileName = GetParam();
     std::string inputFileName = "puzzles/inputs/" + fileName;
     std::string expectedFileName = "puzzles/expected/" + fileName;

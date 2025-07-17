@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include "InitGlobals.h"
 #include "Move.h"
 #include "MoveOrderer.h"
 
@@ -35,6 +36,7 @@ void generateMoves(MovePoint moves[], int numMoves) {
 }
 
 TEST(MoveSorting, QuickSort) {
+	GlobalInit::SetUpTestSuite();
 	MovePoint moves[movesSize];
 	int moveSizes[]{ 5, 10, 20, 40, 60 };
 
@@ -49,6 +51,7 @@ TEST(MoveSorting, QuickSort) {
 }
 
 TEST(MoveSorting, BubbleSort) {
+	GlobalInit::SetUpTestSuite();
 	MovePoint moves[movesSize];
 	int moveSizes[]{ 5, 10, 20, 40, 60 };
 
@@ -62,6 +65,7 @@ TEST(MoveSorting, BubbleSort) {
 }
 
 TEST(MoveSorting, InsertionSort) {
+	GlobalInit::SetUpTestSuite();
 	MovePoint moves[movesSize];
 	int moveSizes[]{ 5, 10, 20, 40, 60 };
 
@@ -75,6 +79,7 @@ TEST(MoveSorting, InsertionSort) {
 }
 
 TEST(MoveSorting, SelectionSort) {
+	GlobalInit::SetUpTestSuite();
 	MovePoint moves[movesSize];
 	int moveSizes[]{ 5, 10, 20, 40, 60 };
 
@@ -88,6 +93,7 @@ TEST(MoveSorting, SelectionSort) {
 }
 
 TEST(MoveSorting, MergeSort) {
+	GlobalInit::SetUpTestSuite();
 	MovePoint moves[movesSize];
 	int moveSizes[]{ 5, 10, 20, 40, 60 };
 
@@ -101,6 +107,7 @@ TEST(MoveSorting, MergeSort) {
 }
 
 TEST(MoveSorting, StdSort) {
+	GlobalInit::SetUpTestSuite();
 	MovePoint moves[movesSize];
 	int moveSizes[] { 5, 10, 20, 40, 60 };
 

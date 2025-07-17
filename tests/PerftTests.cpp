@@ -7,16 +7,9 @@
 
 #include "TestFileReader.h"
 #include "Bot.h"
-#include "Init.h"
+#include "InitGlobals.h"
 
 using namespace SandalBot;
-
-class GlobalInit : public ::testing::Test {
-protected:
-  static void SetUpTestSuite() {
-    SandalBot::initGlobals();
-  }
-};
 
 TEST_F(GlobalInit, InitOnce) {
     SUCCEED();
@@ -34,6 +27,8 @@ uint64_t performPerftTest(std::string FEN, int depth) {
 class PerftTest : public ::testing::TestWithParam<std::string> {};
 
 TEST_P(PerftTest, CorrectMoveGeneration) {
+    GlobalInit::SetUpTestSuite();
+    
     std::string fileName = GetParam();
     std::string inputFileName = "perft/inputs/" + fileName;
     std::string expectedFileName = "perft/expected/" + fileName;
