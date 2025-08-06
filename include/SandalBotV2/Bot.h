@@ -4,6 +4,7 @@
 #include "Board.h"
 #include "Searcher.h"
 
+#include <optional>
 #include <string_view>
 
 namespace SandalBot {
@@ -18,8 +19,8 @@ namespace SandalBot {
 
 		void setPosition(std::string_view FEN);
 		void makeMove(std::string movestr);
-		std::string generateMove(int moveTimeMs);
-		void go();
+		std::optional<Move> generateMove(int moveTimeMs);
+		std::optional<Move> go();
 		int eval();
 		void stopSearching();
 		uint64_t perft(int depth);
@@ -33,7 +34,7 @@ namespace SandalBot {
 		Board* board{ nullptr };
 		Searcher* searcher{ nullptr };
 
-		int validateUserMove(MovePoint moves[218], Square from, Square to, Move::Flag flag);
+		Move validateUserMove(Square from, Square to, Move::Flag flag);
 	};
 
 }

@@ -26,6 +26,12 @@ namespace SandalBot {
 		}
 		logs.close();
 	}
+
+	void IUCI::displayBestMove(std::optional<Move> move) {
+		if (move != std::nullopt) {
+			respond("bestmove " + move.value().uciStr());
+		}
+	}
 	
 	// Init members
 	IUCI::IUCI() {
@@ -81,20 +87,17 @@ namespace SandalBot {
 	// Stops any current searching of the bot
 	void IUCI::stop() {
 		// If thread is running
-		if (goThread.joinable()) {
+		if (goFuture.valid()) {
 			bot->stopSearching();
-			this_thread::sleep_for(chrono::milliseconds(100));
-			goThread.join();
-			this_thread::sleep_for(chrono::milliseconds(100));
+			goFuture.wait_for(std::chrono::milliseconds(100));
+			std::optional<Move> bestMove = goFuture.get();
+			displayBestMove(bestMove);
 		}
 	}
 	// Quit command stops go thread and exits program
 	void IUCI::quit() {
 		// Stop go thread
-		if (goThread.joinable()) {
-			bot->stopSearching();
-			goThread.join();
-		}
+		stop();
 		// Exit
 		exit(0);
 	}
@@ -113,25 +116,24 @@ namespace SandalBot {
 
 		respond("evaluation " + to_string((float)evaluation / 100.f));
 	}
-	// Outputs best move
-	void IUCI::OnMoveChosen(string move) {
-		respond("bestmove " + move);
-	}
+
 	// Process go command into either, constant movetime search, perft test, infinite go search,
 	// or real time clock time search
 	void IUCI::processGoCommand(string command) {
 		// If currently searching dont process command
-		if (goThread.joinable()) {
+		if (isFutureRunning()) {
 			return;
 		}
+
 		// Search position indefinitely, until stopped
 		if (command == "go" || StringUtil::contains(command, "infinite")) {
-			goThread = thread(&Bot::go, bot);
+			goFuture = std::async(std::launch::async, &Bot::go, bot);
 		} 
 		// Search position for movetime milliseconds
 		else if (StringUtil::contains(command, "movetime")) {
 			int moveTimeMs = getLabelledValueInt(command, "movetime", goLabels); // Extract movetime number
-			bot->generateMove(moveTimeMs); // Search position
+			std::optional<Move> bestMove = bot->generateMove(moveTimeMs); // Search position
+			displayBestMove(bestMove);
 		} 
 		// Perft test, accepts user specified depth
 		else if (StringUtil::contains(command, "perft")) {
@@ -157,7 +159,8 @@ namespace SandalBot {
 			int thinkTime = bot->chooseMoveTime(timeRemainingWhiteMs, timeRemainingBlackMs, incrementWhiteMs, incrementBlackMs);
 			string str = "Thinking for: " + to_string(thinkTime);
 			respond(str + " ms.");
-			bot->generateMove(thinkTime); // Get move
+			std::optional<Move> bestMove = bot->generateMove(thinkTime); // Get move
+			displayBestMove(bestMove);
 		}
 
 	}
@@ -165,7 +168,7 @@ namespace SandalBot {
 	// and optionally moves on given position
 	void IUCI::processPositionCommand(string command) {
 		// Do not process if currently searching
-		if (goThread.joinable()) {
+		if (isFutureRunning()) {
 			return;
 		}
 		// If startpos position, reset to starting position

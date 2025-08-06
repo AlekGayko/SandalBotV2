@@ -12,20 +12,19 @@ using namespace std;
 namespace SandalBot {
 
     // Validates a move on the current board position
-    int Bot::validateUserMove(MovePoint moves[218], Square from, Square to, Move::Flag flag) {
+    Move Bot::validateUserMove(Square from, Square to, Move::Flag flag) {
+        MoveGen generator = MoveGen(board);
         // Generate all possible moves in position
-        int numMoves = searcher->moveGenerator.generate(moves);
-        int moveIndex = -1;
+        Move move;
         // If proposed move is in possible moves, it is a valid move
-        for (int i = 0; i < numMoves; i++) {
-            if (moves[i].move.from() == from && moves[i].move.to() == to &&
-                (moves[i].move.flag() > Move::Flag::QUEEN || moves[i].move.flag() == flag)) {
-                moveIndex = i;
-                break;
+        while (!(move = generator.getMove()).isNull()) {
+            if (move.from() == from && move.to() == to &&
+                (move.flag() > Move::Flag::QUEEN || move.flag() == flag)) {
+                return move;
             }
         }
 
-        return moveIndex;
+        return Move();
     }
 
     Bot::Bot() {
@@ -89,52 +88,30 @@ namespace SandalBot {
         }
 
         // Validate move
-        MovePoint positionMoves[218];
-        int moveIndex = validateUserMove(positionMoves, from, to, flag);
+        Move foundMove = validateUserMove(from, to, flag);
 
-        if (moveIndex == -1) 
+        if (foundMove.isNull()) 
             return;
 
         // If move is valid, enact move
-        board->makeMove(positionMoves[moveIndex].move);
+        board->makeMove(foundMove);
     }
 
     // Generate move within allotted time in milliseconds
-    string Bot::generateMove(int moveTimeMs) {
-        searcher->startSearch(true, moveTimeMs); // Generate move
+    std::optional<Move> Bot::generateMove(int moveTimeMs) {
+        Move bestMove = searcher->startSearch(true, moveTimeMs); // Generate move
 
         // If move is essentially null, either error, illegal position, or could not find move in time frame
-        if (searcher->bestMove == Move()) {
-            return "";
+        if (bestMove.isNull()) {
+            return std::nullopt;
         }
 
-        // Generate UCI notation from generated move
-        string from = CoordHelper::indexToString(searcher->bestMove.from());
-        string to = CoordHelper::indexToString(searcher->bestMove.to());
-        string flag = "";
-
-        switch (searcher->bestMove.flag()) {
-        case Move::Flag::QUEEN:
-            flag = "q";
-            break;
-        case Move::Flag::BISHOP:
-            flag = "b";
-            break;
-        case Move::Flag::KNIGHT:
-            flag = "n";
-            break;
-        case Move::Flag::ROOK:
-            flag = "r";
-            break;
-        }
-
-        cout << "bestmove " << from << to << flag << endl;
-        return from + to;
+        return bestMove;
     }
 
     // Search position asynchronously
-    void Bot::go() {
-        searcher->startSearch(false);
+    std::optional<Move> Bot::go() {
+        return searcher->startSearch(false);
     }
 
     // Generate static evaluation from position

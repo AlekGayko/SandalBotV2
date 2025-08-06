@@ -71,7 +71,7 @@ namespace SandalBot {
 			}
 		};
 		
-		static constexpr std::size_t defaultSizeMB = 128; // Default size of table in MB
+		static constexpr std::size_t defaultSizeMB = 1024; // Default size of table in MB
 		Entry* table{ nullptr };
 		Move nullMove{};
 

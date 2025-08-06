@@ -51,7 +51,7 @@ namespace SandalBot {
 			pieceCount[piece] += 1;
 
 			sideValues[color] += PieceEvaluations::pieceVals[type];
-			pieceSquareValues[color] += PieceEvaluations::pieceEvals[type][color == WHITE ? sq : flipRow(sq)];
+			pieceSquareValues[color] += PieceEvaluations::sqEvals[type][color == WHITE ? sq : flipRow(sq)];
 
 			if (type != PAWN && type != KING) {
 				MMPieces[color] += 1;
@@ -62,6 +62,7 @@ namespace SandalBot {
 
 		// If number of kings of either side isn't one, illegal board position
 		if (pieceCount[W_KING] != 1 || pieceCount[B_KING] != 1) {
+			assert(false, "Illegal number of kings");
 			loadPosition(FEN::startpos);
 			return;
 		}
@@ -77,6 +78,9 @@ namespace SandalBot {
 		history.push(state->zobristHash, false);
 
 		initBitboards(); // Init bitboards
+
+		bool inCheck = threatsBB(kingSquares[mSideToMove], mSideToMove);
+		setCheckState(inCheck);
 	}
 
 	// Synchronise the board position with the bitboards
@@ -99,8 +103,13 @@ namespace SandalBot {
 		}
 	}
 
-	// Enact a move on the board
 	void Board::makeMove(Move move) {
+		bool checkGiven = givesCheck(move);
+		makeMove(move, checkGiven);
+	}
+
+	// Enact a move on the board
+	void Board::makeMove(Move move, bool checkGiven) {
 		Square from = move.from();
 		Square to = move.to();
 		Move::Flag flag = move.flag();
@@ -114,7 +123,15 @@ namespace SandalBot {
 		Bitboard newZobristHash = state->zobristHash;
 		int fiftyMoveCounter = (piece == makePiece(PAWN, mSideToMove) || capturedPiece != NO_PIECE) ? 0 : state->fiftyMoveCounter + 1;
 
-		assert(typeOf(capturedPiece) != KING && piece != NO_PIECE);
+		if (typeOf(capturedPiece) == KING) {
+			printBoard();
+			std::cout << "checkBB: \n";
+			printBB(state->checkBB);
+			std::cout << "move: " << move << std::endl;
+		}
+
+		assert(typeOf(capturedPiece) != KING);
+		assert(piece != NO_PIECE);
 
 		newZobristHash ^= ZobristHash::whiteMoveHash; // Change hash move side
 		
@@ -169,6 +186,7 @@ namespace SandalBot {
 		}				
 
 		stateHistory.push(BoardState(capturedPiece, enPassantSquare, cr, fiftyMoveCounter, newZobristHash, move));
+
 		state = &stateHistory.back();
 
 		bool reset = (capturedPiece != NO_PIECE) || (piece == makePiece(PAWN, mSideToMove));
@@ -177,6 +195,8 @@ namespace SandalBot {
 
 		mMoveCounter++;
 		mSideToMove = ~mSideToMove;
+
+		setCheckState(checkGiven);
 	}
 
 	// Roll back state of board from move
@@ -299,8 +319,8 @@ namespace SandalBot {
 		Square evalFrom = colorOf(piece) == WHITE ? from : flipRow(from);
 		Square evalTo = colorOf(piece) == WHITE ? to : flipRow(to);
 
-		pieceSquareValues[colorOf(piece)] += PieceEvaluations::pieceEvals[typeOf(piece)][evalTo] 
-			- PieceEvaluations::pieceEvals[typeOf(piece)][evalFrom];
+		pieceSquareValues[colorOf(piece)] += PieceEvaluations::sqEvals[typeOf(piece)][evalTo] 
+			- PieceEvaluations::sqEvals[typeOf(piece)][evalFrom];
 
 		if (typeOf(piece) == KING) {
 			kingSquares[colorOf(piece)] = to;
@@ -324,7 +344,7 @@ namespace SandalBot {
 		Square evalSq = colorOf(piece) == WHITE ? sq : flipRow(sq);
 
 		sideValues[colorOf(piece)] += PieceEvaluations::pieceVals[typeOf(piece)];
-		pieceSquareValues[colorOf(piece)] += PieceEvaluations::pieceEvals[typeOf(piece)][evalSq];
+		pieceSquareValues[colorOf(piece)] += PieceEvaluations::sqEvals[typeOf(piece)][evalSq];
 
 		if (typeOf(piece) != PAWN) {
 			MMPieces[colorOf(piece)] += 1;
@@ -349,11 +369,174 @@ namespace SandalBot {
 
 		Square evalSq = colorOf(piece) == WHITE ? sq : flipRow(sq);
 		sideValues[colorOf(piece)] -= PieceEvaluations::pieceVals[typeOf(piece)];
-		pieceSquareValues[colorOf(piece)] -= PieceEvaluations::pieceEvals[typeOf(piece)][evalSq];
+		pieceSquareValues[colorOf(piece)] -= PieceEvaluations::sqEvals[typeOf(piece)][evalSq];
 
 		if (typeOf(piece) != PAWN) {
 			MMPieces[colorOf(piece)] -= 1;
 		}
+	}
+
+
+	template<Color Us>
+	inline Bitboard Board::sliderBlockers() {
+		Square kSq = kingSquares[Us];
+		Bitboard blockers = 0ULL;
+		state->pinners[~Us] = 0ULL;
+
+		Bitboard attackers = ((getMovementBoard<ROOK>(kSq, 0ULL) & pieces(ROOK, QUEEN))
+								| (getMovementBoard<BISHOP>(kSq, 0ULL) & pieces(BISHOP, QUEEN))) & colorsBB[~Us];
+		Bitboard nonAttackers = typesBB[ALL_PIECES] & ~attackers & ~(1ULL << kSq);
+
+		while (attackers != 0ULL) {
+			Square sq = popLSB(attackers);
+			Bitboard pinBlockers = getLineBetweenBB(kSq, sq) & nonAttackers;
+
+			if (pinBlockers && !moreThanOne(pinBlockers)) {
+				blockers |= pinBlockers;
+				if (pinBlockers & colorsBB[Us]) {
+					state->pinners[~Us] |= (1ULL << sq);
+				}
+			}
+		}
+
+		return blockers;
+	}
+
+	void Board::setCheckState(bool checkGiven) {
+		state->checkBlockers[WHITE] = sliderBlockers<WHITE>();
+		state->checkBlockers[BLACK] = sliderBlockers<BLACK>();
+
+		Square kSq = kingSquares[mSideToMove];
+		Square themKSq = kingSquares[~mSideToMove];
+
+		
+
+		state->checkSquares[PAWN] = getPawnAttackMoves(themKSq, ~mSideToMove);
+		state->checkSquares[KNIGHT] = getMovementBoard<KNIGHT>(themKSq, 0ULL);
+		state->checkSquares[BISHOP] = getMovementBoard<BISHOP>(themKSq, typesBB[ALL_PIECES]);
+		state->checkSquares[ROOK] = getMovementBoard<ROOK>(themKSq, typesBB[ALL_PIECES]);
+		state->checkSquares[QUEEN] = state->checkSquares[BISHOP] | state->checkSquares[ROOK];
+		state->checkSquares[KING] = 0ULL;
+
+		state->checkBB = checkGiven ? threatsBB(kSq, mSideToMove) : 0ULL;
+	}
+
+	Bitboard Board::threatsBB(Square sq, Color color) const {
+		return colorsBB[~color] & (
+			   (getPawnAttackMoves(sq, color) & pieces(PAWN))
+			|  (getMovementBoard<KNIGHT>(sq, 0ULL) & pieces(KNIGHT))
+			|  (getMovementBoard<BISHOP>(sq, typesBB[ALL_PIECES]) & pieces(BISHOP, QUEEN))
+			|  (getMovementBoard<ROOK>(sq, typesBB[ALL_PIECES]) & pieces(ROOK, QUEEN))
+			|  (getMovementBoard<KING>(sq, 0ULL) & pieces(KING))
+		);
+	}
+
+	Bitboard Board::threatsBB(Square sq, Color color, Bitboard occupied) const {
+		return colorsBB[~color] & (
+			(getPawnAttackMoves(sq, color) & pieces(PAWN))
+			| (getMovementBoard<KNIGHT>(sq, 0ULL) & pieces(KNIGHT))
+			| (getMovementBoard<BISHOP>(sq, occupied) & pieces(BISHOP, QUEEN))
+			| (getMovementBoard<ROOK>(sq, occupied) & pieces(ROOK, QUEEN))
+			| (getMovementBoard<KING>(sq, 0ULL) & pieces(KING))
+		);
+	}
+
+	Bitboard Board::attacksBB(PieceType type, Color color) const {
+		Bitboard piecesBB = pieces() & sidePieces(color);
+		Bitboard attacks = 0ULL;
+
+		while (piecesBB != 0ULL) {
+			Square sq = popLSB(piecesBB);
+			Bitboard movement = getAttackBoard(sq, color, type, pieces());
+			movement &= ~colorsBB[color];
+
+			attacks |= movement;
+		}
+
+		return attacks;
+	}
+
+	Bitboard Board::attacksBB(Color color) const {
+		return (
+			attacksBB(KING, color) | attacksBB(PAWN, color) | attacksBB(KNIGHT, color)
+			| attacksBB(BISHOP, color) | attacksBB(ROOK, color) | attacksBB(QUEEN, color)
+		);
+	}
+
+	// Returns true if move (assumed pseudolegal) gives check
+	bool Board::givesCheck(Move move) const {
+		Square from = move.from();
+		Square to = move.to();
+		PieceType type = typeOf(squares[from]);
+
+		Square kSq = kingSquares[~mSideToMove];
+
+		// Direct Check
+		if (state->checkSquares[type] & (1ULL << to)) {
+			return true;
+		}
+
+		// Discovered Check
+		if ((state->checkBlockers[~mSideToMove] & (1ULL << from))
+			&& !(getLineBB(from, to) & (1ULL << kSq))) {
+			return true;
+		}
+
+		switch (move.flag()) {
+		case Move::Flag::NO_FLAG:
+			return false;
+		case Move::Flag::EN_PASSANT:
+		{
+			Square capturedSquare = to - pawnPush(mSideToMove);
+			Bitboard blockers = ((typesBB[ALL_PIECES] & ~(1ULL << from)) & ~(1ULL << capturedSquare)) | (1ULL << to);
+			return (getMovementBoard<ROOK>(kSq, blockers) & (pieces(QUEEN, ROOK) & colorsBB[mSideToMove]))
+				| (getMovementBoard<BISHOP>(kSq, blockers) & (pieces(QUEEN, BISHOP) & colorsBB[mSideToMove]));
+		}
+		case Move::Flag::CASTLE:
+		{
+			Square rookTo = rCastleTo(from, to);
+			return (getMovementBoard<ROOK>(rookTo, 0ULL) & (1ULL << kSq)) 
+				&& (getMovementBoard<ROOK>(rookTo, (typesBB[ALL_PIECES] & ~(1ULL << from)) | (1ULL << to)) & (1ULL << kSq));
+		}
+		default: // Promotion
+			return getAttackBoard(to, mSideToMove /*irrelevant*/, PieceType(move.flag()), typesBB[ALL_PIECES] & ~(1ULL << from)) & (1ULL << kSq);
+		}
+	}
+
+	// Returns true if move (assumed pseudolegal) is legal
+	bool Board::legalMove(Move move) const {
+		Square from = move.from();
+		Square to = move.to();
+		Move::Flag moveType = move.flag();
+		Square kSq = kingSquares[mSideToMove];
+
+		if (moveType == Move::Flag::EN_PASSANT) {
+			Square captureSq = to - pawnPush(mSideToMove);
+			Bitboard blockers = (pieces() & ~(1ULL << from) & ~(1ULL << captureSq)) | (1ULL << to);
+
+			return !(getMovementBoard<ROOK>(kSq, blockers) & (pieces(QUEEN, ROOK) & colorsBB[~mSideToMove]))
+				&& !(getMovementBoard<BISHOP>(kSq, blockers) & (pieces(QUEEN, BISHOP) & colorsBB[~mSideToMove]));
+		} else if (moveType == Move::Flag::CASTLE) {
+			Direction castleDir = to > from ? EAST : WEST;
+			if (threatsBB(from + castleDir, mSideToMove)) {
+				return false;
+			} else if (threatsBB(Square(from + 2 * castleDir), mSideToMove)) {
+				return false;
+			}
+		}
+
+		if (from == kSq) { // If moving king
+			return !(threatsBB(to, mSideToMove, pieces() & ~(1ULL << kSq)));
+		}
+
+		return !(state->checkBlockers[mSideToMove] & (1ULL << from)) || (getLineBB(from, to) & (1ULL << kSq));
+	}
+
+	// seeGE (Static Exchnage Evaluation Greater than or Equal) evaluates whether a capturing move
+	// causes a series of exchanges which gains or loses material. Used to determine whether a capture
+	// is 'good' or 'bad'.
+	bool Board::seeGE(Move move, int threshold) const {
+		return true;
 	}
 
 }

@@ -1,6 +1,7 @@
 #ifndef PIECEEVALUATIONS_H
 #define PIECEEVALUATIONS_H
 
+#include "Types.h"
 #include <cstdint>
 
 // PieceEvaluations is a utility namespace which contains weightings
@@ -96,7 +97,7 @@ namespace SandalBot::PieceEvaluations {
         -50, -30, -30, -30, -30, -30, -30, -50
     };
     // Array of positional arrays, can be indexed by piece types
-    static constexpr const int16_t* const pieceEvals[7] { nullptr, pawnEval, knightEval, bishopEval, rookEval, queenEval, kingEval };
+    static constexpr const int16_t* const sqEvals[PIECE_TYPE_NB]{nullptr, pawnEval, knightEval, bishopEval, rookEval, queenEval, kingEval};
 
     // Static piece values
     static constexpr int16_t emptyVal = 0;
@@ -107,7 +108,7 @@ namespace SandalBot::PieceEvaluations {
     static constexpr int16_t queenVal = 900;
     static constexpr int16_t kingVal = 0;
     // Array of piece values
-    static constexpr int16_t pieceVals[7] = { emptyVal, pawnVal, knightVal, bishopVal, rookVal, queenVal, kingVal };
+    static constexpr int16_t pieceVals[PIECE_TYPE_NB] = { emptyVal, pawnVal, knightVal, bishopVal, rookVal, queenVal, kingVal };
 
 }
 

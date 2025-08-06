@@ -45,6 +45,7 @@ namespace SandalBot {
 		constexpr Move& operator=(Move&& other) noexcept { moveValue = other.moveValue; return *this; }
 		constexpr bool operator!=(const Move& other) const { return moveValue != other.moveValue; }
 
+		constexpr bool isNull() const { return moveValue == 0U; }
 		constexpr bool isPromotion() const { return flag() <= Flag::QUEEN; }
 		constexpr PieceType promotionPieceType();
 
@@ -52,6 +53,7 @@ namespace SandalBot {
 		constexpr Square to() const { return Square(moveValue & toMask); }
 		constexpr Flag flag() const { return Flag((moveValue & flagMask) >> 12); }
 
+		std::string uciStr() const;
 		std::string str() const;
 		std::string binStr() const;
 		friend std::ostream& operator<<(std::ostream& os, const Move& move);
@@ -61,9 +63,24 @@ namespace SandalBot {
 		static constexpr uint16_t toMask{ 0b000000111111 };
 		static constexpr uint16_t flagMask{ 0b1111 << 12 };
 
-		uint16_t moveValue {}; // Single member
+		uint16_t moveValue { 0 }; // Single member
 	};
 
+	struct Killer {
+		Move moveA{};
+		Move moveB{};
+		// Adds new killer move to struct. Demotes moveA to moveB and removes moveB
+		void add(Move move) {
+			if (move.moveValue != moveA.moveValue) {
+				moveB = moveA;
+				moveA = move;
+			}
+		}
+		// Sees if given move is a killer move
+		bool match(Move move) const {
+			return move.moveValue == moveA.moveValue || move.moveValue == moveB.moveValue;
+		}
+	};
 }
 
 #endif // !MOVE_H

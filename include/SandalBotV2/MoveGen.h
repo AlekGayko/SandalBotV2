@@ -7,74 +7,100 @@
 #include "MoveOrderer.h"
 #include "Types.h"
 
+#include <cassert>
+
 namespace SandalBot {
 
-	struct MovePoint;
+	using PointValue = int16_t;
+
+	// Struct holds a move and corresponding heuristic value
+	struct MovePoint {
+		PointValue value{ 0 };
+		Move move{};
+	};
+
+	enum Stage : int {
+		MAIN_TT, MAIN_CAPTURE_INIT, MAIN_CAPTURES, MAIN_QUIET_INIT, MAIN_QUIETS, MAIN_BAD_CAPTURES,
+		Q_TT, Q_CAPTURES_INIT, Q_CAPTURES, Q_CHECKS_INIT, Q_CHECKS, Q_BAD_CAPTURES,
+		EVASIONS_TT, EVASIONS_INIT, EVASION_MOVES,
+		VANILLA_INIT, VANILLA
+	};
 
 	// MoveGen class generates all possible legalmoves in a given position
 	class MoveGen {
-		friend class MoveOrderer;
-		friend class Searcher;
+		enum GenType {
+			CAPTURES,
+			QUIETS,
+			EVASIONS,
+			QUIET_CHECKS,
+			ALL
+		};
 	public:
-		static constexpr int maxMoves{ 218 };
-
-		bool isCheck{}; // Tracks whether there is check in position
-
-		MoveGen() = default;
+		MoveGen() = delete;
 
 		~MoveGen() = default;
 
-		MoveGen(Board* board) : board(board) {
-			if (board == nullptr) 
-				throw std::invalid_argument("board cannot be nullptr");
+		// Main Search
+		MoveGen(Board* board, Killer* killerMoves, Move ttMove, int depth) : board(board), ttMove(ttMove), depth(depth), killerMoves(killerMoves) {
+			assert(board != nullptr);
+			assert(killerMoves != nullptr);
+			assert(depth >= 0);
+			stage = board->checkBB() ? EVASIONS_TT : MAIN_TT;
+		}
+		// Q Search
+		MoveGen(Board* board, Move ttMove, int depth) : board(board), ttMove(ttMove), depth(depth), killerMoves(nullptr) {
+			assert(board != nullptr);
+			assert(depth >= 0);
+			stage = board->checkBB() ? EVASIONS_TT : Q_TT;
 		}
 
-		int generate(MovePoint moves[], bool capturesOnly = false);
+		// Generic Move Generation
+		MoveGen(Board* board) : board(board) {
+			assert(board != nullptr);
+			ttMove = Move();
+			stage = board->checkBB() ? EVASIONS_INIT : VANILLA_INIT;
+		}
+
+		MovePoint* begin() { return curr; }
+		MovePoint* end() { return endMoves; }
+
+		Move getMove();
 
 	private:
 		Board* board = nullptr;
+		MovePoint moves[maxMoves];
+		Killer* killerMoves;
+		Move ttMove;
+		MovePoint *curr{ moves }, *endMoves{ moves }, *badMoves{ moves };
 
-		uint64_t currentMoves{};
-		bool doubleCheck{};
-		bool generateCaptures{};
+		int stage;
+		int depth;
 
-		// Utility bitboards
-		Bitboard opponentAttacks{};
-		Bitboard checkBB{};
-		Bitboard checkRayBB{};
+		Move selectMove();
 
-		void initVariables();
+		template <GenType Type>
+		void generate();
+		template <GenType Type, Color Us>
+		void generateAllMoves();
+		template <Color Us, PieceType Type, bool QuietChecking>
+		void generateMoves(Bitboard target);
+		template <GenType Type, Color Us>
+		void generatePawnMoves(Bitboard target);
+		template <GenType Type, Color Us, bool QuietChecking>
+		void generateKingMoves(Bitboard target);
 
-		template <Color Us>
-		int generateAllMoves(MovePoint moves[], bool capturesOnly = false);
-		template <Color Us, PieceType Type>
-		void generateMoves(MovePoint moves[], bool capturesOnly);
-		template <Color Us>
-		void generatePawnMoves(MovePoint moves[], bool capturesOnly);
-		template <Color Us>
-		void generateKingMoves(MovePoint moves[], bool capturesOnly);
+		void promotionMoves(Square from, Square to);
 
-		template <Color Us>
-		void enPassantMoves(MovePoint moves[], Square from, Square to, bool isPinned);
-		template <Color Us>
-		void promotionMoves(MovePoint moves[], Square from, Square to);
-		template <Color Us>
-		bool enPassantPin(Square friendlyPawnSquare, Square enemyPawnSquare);
+		template <GenType Type>
+		void evaluateMoves();
 
-		template <Color Us>
-		void castlingMoves(MovePoint moves[], Square from);
+		void addMove(Square from, Square to, Move::Flag flag = Move::Flag::NO_FLAG) {
+			Move move = Move(from, to, flag);
 
-		template <Color Us>
-		Bitboard generatePawnAttackData();
-		template <Color Us, PieceType Type>
-		Bitboard generateAttackData();
-		template <Color Us>
-		void generateAllAttackData();
-		template <Color Us>
-		void generateCheckData();
-
-		void addMove(MovePoint moves[], Square from, Square to, Move::Flag flag = Move::Flag::NO_FLAG) {
-			moves[currentMoves++].move = std::move(Move(from, to, flag));
+			if (move == ttMove) {
+				return;
+			}
+			(endMoves++)->move = std::move(move);
 		}
 	};
 

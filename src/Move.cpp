@@ -8,7 +8,32 @@ namespace SandalBot {
 	constexpr PieceType Move::promotionPieceType() {
 		return PieceType(flag());
 	}
+
 	// Returns a string representing the move in UCI notation
+	std::string Move::uciStr() const {
+		std::string str = "";
+		str += CoordHelper::indexToString(from());
+		str += CoordHelper::indexToString(to());
+
+		switch (flag()) {
+		case Flag::QUEEN:
+			str += "q";
+			break;
+		case Flag::ROOK:
+			str += "r";
+			break;
+		case Flag::BISHOP:
+			str += "b";
+			break;
+		case Flag::KNIGHT:
+			str += "n";
+			break;
+		}
+
+		return str;
+	}
+
+	// Returns a string representing the move
 	std::string Move::str() const {
 		std::string str = "";
 		str += CoordHelper::indexToString(from());

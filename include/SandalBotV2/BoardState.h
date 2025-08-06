@@ -10,7 +10,21 @@ namespace SandalBot {
 
 	// BoardState holds state information of a board at a single position
 	struct BoardState {
-		BoardState() {}
+		// State information
+		HashKey zobristHash{};
+		int16_t fiftyMoveCounter{};
+		Move prevMove{};
+		Piece capturedPiece{};
+		Square enPassantSquare{};
+		CastlingRights cr{}; // Store castling rights in binary form to conserve memory
+
+		// Check information
+		Bitboard checkSquares[PIECE_TYPE_NB];
+		Bitboard pinners[COLOR_NB];
+		Bitboard checkBlockers[COLOR_NB] { 0ULL, 0ULL };
+		Bitboard checkBB{ 0ULL };
+
+		BoardState() = default;
 
 		BoardState(Piece capturedPiece, Square enPassantSquare, CastlingRights cr, int fiftyMoveCounter, HashKey zobristHash, Move move)
 			: capturedPiece(capturedPiece), enPassantSquare(enPassantSquare), cr(cr),
@@ -41,14 +55,6 @@ namespace SandalBot {
 			this->prevMove = other.prevMove;
 			return *this;
 		}
-
-		// State information
-		HashKey zobristHash{};
-		int16_t fiftyMoveCounter{};
-		Move prevMove{};
-		Piece capturedPiece{};
-		Square enPassantSquare{};
-		CastlingRights cr{}; // Store castling rights in binary form to conserve memory
 	};
 
 }

@@ -23,14 +23,11 @@ namespace SandalBot {
 	class Searcher {
 	public:
 		Evaluator evaluator{};
-		MoveGen moveGenerator{};
-		MoveOrderer orderer{};
-		Move bestMove{};
 
 		Searcher() {};
 		Searcher(Board* board);
 		~Searcher() {}
-		void startSearch(bool isTimed, int moveTimeMs = 0);
+		Move startSearch(bool isTimed, int moveTimeMs = 0);
 		void endSearch();
 		int eval();
 		uint64_t perft(int depth);
@@ -51,7 +48,6 @@ namespace SandalBot {
 			void printIteration();
 			void print(Searcher* searcher);
 		};
-		const Move nullMove{}; // 'Null' move, represents uninitialised move to compare to
 
 		SearchStatistics stats{}; // Statistics of most recent search
 
@@ -61,7 +57,7 @@ namespace SandalBot {
 		std::mutex searchMutex; // Used to lock searchStop
 		std::condition_variable searchStop; // Conditional variable waits to synchronise class during search
 
-		static constexpr int searchWaitPeriod{ 100 }; // Sleep time for sleeping thread
+		static constexpr std::chrono::milliseconds searchWaitPeriod{ 100 }; // Sleep time for sleeping thread
 		static constexpr int maxDeepening{ 256 }; // Maximum iterative deepening depth
 		static constexpr int reduceExtensionCutoff{ 3 }; // Move array index where depth is reduced
 		static constexpr int maxExtensions{ 16 }; // Maximum number of extensions during search
@@ -73,7 +69,10 @@ namespace SandalBot {
 
 		TranspositionTable tTable{}; // Store previously evaluated positions
 
+		Killer killerMoves[32]; // Array of killer moves where index is depth of killer move
+
 		Move currentMove{};
+		Move bestMove{};
 
 		// Using min cannot be negated due to two complement range
 		static constexpr int defaultAlpha{ std::numeric_limits<int>::min() + 1 };
@@ -88,6 +87,8 @@ namespace SandalBot {
 		void generateBestLine(Move bestMove);
 		void enactBestLine(Move move, int depth);
 		bool isPositionIllegal();
+
+		void addKiller(int depth, Move move);
 	};
 
 }

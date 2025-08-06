@@ -8,6 +8,8 @@ namespace SandalBot {
 	using Bitboard = uint64_t;
 	using HashKey = uint64_t;
 
+	constexpr int maxMoves{ 256 };
+
 	enum Color: int {
 		BLACK, // 0
 		WHITE, // 1
@@ -127,6 +129,7 @@ namespace SandalBot {
 	#undef ENABLE_INCR_OPERATORS_ON
 	#undef ENABLE_BASE_OPERATORS_ON
 
+	constexpr Direction operator+(Direction dir1, Direction dir2) { return Direction(int(dir1) + int(dir2)); }
 	constexpr Square operator+(Square sq, Direction dir) { return Square(int(sq) + int(dir)); }
 	constexpr Square operator-(Square s, Direction d) { return Square(int(s) - int(d)); }
 	inline Square& operator+=(Square& s, Direction d) { return s = s + d; }

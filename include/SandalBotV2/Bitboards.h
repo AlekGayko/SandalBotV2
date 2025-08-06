@@ -15,6 +15,7 @@
 	#include <x86intrin.h>
 #elif defined(_MSC_VER) 
 	#include <intrin.h>
+	#include <nmmintrin.h>
 #endif
 
 // BitBoardUtility provides utility functions for bitboards
@@ -59,7 +60,7 @@ namespace SandalBot {
 	// Returns a bitmask of bounding box between two squares
 	Bitboard boxMask(Square sq1, Square sq2);
 
-	inline Bitboard getBit(Bitboard bitboard, int index) {
+	constexpr Bitboard getBit(Bitboard bitboard, int index) {
 		return bitboard & (1ULL << index);
 	}
 	// Prints the individual bits of the bitboard
@@ -87,6 +88,18 @@ namespace SandalBot {
 
 	inline Square LSB(Bitboard bitBoard) {
 		return static_cast<Square>(_tzcnt_u64(bitBoard));
+	}
+
+	inline int numSetBits(Bitboard bitboard) {
+		#if defined(__GNUC__)
+			return __builtin_popcountll(bitboard);
+		#elif defined(_MSC_VER) 
+			return _mm_popcnt_u64(bitboard);
+		#endif
+	}
+
+	constexpr bool moreThanOne(Bitboard bitboard) {
+		return bitboard & (bitboard - 1);
 	}
 
 	enum DistIndex : int {
@@ -138,23 +151,21 @@ namespace SandalBot {
 
 	inline Bitboard getForwardMask(const Square square) { return forwardDiagonalMasks[toRow(square) + toCol(square)]; }
 	inline Bitboard getBackwardMask(const Square square) { return backwardDiagonalMasks[7 + toRow(square) - toCol(square)]; }
-	inline Bitboard getRowMask(const Square square) { return rowMask << (toRow(square) * 8); }
-	inline Bitboard getColMask(const Square square) { return columnMask << toCol(square); }
+	constexpr Bitboard getRowMask(const Square square) { return rowMask << (toRow(square) * 8); }
+	constexpr Bitboard getRowMask(const Row row) { return rowMask << (row * 8); }
+	constexpr Bitboard getColMask(const Square square) { return columnMask << toCol(square); }
+	constexpr Bitboard getColMask(const Column col) { return columnMask << col; }
 	inline Bitboard getBlockerOrthogonalMask(const Square square) { return blockerOrthogonalMasks[square]; }
 	inline Bitboard getBlockerDiagonalMask(const Square square) { return blockerDiagonalMasks[square]; }
 	inline Bitboard getOrthMovementBoard(const Square square, const Bitboard blockerBoard) { return BitMagics::getOrthogonalMovement(square, blockerBoard); }
 	inline Bitboard getDiagMovementBoard(const Square square, const Bitboard blockerBoard) { return BitMagics::getDiagonalMovement(square, blockerBoard); }
 
-	template <Color Us>
-	inline Bitboard getPawnAttackMoves(const Square square) { return pawnAttackMoves[Us][square]; }
-	template <Color Us>
-	inline Bitboard getPassedPawnMask(const Square square) { return passedPawnMasks[Us][square]; }
+	inline Bitboard getPawnAttackMoves(const Square square, Color us) { return pawnAttackMoves[us][square]; }
+	inline Bitboard getPassedPawnMask(const Square square, Color us) { return passedPawnMasks[us][square]; }
 	inline Bitboard getPawnIslandMask(const int column) { return pawnIslandMasks[column]; }
-	template <Color Us>
-	inline Bitboard getShieldMask(const Square square) { return pawnShieldMask[Us][square]; }
+	inline Bitboard getShieldMask(const Square square, Color us) { return pawnShieldMask[us][square]; }
 	inline uint8_t getDistance(const Square square1, const Square square2) { return distances[square1][square2]; }
-	template <Color Us>
-	inline Bitboard getKingAttackSquare(const Square square) { return kingAttackZone[Us][square]; }
+	inline Bitboard getKingAttackSquare(const Square square, Color us) { return kingAttackZone[us][square]; }
 	inline Bitboard getUnbiasKingAttackZone(const Square square) { return kingUnbiasAttackZone[square]; }
 
 	template <PieceType Type>
@@ -178,6 +189,62 @@ namespace SandalBot {
 	template <>
 	inline Bitboard getMovementBoard<QUEEN>(Square sq, Bitboard allPieces) {
 		return getMovementBoard<ROOK>(sq, allPieces) | getMovementBoard<BISHOP>(sq, allPieces);
+	}
+
+	inline Bitboard getAttackBoard(Square sq, PieceType type, Color c, Bitboard allPieces) {
+		switch (type) {
+		case ROOK:
+			return getMovementBoard<ROOK>(sq, allPieces);
+		case BISHOP:
+			return getMovementBoard<BISHOP>(sq, allPieces);
+		case QUEEN:
+			return getMovementBoard<QUEEN>(sq, allPieces);
+		case PAWN:
+			return getPawnAttackMoves(sq, c);
+		default:
+			return movementBoards[type][sq];
+		}
+	}
+
+	constexpr Bitboard getAttackBoard(Square sq, Color us, PieceType type, Bitboard blockers) {
+		switch (type) {
+		case PAWN:
+			return getPawnAttackMoves(sq, us);
+		case BISHOP:
+			return getMovementBoard<BISHOP>(sq, blockers);
+		case ROOK:
+			return getMovementBoard<ROOK>(sq, blockers);
+		case QUEEN:
+			return getMovementBoard<QUEEN>(sq, blockers);
+		default:
+			return movementBoards[type][sq];
+		}
+	}
+
+	template <Direction dir>
+	constexpr Bitboard shift(Bitboard bitboard) {
+		if constexpr (dir == NORTH) {
+			return bitboard >> 8;
+		} else if constexpr (dir == SOUTH) {
+			return bitboard << 8;
+		} else if constexpr (dir == NORTH + NORTH) {
+			return bitboard >> 16;
+		} else if constexpr (dir == SOUTH + SOUTH) {
+			return bitboard << 16;
+		} else if constexpr (dir == WEST) {
+			return (bitboard & ~getColMask(COL_A)) >> 1;
+		} else if constexpr (dir == EAST) {
+			return (bitboard & ~getColMask(COL_H)) >> 1;
+		} else if constexpr (dir == NORTH_WEST) {
+			return (bitboard & ~getColMask(COL_A)) >> 9;
+		} else if constexpr (dir == NORTH_EAST) {
+			return (bitboard & ~getColMask(COL_H)) >> 7;
+		} else if constexpr (dir == SOUTH_WEST) {
+			return (bitboard & ~getColMask(COL_A)) << 7;
+		} else if constexpr (dir == SOUTH_EAST) {
+			return (bitboard & ~getColMask(COL_H)) << 9;
+		}
+		return bitboard;
 	}
 
 	void initBitboards();

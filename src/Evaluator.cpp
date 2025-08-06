@@ -2,10 +2,81 @@
 
 #include "Bitboards.h"
 
+#include <array>
 #include <cassert>
 #include <iostream>
 
 namespace SandalBot {
+
+	constexpr float endgameRequiredPieces{ 7.f }; // Number of pieces which define start of endgame phase
+	constexpr int startRow[COLOR_NB]{ 0, 7 }; // Start rows of [black, white]
+	// Center manhattan-distance from https://www.chessprogramming.org/Center_Manhattan-Distance
+	constexpr int arrCenterManhattanDistance[SQUARES_NB]{
+		6, 5, 4, 3, 3, 4, 5, 6,
+		5, 4, 3, 2, 2, 3, 4, 5,
+		4, 3, 2, 1, 1, 2, 3, 4,
+		3, 2, 1, 0, 0, 1, 2, 3,
+		3, 2, 1, 0, 0, 1, 2, 3,
+		4, 3, 2, 1, 1, 2, 3, 4,
+		5, 4, 3, 2, 2, 3, 4, 5,
+		6, 5, 4, 3, 3, 4, 5, 6
+	};
+	// Attack unit table for king safety from Stockfish
+	constexpr int kingZoneSafety[100]{
+			0,   0,   1,   2,   3,   5,   7,   9,  12,  15,
+		   18,  22,  26,  30,  35,  39,  44,  50,  56,  62,
+		   68,  75,  82,  85,  89,  97, 105, 113, 122, 131,
+		  140, 150, 169, 180, 191, 202, 213, 225, 237, 248,
+		  260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
+		  377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
+		  494, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+		  500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+		  500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+		  500, 500, 500, 500, 500, 500, 500, 500, 500, 500
+	};
+
+
+	constexpr std::array<int, PIECE_TYPE_NB> mobilityBonus = [] {
+		std::array<int, PIECE_TYPE_NB> arr{};
+		arr[KNIGHT] = 4;
+		arr[BISHOP] = 9;
+		arr[ROOK] = 8;
+		arr[QUEEN] = 11;
+		return arr;
+	}();
+
+	// Weightings of evaluation criteria
+	constexpr int passedPawnBonus[7]{ 0, 90, 60, 40, 25, 15, 15 };
+	constexpr std::array<float, PIECE_TYPE_NB> tropismWeightings = []{
+		std::array<float, PIECE_TYPE_NB> arr{};
+		arr[PAWN] = 0.2f;
+		arr[KNIGHT] = 0.5f;
+		arr[BISHOP] = 0.5f;
+		arr[ROOK] = 1.0f;
+		arr[QUEEN] = 2.0f;
+		arr[KING] = 0.f;
+		return arr;
+	}();
+	constexpr std::array<float, PIECE_TYPE_NB> attackUnitScores = [] {
+		std::array<float, PIECE_TYPE_NB> arr{};
+		arr[PAWN] = 0.5f;
+		arr[KNIGHT] = 2.f;
+		arr[BISHOP] = 2.f;
+		arr[ROOK] = 3.f;
+		arr[QUEEN] = 5.f;
+		arr[KING] = 0.f;
+		return arr;
+	}();
+	constexpr int pawnIslandPenalty{ 30 };
+	constexpr int pawnShieldColumnPenalty{ 30 };
+	constexpr int pawnShieldUndefendedPenalty{ 30 };
+	constexpr float kingSafetyCoefficient{ 0.04f };
+
+	constexpr int openFileBonus{ 20 };
+	constexpr int openFileNearKingBonus{ 40 };
+
+	constexpr int openDiagBonus{ 20 };
+	constexpr int openDiagNearKingBonus{ 40 };
 
 	// Returns true if insufficient material, false otherwise
 	bool Evaluator::insufficientMaterial() {
@@ -100,6 +171,7 @@ namespace SandalBot {
 		evaluation += staticPieceEvaluation<Us>();
 		evaluation += pawnIslandEvaluation<Us>();
 		evaluation += passedPawnEvaluation<Us>();
+		evaluation += mobilityEvaluation<Us>();
 		evaluation += kingSafety<Us>();
 
 		return evaluation;
@@ -162,7 +234,7 @@ namespace SandalBot {
 		}
 
 		Square kSq = board->kingSquares[Us];
-		Bitboard shieldMask = getShieldMask<Us>(kSq);
+		Bitboard shieldMask = getShieldMask(kSq, Us);
 		Bitboard pawns = board->typesBB[PAWN] & board->colorsBB[Us] & shieldMask;
 
 		int evaluation{ 0 };
@@ -199,8 +271,8 @@ namespace SandalBot {
 		// Undefended pawns have penalty (undefended by king and/or other pawns)
 		while (pawns != 0ULL) {
 			Square to = popLSB(pawns);
-			Bitboard attackMask = getPawnAttackMoves<WHITE>(to);
-			attackMask |= getPawnAttackMoves<BLACK>(to);
+			Bitboard attackMask = getPawnAttackMoves(to, WHITE);
+			attackMask |= getPawnAttackMoves(to, BLACK);
 
 			Bitboard pawnDefenders = pawns & attackMask;
 
@@ -224,7 +296,7 @@ namespace SandalBot {
 
 		while (usPawns != 0ULL) {
 			Square sq = popLSB(usPawns);
-			Bitboard passedMask = getPassedPawnMask<Us>(sq);
+			Bitboard passedMask = getPassedPawnMask(sq, Us);
 
 			// If no pawns in front of pawn's promotion path
 			if ((passedMask & opposingPawns) == 0ULL) {
@@ -331,6 +403,34 @@ namespace SandalBot {
 		return evaluation;
 	}
 
+	template <Color Us>
+	int Evaluator::mobilityEvaluation() {
+		int evaluation = 0;
+
+		evaluation += pieceMobility<Us, QUEEN>();
+		evaluation += pieceMobility<Us, BISHOP>();
+		evaluation += pieceMobility<Us, ROOK>();
+		evaluation += pieceMobility<Us, KNIGHT>();
+
+		return evaluation;
+	}
+
+	template <Color Us, PieceType Type>
+	int Evaluator::pieceMobility() {
+		int evaluation = 0;
+		Bitboard pieces = board->typesBB[Type] & board->colorsBB[Us];
+		while (pieces != 0ULL) {
+			Square sq = popLSB(pieces);
+
+			Bitboard movement = getMovementBoard<Type>(sq, board->typesBB[ALL_PIECES]);
+			movement &= ~board->colorsBB[Us];
+			int numMoves = numSetBits(movement);
+			evaluation += mobilityBonus[Type] * numMoves;
+		}
+
+		return evaluation;
+	}
+
 	// Return evaluation for open files
 	int Evaluator::openFilesEvaluation() {
 		// Endgame is less likely to require open files
@@ -354,19 +454,13 @@ namespace SandalBot {
 				continue;
 
 			Bitboard filePawns = board->typesBB[PAWN] & colMask;
-			int pawnCounter = 0;
+			int pawnCounter = numSetBits(filePawns);
 
-			while (filePawns != 0ULL) {
-				popLSB(filePawns);
-				pawnCounter++;
-				if (pawnCounter > 1) {
-					break;
-				}
-			}
 			if (pawnCounter > 1) {
 				orthogonalPieces &= ~colMask;
 				continue;
 			}
+
 			evaluation += evaluateOpenFile(colMask, pawnCounter);
 
 			orthogonalPieces &= ~colMask;
@@ -448,15 +542,8 @@ namespace SandalBot {
 
 			Bitboard forwardPawns = board->typesBB[PAWN] & forwardDiagMask;
 
-			int pawnCounter = 0;
+			int pawnCounter = numSetBits(forwardPawns);
 
-			while (forwardPawns != 0ULL) {
-				popLSB(forwardPawns);
-				pawnCounter++;
-				if (pawnCounter > 1) {
-					break;
-				}
-			}
 			if (pawnCounter > 1) {
 				continue;
 			}
@@ -468,15 +555,8 @@ namespace SandalBot {
 
 			Bitboard backwardPawns = board->typesBB[PAWN] & backwardDiagMask;
 
-			int pawnCounter = 0;
+			int pawnCounter = numSetBits(backwardPawns);
 
-			while (backwardPawns != 0ULL) {
-				popLSB(backwardPawns);
-				pawnCounter++;
-				if (pawnCounter > 1) {
-					break;
-				}
-			}
 			if (pawnCounter > 1) {
 				continue;
 			}

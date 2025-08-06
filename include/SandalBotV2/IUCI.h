@@ -4,7 +4,8 @@
 #include <array>
 #include <string>
 #include <string_view>
-#include <thread>
+#include <future>
+#include <optional>
 #include <vector>
 
 #include "Bot.h"
@@ -24,26 +25,11 @@ namespace SandalBot {
 		IUCI();
 		~IUCI();
 		void processCommand(std::string command);
-		void newGame();
-		void stop();
-		void quit();
-		void UCIok();
-		void eval();
-		void OnMoveChosen(std::string move);
-		void processGoCommand(std::string command);
-		void processPositionCommand(std::string command);
-		void processSetOption(std::string command);
-		void respond(std::string response);
-		template <typename T, std::size_t N>
-		int getLabelledValueInt(std::string text, std::string label, const std::array<T, N> allLabels);
-		template <typename T, std::size_t N>
-		std::string getLabelledValue(std::string text, std::string label, const std::array<T, N> allLabels);
-		void logInfo(std::string text);
 	private:
 		Bot* bot{ nullptr };
 		OptionHandler* optionHandler{ nullptr };
-		std::thread goThread{}; // Thread for asynchronous searching
-		// Label vectors contain key words for specific commands to aid parsing commands
+		std::future<std::optional<Move>> goFuture{}; // Thread for asynchronous searching
+		// Label arrays contain key words for specific commands to aid parsing commands
 		const std::array<std::string_view, 3> positionLabels { "position"sv, "fen"sv, "moves"sv };
 		const std::array<std::string_view, 8> goLabels { "go"sv, "movetime"sv, "wtime"sv, "btime"sv, "winc"sv, "binc"sv, "movestogo"sv, "perft"sv };
 		const std::array<std::string_view, 2> optionLabels { "name"sv, "value"sv };
@@ -55,6 +41,23 @@ namespace SandalBot {
 
 		void beginningMessage();
 		void emptyLogs();
+		bool isFutureRunning() { return goFuture.valid() && goFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready; }
+		void displayBestMove(std::optional<Move> move);
+
+		void newGame();
+		void stop();
+		void quit();
+		void UCIok();
+		void eval();
+		void processGoCommand(std::string command);
+		void processPositionCommand(std::string command);
+		void processSetOption(std::string command);
+		void respond(std::string response);
+		template <typename T, std::size_t N>
+		int getLabelledValueInt(std::string text, std::string label, const std::array<T, N> allLabels);
+		template <typename T, std::size_t N>
+		std::string getLabelledValue(std::string text, std::string label, const std::array<T, N> allLabels);
+		void logInfo(std::string text);
 	};
 
 }

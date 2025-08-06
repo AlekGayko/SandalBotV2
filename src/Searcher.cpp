@@ -17,8 +17,6 @@ namespace SandalBot {
 	// Constructor initialised with board
 	Searcher::Searcher(Board* board) : board(board) {
 		// Allocate member variables
-		this->moveGenerator = MoveGen(board);
-		this->orderer = MoveOrderer();
 		this->evaluator = Evaluator();
 		this->tTable = TranspositionTable();
 		this->bestLine = MoveLine(bestLineSize);
@@ -50,7 +48,7 @@ namespace SandalBot {
 			// If search is not cancelled, update stats
 			if (!cancelSearch.load()) {
 				bestLine.reset();
-				generateBestLine(std::move(currentMove));
+				generateBestLine(currentMove);
 				bestMove = currentMove;
 				temp = stats;
 				temp.bestMove = currentMove;
@@ -118,20 +116,16 @@ namespace SandalBot {
 			alpha = score;
 		}
 
-		// Initialise moves (218 is maximum number of moves)
-		MovePoint moves[218];
+		MoveGen moveGenerator = MoveGen(board, Move(), maxDepth);
+		Move move;
 
-		// Generate moves which only take pieces
-		int numMoves = moveGenerator.generate(moves, true);
-
-		// Order the moves
-		if (numMoves > 1) {
-			orderer.order(board, &moveGenerator, moves, bestMove, numMoves, 0, true);
-		}
-
-		for (int i = 0; i < numMoves; i++) {
+		while (!(move = moveGenerator.getMove()).isNull()) {
+			bool givesCheck = board->givesCheck(move);
+			if (!board->legalMove(move)) {
+				continue;
+			}
 			// Make move
-			board->makeMove(moves[i].move);
+			board->makeMove(move, givesCheck);
 			// Recursively search
 			score = -quiescenceSearch(-beta, -alpha, maxDepth + 1);
 			// Undo move
@@ -177,7 +171,7 @@ namespace SandalBot {
 			}
 
 			alpha = max(alpha, -Evaluator::checkMateScore + depth);
-			beta = min(beta, Evaluator::checkMateScore - depth);
+			beta = min(beta, Evaluator::checkMateScore - depth - 1);
 
 			if (alpha >= beta) {
 				return alpha;
@@ -205,7 +199,6 @@ namespace SandalBot {
 			if (maxDepth > stats.seldepth) {
 				stats.seldepth = maxDepth;
 			}
-
 			return quiescenceSearch(alpha, beta, maxDepth);
 		}
 
@@ -213,41 +206,53 @@ namespace SandalBot {
 		int score = 0;
 		int evalBound = TranspositionTable::upperBound;
 		int bestDepth = maxDepth;
-		// Initialise array for moves (218 is maximum number of moves)
-		MovePoint moves[218];
-		// Generate moves and store them inside moves[]
-		int numMoves = moveGenerator.generate(moves);
-		bool isCheck = moveGenerator.isCheck;
-		bool worthExtension = false;
-		// Get best move (whether it be bestMove from iterative deepening or previous transpositions)
-		Move currentBestMove = depth == 0 ? std::move(this->bestMove) : tTable.getBestMove(board->state->zobristHash);
-		// Order moves to heuristically narrow search
-		orderer.order(board, &moveGenerator, moves, currentBestMove, numMoves, depth, false);
 
-		for (int i = 0; i < numMoves; ++i) {
-			// Make move
-			board->makeMove(moves[i].move);
-			bool fullSearch = true;
+		// Get best move (whether it be bestMove from iterative deepening or previous transpositions)
+		Move ttMove = depth == 0 ? std::move(this->bestMove) : tTable.getBestMove(board->state->zobristHash);
+		Move bestMove = ttMove;
+
+		MoveGen moveGenerator = MoveGen(board, killerMoves, ttMove, depth);
+
+		bool worthExtension = false;
+
+		Move move;
+		int moveNum = 0;
+
+		while (!(move = moveGenerator.getMove()).isNull()) {
+			bool givesCheck = board->givesCheck(move);
+
+			if (!board->legalMove(move)) {
+				moveNum++;
+				continue;
+			}
+
+			int newMaxDepth = move == ttMove ? maxDepth : maxDepth - 1;
 			int extension = 0;
-			worthExtension = worthSearching(moves[i].move, isCheck, numExtensions);
-			// Reduce depth for moves late in move order as they are unlikely to be good
+
+			// Make move
+			board->makeMove(move, givesCheck);
+			bool fullSearch = true;
 			
-			if (i >= 4 * reduceExtensionCutoff && (maxDepth - depth) >= 3 && !worthExtension) {
-				score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 2, numExtensions);
+			worthExtension = worthSearching(move, givesCheck, numExtensions);
+
+			// Reduce depth for moves late in move order as they are unlikely to be good
+			if (moveNum >= 4 * reduceExtensionCutoff && (newMaxDepth - depth) >= 3 && !worthExtension) {
+				score = -negaMax(-beta, -alpha, depth + 1, newMaxDepth - 2, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;
-			} else if (i >= reduceExtensionCutoff && (maxDepth - depth) >= 2 && !worthExtension) {
-				score = -negaMax(-beta, -alpha, depth + 1, maxDepth - 1, numExtensions);
+			} else if (moveNum >= reduceExtensionCutoff && (newMaxDepth - depth) >= 2 && !worthExtension) {
+				score = -negaMax(-beta, -alpha, depth + 1, newMaxDepth - 1, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;
 			}
 			// If move is worth searching more, increase maxdepth for move
 			if (worthExtension) {
 				extension = 1;
+				newMaxDepth += 1;
 			}
 			// If reduced depth move is good, search it fully
 			if (fullSearch) {
-				score = -negaMax(-beta, -alpha, depth + 1, maxDepth + extension, numExtensions + extension);
+				score = -negaMax(-beta, -alpha, depth + 1, newMaxDepth, numExtensions + extension);
 			}
 
 			// Undo move
@@ -260,36 +265,37 @@ namespace SandalBot {
 			if (score > alpha) {
 				alpha = score;
 				evalBound = TranspositionTable::exact;
-				currentBestMove = moves[i].move;
+				bestMove = move;
 				greaterAlpha = true;
 				bestDepth = maxDepth + extension;
 				if (depth == 0 && !cancelSearch) {
-					currentMove = moves[i].move;
+					currentMove = move;
 				}
 			}
 
 			if (alpha >= beta) {
 				// Store position
-				tTable.store(beta, maxDepth + extension - depth, depth, TranspositionTable::lowerBound, moves[i].move, board->state->zobristHash);
+				tTable.store(beta, maxDepth + extension - depth, depth, TranspositionTable::lowerBound, move, board->state->zobristHash);
 				// Update killer moves
-				orderer.addKiller(depth, moves[i].move);
+				addKiller(depth, move);
 				return beta;
 			}
+			moveNum++;
 		}
 
 		// If no moves, either checkmate or stalemate
-		if (numMoves == 0) {
+		if (moveNum == 0) {
 			int eval = Evaluator::drawScore;
-			if (moveGenerator.isCheck) {
+			if (board->checkBB() != 0ULL) {
 				eval = -(Evaluator::checkMateScore - depth);
 			}
 			// Store move
-			tTable.store(eval, maxDepth - depth, depth, TranspositionTable::exact, nullMove, board->state->zobristHash);
+			tTable.store(eval, maxDepth - depth, depth, TranspositionTable::exact, Move(), board->state->zobristHash);
 			return eval;
 		}
 
 		// Store move
-		tTable.store(alpha, greaterAlpha ? bestDepth - depth : maxDepth - depth, depth, evalBound, greaterAlpha ? currentBestMove : nullMove, board->state->zobristHash);
+		tTable.store(alpha, greaterAlpha ? bestDepth - depth : maxDepth - depth, depth, evalBound, greaterAlpha ? bestMove : Move(), board->state->zobristHash);
 
 		return alpha;
 	}
@@ -303,20 +309,24 @@ namespace SandalBot {
 		// Generate moves
 		uint64_t movesGenerated = 0ULL;
 
-		MovePoint moves[218];
+		MoveGen moveGenerator = MoveGen(board);
+		Move move;
 
-		int numMoves = moveGenerator.generate(moves);
-		for (int i = 0; i < numMoves; ++i) {
+		while (!(move = moveGenerator.getMove()).isNull()) {
+			bool givesCheck = board->givesCheck(move);
+			if (!board->legalMove(move)) {
+				continue;
+			}
 			uint64_t numMoves{ 0ULL }; // Tracks number of nodes found in perft
 			// Simulate move
-			board->makeMove(moves[i].move);
+			board->makeMove(move, givesCheck);
 			numMoves += moveSearch(depth + 1, maxDepth);
 			board->unMakeMove();
 
 			// If at depth 0, print number of moves from branch, useful for debugging
 			if (depth == 0) {
 				std::string_view promotionpiece = "";
-				switch (moves[i].move.flag()) {
+				switch (move.flag()) {
 				case Move::Flag::QUEEN:
 					promotionpiece = "q"sv;
 					break;
@@ -330,9 +340,7 @@ namespace SandalBot {
 					promotionpiece = "n"sv;
 					break;
 				}
-				cout << CoordHelper::indexToString(moves[i].move.from()) 
-				<< CoordHelper::indexToString(moves[i].move.to()) 
-				<< promotionpiece << ": " << numMoves << endl;
+				cout << move.uciStr() << ": " << numMoves << endl;
 			}
 			movesGenerated += numMoves;
 		}
@@ -347,7 +355,7 @@ namespace SandalBot {
 
 		// While search is ongoing, sleep until search completed or current time is exceeded stop time
 		while (!searchCompleted.load()) {
-			this_thread::sleep_for(chrono::milliseconds(searchWaitPeriod));
+			this_thread::sleep_for(searchWaitPeriod);
 			auto now = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
 			if (now > stopTime) {
 				break;
@@ -360,7 +368,7 @@ namespace SandalBot {
 	}
 
 	// Starts the search on separate thread until time limit up
-	void Searcher::startSearch(bool isTimed, int moveTimeMs) {
+	Move Searcher::startSearch(bool isTimed, int moveTimeMs) {
 		cancelSearch.store(false);
 		searchCompleted.store(false);
 		unique_lock<mutex> lock{ searchMutex }; // Lock for searchStop
@@ -380,6 +388,8 @@ namespace SandalBot {
 		}
 
 		searchThread.join();
+
+		return bestMove;
 	}
 
 	// Cancels search
@@ -390,8 +400,8 @@ namespace SandalBot {
 	}
 
 	// Determines whether move is worth extending search for
-	bool Searcher::worthSearching(Move move, const bool isCheck, const int numExtensions) {
-		return (move.isPromotion() || isCheck) && numExtensions < maxExtensions;
+	bool Searcher::worthSearching(Move move, const bool checkGiven, const int numExtensions) {
+		return (move.isPromotion() || checkGiven) && numExtensions < maxExtensions;
 	}
 
 	// Generates best line
@@ -430,14 +440,12 @@ namespace SandalBot {
 			return true;
 		}
 
-		// If piece can take a king, its an illegal position
-		MovePoint moves[218];
-
-		int numMoves = moveGenerator.generate(moves); // Generate all legal moves
+		MoveGen moveGenerator = MoveGen(board);
+		Move move;
 
 		// If any move attack king, it is illegal
-		for (int i = 0; i < numMoves; i++) {
-			if (typeOf(board->squares[moves[i].move.to()]) == KING) {
+		while (!(move = moveGenerator.getMove()).isNull()) {
+			if (typeOf(board->squares[move.to()]) == KING) {
 				return true;
 			}
 		}
@@ -495,6 +503,13 @@ namespace SandalBot {
 		}
 
 		cout << endl;
+	}
+
+	// Add move to killer moves
+	void Searcher::addKiller(int depth, Move move) {
+		if (depth >= 32)
+			return;
+		killerMoves[depth].add(move);
 	}
 
 }
