@@ -20,6 +20,11 @@ namespace SandalBot {
 		this->evaluator = Evaluator();
 		this->tTable = TranspositionTable();
 		this->bestLine = MoveLine(bestLineSize);
+
+		for (int i = 0; i < stack.size(); ++i) {
+			SearchStack& ss = stack[i];
+			ss.ply = i;
+		}
 	}
 
 	// Performs iterative deepening, iteratively searches deeper and deeper for more intelligent
@@ -41,7 +46,9 @@ namespace SandalBot {
 			// Peform negamax search of position and time it
 			auto start = chrono::high_resolution_clock::now();
 			stats = SearchStatistics();
-			int eval = negaMax(defaultAlpha, defaultBeta, 0, depth, 0);
+
+			int eval = negaMax(&stack[0], defaultAlpha, defaultBeta, depth, 0);
+
 			auto end = chrono::high_resolution_clock::now();
 			chrono::duration<uint64_t, nano> duration = end - start;
 
@@ -63,7 +70,7 @@ namespace SandalBot {
 				break;
 			} 
 			// If checkmate has been found, stop search early
-			else if (Evaluator::isMateScore(eval)) {
+			else if (isMateScore(eval)) {
 				searchCompleted.store(true);
 				searchStop.notify_all();
 				break;
@@ -82,136 +89,163 @@ namespace SandalBot {
 	// Quienscence search searches position by only considering moves which capture,
 	// reduces horizon effect by preventing incredibly inaccurate evaluations from capture
 	// sequences
-	int Searcher::quiescenceSearch(int alpha, int beta, int maxDepth) {
+	int Searcher::quiescenceSearch(SearchStack* const ss, int alpha, int beta, int depth) {
 		stats.qNodes++; // Update stats
 		if (cancelSearch) {
-			return Evaluator::cancelledScore;
+			return SCORE_NULL;
 		}
 
 		// Check for threefold repetition
 		if (board->history.contains(board->state->zobristHash)) {
-			return Evaluator::drawScore;
-		} 
+			return SCORE_DRAW;
+		}
 		// Check for draw by insufficient material
 		else if (evaluator.insufficientMaterial()) {
-			return Evaluator::drawScore;
+			return SCORE_DRAW;
 		}
 
 		// If position has been previously stored, use its evaluation
-		int tTableEval = tTable.lookup(0, maxDepth, alpha, beta, board->state->zobristHash);
-		if (tTableEval != TranspositionTable::notFound) {
-			return tTableEval;
+		Entry* ttEntry = tTable.getEntry(board->state->zobristHash, ss->ttHit);
+		Move ttMove = ss->ttHit ? ttEntry->move : Move();
+		int ttEval = TranspositionTable::ttToEval(ttEntry->eval, ss->ply);
+
+		if (ss->ttHit 
+			&& (ttEntry->bound == EXACT 
+			|| (ttEntry->bound == UPPER_BOUND && ttEval <= alpha)
+			|| (ttEntry->bound == LOWER_BOUND && ttEval >= beta))) {
+			return ttEval;
 		}
 
-		int score{ 0 };
+		int bestScore{ 0 };
+		Move bestMove = Move();
+
 		// Evaluate board
-		score = evaluator.Evaluate(board);
+		bestScore = evaluator.Evaluate(board);
 
 		// If evaluation is too good, cut search
-		if (score >= beta) {
+		if (bestScore >= beta) {
 			return beta;
 		}
 
-		if (score > alpha) {
-			alpha = score;
+		if (bestScore > alpha) {
+			alpha = bestScore;
 		}
 
-		MoveGen moveGenerator = MoveGen(board, Move(), maxDepth);
+		MoveGen moveGenerator = MoveGen(board, Move(), depth);
 		Move move;
 
 		while (!(move = moveGenerator.getMove()).isNull()) {
-			bool givesCheck = board->givesCheck(move);
 			if (!board->legalMove(move)) {
 				continue;
 			}
+
+			bool givesCheck = board->givesCheck(move);
+
 			// Make move
 			board->makeMove(move, givesCheck);
 			// Recursively search
-			score = -quiescenceSearch(-beta, -alpha, maxDepth + 1);
+			int score = -quiescenceSearch(ss + 1, -beta, -alpha, depth - 1);
 			// Undo move
 			board->unMakeMove();
 
 			// If search cancelled, dont store move and return
 			if (cancelSearch)
-				return Evaluator::cancelledScore;
+				return SCORE_NULL;
 
-			// If move is too good, return premateruely
-			if (score >= beta) {
-				return beta;
+			if (score > bestScore) {
+				bestScore = score;
+				bestMove = move;
+				// Update best bestScore
+				if (bestScore > alpha) {
+					alpha = bestScore;
+				}
 			}
-			// Update best score
-			if (score > alpha) {
-				alpha = score;
+			// If move is too good, return premateruely
+			if (bestScore >= beta) {
+				bestScore = beta;
+				break;
 			}
 
 		}
 
-		return alpha;
+		// Store move
+		tTable.store(bestScore, depth, ss->ply, bestScore >= beta ? LOWER_BOUND : !bestMove.isNull() ? EXACT : UPPER_BOUND, bestMove, board->state->zobristHash);
+
+		return bestScore;
 	}
 
 	// Negamax recursively searches future positions using alpha-beta pruning and
 	// several heuristics to reduce search space
-	int Searcher::negaMax(int alpha, int beta, int depth, int maxDepth, int numExtensions) {
+	int Searcher::negaMax(SearchStack* const ss, int alpha, int beta, int depth, int numExtensions) {
 		stats.nNodes++;
 		if (cancelSearch) {
-			return Evaluator::cancelledScore;
+			return SCORE_NULL;
 		}
 
 		if (depth > 0) {
 			// Check for threefold repetition
 			// If depth == 0 is included, it will provide move a8a8 since bot uses two fold repetition
 			if (board->history.contains(board->state->zobristHash)) {
-				return Evaluator::drawScore;
+				return SCORE_DRAW;
 			}
 			// Check for fifty move rule
 			else if (board->state->fiftyMoveCounter >= 100) {
-				return Evaluator::drawScore;
+				return SCORE_DRAW;
 			} else if (evaluator.insufficientMaterial()) {
-				return Evaluator::drawScore;
+				return SCORE_DRAW;
 			}
 
-			alpha = max(alpha, -Evaluator::checkMateScore + depth);
-			beta = min(beta, Evaluator::checkMateScore - depth - 1);
+			alpha = max(alpha, -checkmateScore(ss->ply));
+			beta = min(beta, checkmateScore(ss->ply - 1));
 
 			if (alpha >= beta) {
 				return alpha;
 			}
 		}
 
-		// Lookup position to see if it has been searched and stored in hashtable before
-		int tTableEval = tTable.lookup(maxDepth - depth, depth, alpha, beta, board->state->zobristHash);
+		Entry* ttEntry = tTable.getEntry(board->state->zobristHash, ss->ttHit);
+		Move ttMove = ss->ttHit ? ttEntry->move : Move();
+		int ttEval = TranspositionTable::ttToEval(ttEntry->eval, ss->ply);
+
 		// If position found in transposition hash table, use previous evaluation
-		if (tTableEval != TranspositionTable::notFound) {
-			int tTableDepth = tTable.getDepth(board->state->zobristHash);
+		if (ss->ttHit && (ttEntry->depth >= depth || isMateScore(ttEntry->eval)) 
+			&& (ttEntry->bound == EXACT || (ttEntry->bound == UPPER_BOUND && ttEval <= alpha) 
+				|| (ttEntry->bound == LOWER_BOUND && ttEval >= beta))) {
+			int tTableDepth = ttEntry->depth;
 			if (tTableDepth > stats.seldepth && tTableDepth != -1) {
 				stats.seldepth = tTableDepth;
 			}
 
-			if (depth == 0) {
-				currentMove = tTable.getBestMove(board->state->zobristHash);
+			if (ss->ply == 0) {
+				currentMove = ttMove;
 			}
 
-			return tTableEval;
+			return ttEval;
 		}
-
+		
 		// If maximum depth is achieved, perform quiescence search
-		if (depth >= maxDepth) {
-			if (maxDepth > stats.seldepth) {
-				stats.seldepth = maxDepth;
+		if (depth <= 0) {
+			if (ss->ply > stats.seldepth) {
+				stats.seldepth = ss->ply;
 			}
-			return quiescenceSearch(alpha, beta, maxDepth);
+			return quiescenceSearch(ss, alpha, beta, depth);
 		}
 
-		bool greaterAlpha = false;
+		//ss->staticEval = evaluator.Evaluate(board);
+
 		int score = 0;
-		int evalBound = TranspositionTable::upperBound;
-		int bestDepth = maxDepth;
+		int bestDepth = depth;
+		int bestScore = SCORE_NEGATIVE_INFINITY;
 
 		// Get best move (whether it be bestMove from iterative deepening or previous transpositions)
-		Move ttMove = depth == 0 ? std::move(this->bestMove) : tTable.getBestMove(board->state->zobristHash);
-		Move bestMove = ttMove;
+		Move bestMove = depth == 0 ? std::move(this->bestMove) : Move();
 
-		MoveGen moveGenerator = MoveGen(board, killerMoves, ttMove, depth);
+		// If position not in transposition table, reduce search depth
+		if (ttMove.isNull() && depth >= 8 && !board->checkBB()) {
+			--depth;
+		}
+
+		MoveGen moveGenerator = MoveGen(board, &ss->kMove, ttMove, depth);
 
 		bool worthExtension = false;
 
@@ -219,14 +253,14 @@ namespace SandalBot {
 		int moveNum = 0;
 
 		while (!(move = moveGenerator.getMove()).isNull()) {
-			bool givesCheck = board->givesCheck(move);
-
 			if (!board->legalMove(move)) {
 				moveNum++;
 				continue;
 			}
 
-			int newMaxDepth = move == ttMove ? maxDepth : maxDepth - 1;
+			bool givesCheck = board->givesCheck(move);
+
+			int newDepth = depth - 1;
 			int extension = 0;
 
 			// Make move
@@ -236,68 +270,69 @@ namespace SandalBot {
 			worthExtension = worthSearching(move, givesCheck, numExtensions);
 
 			// Reduce depth for moves late in move order as they are unlikely to be good
-			if (moveNum >= 4 * reduceExtensionCutoff && (newMaxDepth - depth) >= 3 && !worthExtension) {
-				score = -negaMax(-beta, -alpha, depth + 1, newMaxDepth - 2, numExtensions);
+			if (moveNum >= 4 * reduceExtensionCutoff && depth >= 3 && !worthExtension) {
+				score = -negaMax(ss + 1, -beta, -alpha, newDepth - 2, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;
-			} else if (moveNum >= reduceExtensionCutoff && (newMaxDepth - depth) >= 2 && !worthExtension) {
-				score = -negaMax(-beta, -alpha, depth + 1, newMaxDepth - 1, numExtensions);
+			} else if (moveNum >= reduceExtensionCutoff && depth >= 2 && !worthExtension) {
+				score = -negaMax(ss + 1, -beta, -alpha, newDepth - 1, numExtensions);
 				// If move is good do full search
 				fullSearch = score > alpha;
 			}
 			// If move is worth searching more, increase maxdepth for move
 			if (worthExtension) {
 				extension = 1;
-				newMaxDepth += 1;
 			}
 			// If reduced depth move is good, search it fully
 			if (fullSearch) {
-				score = -negaMax(-beta, -alpha, depth + 1, newMaxDepth, numExtensions + extension);
+				newDepth += extension;
+				score = -negaMax(ss + 1, -beta, -alpha, newDepth, numExtensions + extension);
 			}
 
 			// Undo move
 			board->unMakeMove();
 
+			moveNum++;
+
 			// If search is cancelled, prevent processing move
 			if (cancelSearch)
-				return Evaluator::cancelledScore;
+				return SCORE_NULL;
 
-			if (score > alpha) {
-				alpha = score;
-				evalBound = TranspositionTable::exact;
+			if (score > bestScore) {
+				bestScore = score;
+				bestDepth = newDepth;
 				bestMove = move;
-				greaterAlpha = true;
-				bestDepth = maxDepth + extension;
-				if (depth == 0 && !cancelSearch) {
-					currentMove = move;
+				if (score > alpha) {
+					alpha = score;
+					if (ss->ply == 0 && !cancelSearch) {
+						currentMove = move;
+					}
 				}
 			}
+			
 
 			if (alpha >= beta) {
 				// Store position
-				tTable.store(beta, maxDepth + extension - depth, depth, TranspositionTable::lowerBound, move, board->state->zobristHash);
+				bestScore = beta;
 				// Update killer moves
-				addKiller(depth, move);
-				return beta;
+				addKiller(ss, move);
+				break;
 			}
-			moveNum++;
 		}
 
 		// If no moves, either checkmate or stalemate
 		if (moveNum == 0) {
-			int eval = Evaluator::drawScore;
-			if (board->checkBB() != 0ULL) {
-				eval = -(Evaluator::checkMateScore - depth);
+			if (board->checkBB() == 0ULL) {
+				bestScore = SCORE_DRAW;
+			} else {
+				bestScore = -checkmateScore(ss->ply);
 			}
-			// Store move
-			tTable.store(eval, maxDepth - depth, depth, TranspositionTable::exact, Move(), board->state->zobristHash);
-			return eval;
 		}
 
 		// Store move
-		tTable.store(alpha, greaterAlpha ? bestDepth - depth : maxDepth - depth, depth, evalBound, greaterAlpha ? bestMove : Move(), board->state->zobristHash);
+		tTable.store(bestScore, bestDepth, ss->ply, bestScore >= beta ? LOWER_BOUND : !bestMove.isNull() ? EXACT : UPPER_BOUND, bestMove, board->state->zobristHash);
 
-		return alpha;
+		return bestScore;
 	}
 
 	// Movesearch purely searches using recursion. Used for perft command to test move generation
@@ -406,13 +441,12 @@ namespace SandalBot {
 
 	// Generates best line
 	void Searcher::generateBestLine(Move bestMove) {
-		int depth = 0;
-		enactBestLine(bestMove, depth); // Begin recursively generating
+		enactBestLine(bestMove); // Begin recursively generating
 	}
 
 	// Recursively searches the transposition table for best moves found (principal variation)
 	// of current position
-	void Searcher::enactBestLine(Move move, int depth) {
+	void Searcher::enactBestLine(Move move) {
 		if (move.moveValue == 0) {
 			return;
 		}
@@ -425,10 +459,14 @@ namespace SandalBot {
 		}
 		// Apply move to board
 		board->makeMove(move);
-		// Acquire next move from transposition table
-		Move nextMove = tTable.getBestMove(board->state->zobristHash);
 
-		enactBestLine(nextMove, depth + 1);
+		// Acquire next move from transposition table
+		bool ttHit;
+		Entry* ttEntry = tTable.getEntry(board->state->zobristHash, ttHit);
+
+		if (ttHit) {
+			enactBestLine(ttEntry->move);
+		}
 
 		board->unMakeMove(); // Rollback changes to board
 	}
@@ -475,7 +513,7 @@ namespace SandalBot {
 
 	// Formats evaluation to string, accounting for checkmate scores as well
 	std::string Searcher::SearchStatistics::prepareEval() {
-		int movesRemaining = Evaluator::movesTilMate(eval);
+		int movesRemaining = movesTilMate(eval);
 		string sign = eval >= 0 ? "" : "-";
 		// If checkmate
 		if (movesRemaining != 0)
@@ -494,7 +532,7 @@ namespace SandalBot {
 		cout << "info depth " << to_string(depth) << " seldepth " << to_string(seldepth);
 		cout << " score " << prepareEval() << " nodes " << to_string(nNodes + qNodes);
 		cout << " nps " << to_string(uint64_t(1000000000ULL * (nNodes + qNodes) / duration));
-		cout << " hashfull " << to_string((int)(1000 * (float)searcher->tTable.slotsFilled / (float)searcher->tTable.size));
+		cout << " hashfull " << to_string((int)(1000 * (float)searcher->tTable.getSlotsFilled() / (float)searcher->tTable.getSize()));
 		cout << " time " << to_string(duration / 1000000ULL);
 
 		// If principal variation exists, print it
@@ -506,10 +544,8 @@ namespace SandalBot {
 	}
 
 	// Add move to killer moves
-	void Searcher::addKiller(int depth, Move move) {
-		if (depth >= 32)
-			return;
-		killerMoves[depth].add(move);
+	void Searcher::addKiller(SearchStack* ss, Move move) {
+		ss->kMove.add(move);
 	}
 
 }

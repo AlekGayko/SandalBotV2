@@ -9,6 +9,7 @@
 #include "TranspositionTable.h"
 #include "Types.h"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -21,6 +22,12 @@ namespace SandalBot {
 	// the algorithmic design of the bot. Supports asynchronous searching, and synchronous
 	// searching.
 	class Searcher {
+		struct SearchStack {
+			int ply{ 0 };
+			int staticEval{ SCORE_NULL };
+			bool ttHit{ false };
+			Killer kMove;
+		};
 	public:
 		Evaluator evaluator{};
 
@@ -63,32 +70,32 @@ namespace SandalBot {
 		static constexpr int maxExtensions{ 16 }; // Maximum number of extensions during search
 		static constexpr int bestLineSize{ maxDeepening + maxExtensions + 1 };
 
+		// Using min cannot be negated due to two complement range
+		static constexpr int defaultAlpha{ SCORE_NEGATIVE_INFINITY };
+		static constexpr int defaultBeta{ SCORE_INFINITY };
+
+		std::array<SearchStack, maxDeepening + maxExtensions + 1> stack;
+
 		MoveLine bestLine{};
 
 		Board* board{ nullptr };
 
 		TranspositionTable tTable{}; // Store previously evaluated positions
 
-		Killer killerMoves[32]; // Array of killer moves where index is depth of killer move
-
 		Move currentMove{};
 		Move bestMove{};
 
-		// Using min cannot be negated due to two complement range
-		static constexpr int defaultAlpha{ std::numeric_limits<int>::min() + 1 };
-		static constexpr int defaultBeta{ std::numeric_limits<int>::max() };
-
 		void iterativeSearch();
-		int negaMax(int alpha, int beta, int depth, int maxDepth, int numExtensions);
+		int negaMax(SearchStack* const ss, int alpha, int beta, int depth, int numExtensions);
 		uint64_t moveSearch(int depth, int maxDepth);
-		int quiescenceSearch(int alpha, int beta, int maxDepth);
+		int quiescenceSearch(SearchStack* const ss, int alpha, int beta, int depth);
 		bool worthSearching(Move move, const bool isCheck, const int numExtensions);
 		void moveSleep(int moveTimeMs);
 		void generateBestLine(Move bestMove);
-		void enactBestLine(Move move, int depth);
+		void enactBestLine(Move move);
 		bool isPositionIllegal();
 
-		void addKiller(int depth, Move move);
+		void addKiller(SearchStack* ss, Move move);
 	};
 
 }

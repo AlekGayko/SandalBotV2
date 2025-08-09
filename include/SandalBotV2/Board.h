@@ -41,7 +41,9 @@ namespace SandalBot {
 		void loadPosition(std::string_view fen);
 
 		bool givesCheck(Move move) const;
+		bool pseudolegal(Move move) const;
 		bool legalMove(Move move) const;
+		bool isCapture(Move move) const { return squares[move.to()] != NO_PIECE || move.flag() == Move::Flag::EN_PASSANT; }
 
 		void makeMove(Move move);
 		void makeMove(Move move, bool checkGiven);

@@ -24,55 +24,14 @@ namespace SandalBot {
 		return *this;
 	}
 
-	// Get best move found from indexed hashkey
-	Move TranspositionTable::getBestMove(HashKey hashKey) {
-		if (table[getIndex(hashKey)].hash != hashKey)
-			return std::move(nullMove); // Return null move if no entry found
-
-		return std::move(table[getIndex(hashKey)].move);
-	}
-
-	// Return depth of entry from given hashkey
-	int TranspositionTable::getDepth(HashKey hashKey) {
-		// If entry doesn't exist, return invalid depth
-		if (table[getIndex(hashKey)].hash != hashKey)
-			return -1;
-
-		return table[getIndex(hashKey)].depth;
-	}
-
 	// Store position entry
-	void TranspositionTable::store(int eval, int16_t remainingDepth, int16_t currentDepth, uint8_t nodeType, Move move, HashKey hashKey) {
+	void TranspositionTable::store(int eval, int16_t depth, int16_t ply, NodeBound nodeType, Move move, HashKey hashKey) {
 		size_t index = getIndex(hashKey);
 		if (table[index].hash == 0ULL && slotsFilled < size) {
 			slotsFilled++; // Update slots filled
 		}
 		// Move entry into table
-		table[index] = Entry(hashKey, storeMateScore(eval, currentDepth), remainingDepth, nodeType, std::move(move));
-	}
-
-	// Retrieve evaluation, if entry has same hashkey, greater or equal depth, and valid node type
-	int TranspositionTable::lookup(int16_t remainingDepth, int16_t currentDepth, int alpha, int beta, HashKey hashKey) {
-		size_t index = getIndex(hashKey);
-		Entry& entry = table[index]; // Retrieve index
-
-
-		if (entry.hash == hashKey && (entry.depth >= remainingDepth || Evaluator::isMateScore(entry.eval))) {
-			// Convert mate score to caller's depth, avoids conflicting prioritisation of different
-			// checkmates
-			int eval = retrieveMateScore(entry.eval, currentDepth); 
-			if (entry.nodeType == exact) {
-				return eval;
-			}
-			if (entry.nodeType == upperBound && eval <= alpha) {
-				return eval;
-			}
-			if (entry.nodeType == lowerBound && eval >= beta) {
-				return eval;
-			}
-		}
-
-		return notFound;
+		table[index] = Entry(hashKey, evalToTT(eval, ply), depth, nodeType, std::move(move));
 	}
 
 	// Clear table
@@ -85,19 +44,17 @@ namespace SandalBot {
 	}
 
 	// Checkmate score needs to be recalibrated to currentDepth
-	int TranspositionTable::retrieveMateScore(int eval, int16_t currentDepth) {
-		if (Evaluator::isMateScore(eval)) {
-			int sign = eval >= 0 ? 1 : -1;
-			return eval - currentDepth * sign;
+	int TranspositionTable::ttToEval(int eval, int16_t ply) {
+		if (isMateScore(eval)) {
+			return eval + eval >= 0 ? -ply : ply;
 		}
 		return eval;
 	}
 
-	// Checkmate score needs to be adjusted relative to currentDepth
-	int TranspositionTable::storeMateScore(int eval, int16_t currentDepth) {
-		if (Evaluator::isMateScore(eval)) {
-			int sign = eval >= 0 ? 1 : -1;
-			return eval + currentDepth * sign;
+	// Checkmate score needs to be adjusted relative to ply
+	int TranspositionTable::evalToTT(int eval, int16_t ply) {
+		if (isMateScore(eval)) {
+			return eval + eval >= 0 ? ply : -ply;
 		}
 		return eval;
 	}

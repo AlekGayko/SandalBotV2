@@ -97,18 +97,7 @@ namespace SandalBot::PieceEvaluations {
         -50, -30, -30, -30, -30, -30, -30, -50
     };
     // Array of positional arrays, can be indexed by piece types
-    static constexpr const int16_t* const sqEvals[PIECE_TYPE_NB]{nullptr, pawnEval, knightEval, bishopEval, rookEval, queenEval, kingEval};
-
-    // Static piece values
-    static constexpr int16_t emptyVal = 0;
-    static constexpr int16_t pawnVal = 100;
-    static constexpr int16_t knightVal = 320;
-    static constexpr int16_t bishopVal = 330;
-    static constexpr int16_t rookVal = 500;
-    static constexpr int16_t queenVal = 900;
-    static constexpr int16_t kingVal = 0;
-    // Array of piece values
-    static constexpr int16_t pieceVals[PIECE_TYPE_NB] = { emptyVal, pawnVal, knightVal, bishopVal, rookVal, queenVal, kingVal };
+    static constexpr const int16_t* const sqEvals[PIECE_TYPE_NB] { nullptr, pawnEval, knightEval, bishopEval, rookEval, queenEval, kingEval };
 
 }
 

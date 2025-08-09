@@ -13,16 +13,10 @@ namespace SandalBot {
 	// king safety, and open files/diagonals
 	class Evaluator {
 	public:
-		static constexpr int checkMateScore{ 100000 };
-		static constexpr int drawScore{ 0 };
-		static constexpr int cancelledScore{ 0 };
-
 		Evaluator() {};
 
 		int Evaluate(Board* board);
 		bool insufficientMaterial();
-		static bool isMateScore(int score);
-		static int movesTilMate(int score);
 	private:
 		// Contains useful data which can be calculated on instantiation
 		Board* board{ nullptr };

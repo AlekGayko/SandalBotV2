@@ -109,7 +109,7 @@ namespace SandalBot {
 
 		// If sum of material on both sides less than or equal to bishop, insufficient material
 		// (Covers multiple cases)
-		if (whiteMaterial <= PieceEvaluations::bishopVal && blackMaterial <= PieceEvaluations::bishopVal) {
+		if (whiteMaterial <= SCORE_BISHOP && blackMaterial <= SCORE_BISHOP) {
 			return true;
 		}
 
@@ -119,11 +119,11 @@ namespace SandalBot {
 	// Returns true if count of material is insufficient to provide checkmate, false otherwise
 	bool Evaluator::insufficientMateMaterial(int material) {
 		// If bishop or less, insufficient
-		if (material <= PieceEvaluations::bishopVal) {
+		if (material <= SCORE_BISHOP) {
 			return true;
 		} 
 		// If two knights, checkmate cannot be forced (but technically possible), therefore insufficient
-		else if (material == 2 * PieceEvaluations::knightVal) {
+		else if (material == 2 * SCORE_KNIGHT) {
 			return true;
 		}
 
@@ -150,7 +150,7 @@ namespace SandalBot {
 
 		// If insufficient material its a draw
 		if (insufficientMaterial()) {
-			return drawScore;
+			return SCORE_DRAW;
 		}
 
 		evaluation += evaluateSide<WHITE>();
@@ -175,18 +175,6 @@ namespace SandalBot {
 		evaluation += kingSafety<Us>();
 
 		return evaluation;
-	}
-
-	// Returns true if score is a checkmate score
-	bool Evaluator::isMateScore(int score) {
-		return abs(score) >= checkMateScore / 2;
-	}
-
-	// Returns moves until checkmate from a given score
-	int Evaluator::movesTilMate(int score) {
-		if (!isMateScore(score))
-			return 0;
-		return std::max(1, ((checkMateScore - abs(score) - 1) / 2) + 1);
 	}
 
 	// Returns the evaluation regarding king safety
@@ -281,7 +269,7 @@ namespace SandalBot {
 			}
 		}
 
-		evaluation *= (board->sideValues[~Us] / PieceEvaluations::pawnVal);
+		evaluation *= (board->sideValues[~Us] / SCORE_PAWN);
 		evaluation *= (1.f - endGameWeight);
 
 		return evaluation;
@@ -663,7 +651,7 @@ namespace SandalBot {
 	// Calculates mopup evaluation
 	int Evaluator::kingDist(int currentEvaluation) {
 		// If not an endgame or evaluation is too tight, dont bother with mopup evaluation
-		if (endGameWeight == 0.f || abs(currentEvaluation) < 2 * PieceEvaluations::pieceVals[PAWN]) {
+		if (endGameWeight == 0.f || abs(currentEvaluation) < 2 * SCORE_PAWN) {
 			return 0;
 		}
 

@@ -20,7 +20,7 @@ namespace SandalBot {
 	};
 
 	enum Stage : int {
-		MAIN_TT, MAIN_CAPTURE_INIT, MAIN_CAPTURES, MAIN_QUIET_INIT, MAIN_QUIETS, MAIN_BAD_CAPTURES,
+		MAIN_TT, MAIN_CAPTURE_INIT, MAIN_CAPTURES, KILLERS, MAIN_QUIET_INIT, MAIN_QUIETS, MAIN_BAD_CAPTURES,
 		Q_TT, Q_CAPTURES_INIT, Q_CAPTURES, Q_CHECKS_INIT, Q_CHECKS, Q_BAD_CAPTURES,
 		EVASIONS_TT, EVASIONS_INIT, EVASION_MOVES,
 		VANILLA_INIT, VANILLA
@@ -41,16 +41,18 @@ namespace SandalBot {
 		~MoveGen() = default;
 
 		// Main Search
-		MoveGen(Board* board, Killer* killerMoves, Move ttMove, int depth) : board(board), ttMove(ttMove), depth(depth), killerMoves(killerMoves) {
+		MoveGen(Board* board, Killer* killerMoves, Move ttMove, int depth) : board(board), ttMove(ttMove), depth(depth) {
 			assert(board != nullptr);
 			assert(killerMoves != nullptr);
-			assert(depth >= 0);
+
+			this->killerMoves[0] = killerMoves[depth].moveA;
+			this->killerMoves[1] = killerMoves[depth].moveB;
+
 			stage = board->checkBB() ? EVASIONS_TT : MAIN_TT;
 		}
 		// Q Search
-		MoveGen(Board* board, Move ttMove, int depth) : board(board), ttMove(ttMove), depth(depth), killerMoves(nullptr) {
+		MoveGen(Board* board, Move ttMove, int depth) : board(board), ttMove(ttMove), depth(depth) {
 			assert(board != nullptr);
-			assert(depth >= 0);
 			stage = board->checkBB() ? EVASIONS_TT : Q_TT;
 		}
 
@@ -69,9 +71,10 @@ namespace SandalBot {
 	private:
 		Board* board = nullptr;
 		MovePoint moves[maxMoves];
-		Killer* killerMoves;
+		Move killerMoves[2];
+		Move* currKiller{ killerMoves }, *endKiller{ killerMoves + 2 };
 		Move ttMove;
-		MovePoint *curr{ moves }, *endMoves{ moves }, *badMoves{ moves };
+		MovePoint* curr{ moves }, * endMoves{ moves }, * badMoves{ moves };
 
 		int stage;
 		int depth;

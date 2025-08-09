@@ -69,7 +69,7 @@ namespace SandalBot {
 			}
 
 			if constexpr (Type == CAPTURES) {
-				it->value += PieceEvaluations::pieceVals[enemyPiece];
+				it->value += pieceScores[enemyPiece];
 			} else if constexpr (Type == QUIETS) {
 				it->value += (attackedAllies & (1ULL << from) ?
 					  (ownPiece == QUEEN && ((1ULL << to) & attackedByRook) == 0ULL ? queenSafeBonus : 
@@ -78,7 +78,7 @@ namespace SandalBot {
 					  0) : 0);
 			} else if constexpr (Type == EVASIONS) {
 				if (enemyPiece != NO_PIECE) {
-					it->value += PieceEvaluations::pieceVals[enemyPiece] - PieceEvaluations::pieceVals[ownPiece];
+					it->value += pieceScores[enemyPiece] - pieceScores[ownPiece];
 				}
 			}			
 
@@ -130,7 +130,7 @@ namespace SandalBot {
 			generateMoves<Us, QUEEN, checking>(target);
 		}
 
-		if (!checking || (board->kingBlockersBB(~Us) & kSq)) { // If not quiet checks, unless the king is blocking a discovered attack
+		if (!checking || (board->kingBlockersBB(~Us) & (1ULL << kSq))) { // If not quiet checks, unless the king is blocking a discovered attack
 			target = MoveType == EVASIONS ? ~board->sidePieces(Us) : target;
 			generateKingMoves<MoveType, Us, checking>(target);
 		}
@@ -165,8 +165,21 @@ namespace SandalBot {
 			stage++;
 			goto start;
 		case MAIN_CAPTURES:
+			if (!(move = selectMove()).isNull() && move != killerMoves[0] && move != killerMoves[1]) {
+				return move;
+			} else {
+				stage++;
+				goto start;
+			}
 		case Q_CAPTURES:
 			if (!(move = selectMove()).isNull()) {
+				return move;
+			} else {
+				stage++;
+				goto start;
+			}
+		case KILLERS:
+			if (endKiller > currKiller && !(move = *(currKiller++)).isNull() && !board->isCapture(move) && board->pseudolegal(move)) {
 				return move;
 			} else {
 				stage++;
@@ -189,7 +202,8 @@ namespace SandalBot {
 			stage++;
 			goto start;
 		case Q_CHECKS:
-			return selectMove();
+			move = selectMove();
+			return move;
 		case EVASIONS_INIT:
 			generate<EVASIONS>();
 			evaluateMoves<EVASIONS>();
@@ -259,7 +273,7 @@ namespace SandalBot {
 				doublePushes &= target;
 			} else if constexpr (Type == QUIET_CHECKS) {
 				Square kSq = board->kingSquares[~Us];
-				Bitboard discoverPawnsMask = board->kingBlockersBB(~Us) & getColMask(kSq);
+				Bitboard discoverPawnsMask = board->kingBlockersBB(~Us) & ~getColMask(kSq);
 				singlePushes &= shift<up>(discoverPawnsMask) | getPawnAttackMoves(kSq, ~Us);
 				doublePushes &= shift<up + up>(discoverPawnsMask) | getPawnAttackMoves(kSq, ~Us);
 			}
@@ -276,28 +290,36 @@ namespace SandalBot {
 		}
 
 		if (promotingPawns) {
-			Bitboard attackLeft = shift<upLeft>(promotingPawns) & them;
-			Bitboard attackRight = shift<upRight>(promotingPawns) & them;
-			Bitboard pushBB = shift<up>(promotingPawns) & emptySquares;
+			if constexpr (Type == CAPTURES) {
+				Bitboard attackLeft = shift<upLeft>(promotingPawns) & them;
+				Bitboard attackRight = shift<upRight>(promotingPawns) & them;
 
-			if constexpr (Type == EVASIONS) {
-				pushBB &= target;
-			}
+				while (attackLeft != 0ULL) {
+					Square to = popLSB(attackLeft);
+					promotionMoves(to - upLeft, to);
+				}
 
-			while (attackLeft != 0ULL) {
-				Square to = popLSB(attackLeft);
-				promotionMoves(to - upLeft, to);
-			}
+				while (attackRight != 0ULL) {
+					Square to = popLSB(attackRight);
+					promotionMoves(to - upRight, to);
+				}
+			} else {
+				Bitboard pushBB = shift<up>(promotingPawns) & emptySquares;
 
-			while (attackRight != 0ULL) {
-				Square to = popLSB(attackRight);
-				promotionMoves(to - upRight, to);
-			}
+				if constexpr (Type == EVASIONS) {
+					pushBB &= target;
+				} else if constexpr (Type == QUIET_CHECKS) {
+					Square kSq = board->kingSquares[~Us];
+					Bitboard discoverPawnsMask = board->kingBlockersBB(~Us) & ~getColMask(kSq);
+					pushBB &= shift<up>(discoverPawnsMask) | getPawnAttackMoves(kSq, ~Us);
+				}
 
-			while (pushBB != 0ULL) {
-				Square to = popLSB(pushBB);
-				promotionMoves(to - up, to);
+				while (pushBB != 0ULL) {
+					Square to = popLSB(pushBB);
+					promotionMoves(to - up, to);
+				}
 			}
+			
 		}
 
 		if constexpr (Type == CAPTURES || Type == EVASIONS || Type == ALL) {
@@ -350,7 +372,7 @@ namespace SandalBot {
 		// If quiet checking, limit movement to anywhere but line of sight to other king.
 		// If condition outside function demands kin must be blocking attack if checking.
 		if constexpr (QuietChecking) { 
-			moveBitboard &= getMovementBoard<QUEEN>(board->kingSquares[~Us], 0ULL);
+			moveBitboard &= getMovementBoard<QUEEN>(board->kingSquares[~Us], 0ULL) & ~getLineBB(board->kingSquares[~Us], from);
 		}
 
 		// Add all available moves

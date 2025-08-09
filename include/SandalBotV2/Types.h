@@ -1,7 +1,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <cmath>
 #include <cstdint>
+#include <limits>
 
 namespace SandalBot {
 
@@ -96,6 +98,23 @@ namespace SandalBot {
 
 	constexpr int pieceMask{ 0b0111 };
 	constexpr int colorMask{ 0b1000 };
+
+	enum Score : int {
+		SCORE_DRAW = 0,
+		SCORE_CHECKMATE = 100000,
+		SCORE_NULL = 0,
+
+		SCORE_INFINITY = std::numeric_limits<int>::max(),
+		SCORE_NEGATIVE_INFINITY = std::numeric_limits<int>::min() + 1,
+
+		SCORE_PAWN = 100,
+		SCORE_KNIGHT = 320,
+		SCORE_BISHOP = 330,
+		SCORE_ROOK = 500,
+		SCORE_QUEEN = 900
+	};
+
+	constexpr Score pieceScores[PIECE_TYPE_NB] { SCORE_NULL, SCORE_PAWN, SCORE_KNIGHT, SCORE_BISHOP, SCORE_ROOK, SCORE_QUEEN, SCORE_NULL };
 
 	// Use operator overload macros from StockFish
 	#define ENABLE_BASE_OPERATORS_ON(T)                                \
@@ -249,6 +268,23 @@ namespace SandalBot {
 	constexpr bool canLongCastle(Color c, CastlingRights cr) {
 		return bool(c == WHITE ? cr & W_OOO : cr & B_OOO);
 	}
+
+	constexpr int checkmateScore(int depth) {
+		return SCORE_CHECKMATE - depth;
+	}
+
+	// Returns true if score is a checkmate score
+	constexpr bool isMateScore(int score) {
+		return score >= (SCORE_CHECKMATE / 2) || score <= (-SCORE_CHECKMATE / 2);
+	}
+
+	// Returns moves until checkmate from a given score
+	constexpr int movesTilMate(int score) {
+		if (!isMateScore(score))
+			return 0;
+		return std::max(1, ((SCORE_CHECKMATE - abs(score) - 1) / 2) + 1);
+	}
+
 }
 
 #endif

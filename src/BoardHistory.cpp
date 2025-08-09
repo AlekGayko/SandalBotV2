@@ -47,12 +47,18 @@ namespace SandalBot {
 
 	// Returns a boolean, depending on whether a given hash causes a threefold-repetition
 	bool BoardHistory::contains(const HashKey key) const {
-		if (numBoards <= 2) return false;
-
-		int start = numBoards - 2;
+		if (numBoards <= 3) return false;
+		
+		int seenPositions = 1;
+		int start = numBoards - 3;
 		int end = startSearchIndicies[numBoards];
-		for (int i = start; i >= end; i--) {
-			if (hashHistory[i] == key) return true;
+
+		for (int i = start; i >= end; i -= 2) {
+			if (hashHistory[i] == key) {
+				seenPositions++;
+				if (seenPositions >= 3)
+					return true;
+			}
 		}
 		return false;
 	}

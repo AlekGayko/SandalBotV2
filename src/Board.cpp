@@ -12,6 +12,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -50,7 +52,7 @@ namespace SandalBot {
 
 			pieceCount[piece] += 1;
 
-			sideValues[color] += PieceEvaluations::pieceVals[type];
+			sideValues[color] += pieceScores[type];
 			pieceSquareValues[color] += PieceEvaluations::sqEvals[type][color == WHITE ? sq : flipRow(sq)];
 
 			if (type != PAWN && type != KING) {
@@ -123,14 +125,13 @@ namespace SandalBot {
 		Bitboard newZobristHash = state->zobristHash;
 		int fiftyMoveCounter = (piece == makePiece(PAWN, mSideToMove) || capturedPiece != NO_PIECE) ? 0 : state->fiftyMoveCounter + 1;
 
-		if (typeOf(capturedPiece) == KING) {
-			printBoard();
-			std::cout << "checkBB: \n";
-			printBB(state->checkBB);
-			std::cout << "move: " << move << std::endl;
-		}
-
 		assert(typeOf(capturedPiece) != KING);
+		if (piece == NO_PIECE) {
+			std::cout << "move: " << move << std::endl;
+			printBoard();
+			printBitboards();
+			std::this_thread::sleep_for(std::chrono::seconds(100));
+		}
 		assert(piece != NO_PIECE);
 
 		newZobristHash ^= ZobristHash::whiteMoveHash; // Change hash move side
@@ -343,7 +344,7 @@ namespace SandalBot {
 
 		Square evalSq = colorOf(piece) == WHITE ? sq : flipRow(sq);
 
-		sideValues[colorOf(piece)] += PieceEvaluations::pieceVals[typeOf(piece)];
+		sideValues[colorOf(piece)] += pieceScores[typeOf(piece)];
 		pieceSquareValues[colorOf(piece)] += PieceEvaluations::sqEvals[typeOf(piece)][evalSq];
 
 		if (typeOf(piece) != PAWN) {
@@ -368,7 +369,7 @@ namespace SandalBot {
 		squares[sq] = NO_PIECE;
 
 		Square evalSq = colorOf(piece) == WHITE ? sq : flipRow(sq);
-		sideValues[colorOf(piece)] -= PieceEvaluations::pieceVals[typeOf(piece)];
+		sideValues[colorOf(piece)] -= pieceScores[typeOf(piece)];
 		pieceSquareValues[colorOf(piece)] -= PieceEvaluations::sqEvals[typeOf(piece)][evalSq];
 
 		if (typeOf(piece) != PAWN) {
@@ -530,6 +531,50 @@ namespace SandalBot {
 		}
 
 		return !(state->checkBlockers[mSideToMove] & (1ULL << from)) || (getLineBB(from, to) & (1ULL << kSq));
+	}
+
+	// Tests if a move is pseudolegal. Does not cover all edge cases like promotions or checks
+	bool Board::pseudolegal(Move move) const {
+		Square from = move.from();
+		Square to = move.to();
+		PieceType type = typeOf(squares[from]);
+		Color color = colorOf(squares[from]);
+
+		// If moving nothing or moving other side piece
+		if (type == NO_PIECE_TYPE || color != mSideToMove) {
+			return false;
+		}
+		// If capturing own piece
+		if ((1ULL << to) & sidePieces(mSideToMove)) {
+			return false;
+		}
+
+		Bitboard toBB = 1ULL << to;
+		Bitboard moveBB;
+		
+		switch (type) {
+		case PAWN:
+			moveBB = (1ULL << (from + pawnPush(mSideToMove))) & ~pieces();
+			if (move.flag() == Move::Flag::PAWN_TWO_SQUARES) {
+				moveBB |= moveBB != 0ULL ? (1ULL << (from + pawnPush(mSideToMove) + pawnPush(mSideToMove))) & ~pieces() : 0ULL;
+			} 
+			// If en passant square and no en passant available
+			if (move.flag() == Move::Flag::EN_PASSANT && state->enPassantSquare == NONE_SQUARE) {
+				return false;
+			} 
+			// If en passant, there is en passant square available and pawn is able to travel there diagonally
+			else if (move.flag() == Move::Flag::EN_PASSANT && state->enPassantSquare != NONE_SQUARE 
+				&& (getPawnAttackMoves(from, mSideToMove) & (1ULL << state->enPassantSquare)) != 0ULL) {
+				return true;
+			}
+			moveBB |= getPawnAttackMoves(from, mSideToMove) & sidePieces(~mSideToMove);
+			break;
+		default:
+			moveBB = getAttackBoard(from, mSideToMove, type, pieces());
+		}
+
+
+		return toBB & moveBB;
 	}
 
 	// seeGE (Static Exchnage Evaluation Greater than or Equal) evaluates whether a capturing move
